@@ -1,0 +1,25 @@
+format: 1
+id: "bcyzp80h"
+titre: "Küchenwörter (Beispielkurs)"
+langue: "de"
+types_de_carte:
+  k: "Küchengerät"
+  z: "Zutat"
+  t: "Zubereitung"
+leitner:
+  intervalles: [0, 1, 2, 4, 8, 16]
+  nouvelles_par_seance: 15
+derogation_diffusion:
+  motif: "Cours d'exemple, inventé pour le poste et la CI : il n'a rien à relire."
+  date: "2026-11-04"
+modules:
+  - "cartes/01-geraete.yaml"
+  - "cartes/02-zutaten.yaml"
+  - "cartes/03-zubereitung.yaml"
+  - "morphologie.yaml"
+  - "schemas/herd.yaml"
+  - "schemas/messer.yaml"
+  - "rezepte.yaml"
+  - "grammatik.yaml"
+  - "feuilles/blatt-01.yaml"
+  - "examen.yaml"

@@ -1,0 +1,31 @@
+# Le contexte de construction ne contient que ce que le Dockerfile copie : manifestes, sources,
+# scripts, configuration de construction et `exemple-contenu/` (copié dans l'étape d'exécution de
+# l'image, jamais dans celle qui construit le client). Tout le reste est exclu, à commencer par
+# `instance`, `contenu`, `references` et `config` : le contenu de l'instance n'entre jamais dans
+# l'image (S1-D12, ADR-0011). Un clone du code n'en porte pas ; aucune image ne les prendrait si on
+# les y posait.
+instance
+contenu
+references
+config
+node_modules
+dist
+.git
+.github
+.githooks
+scripts/modele
+.superpowers
+.claude
+.local
+playwright-report
+test-results
+coverage
+reports
+.stryker-tmp
+docs
+e2e
+deploiement
+*.sqlite
+*.sqlite-*
+*.db
+.env*

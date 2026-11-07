@@ -1,0 +1,38 @@
+type: "schema"
+id: "9mgr1em6"
+titre: "Das Küchenmesser"
+statut: "source"
+description: "Die Teile eines Messers, von der Spitze bis zum Griff"
+dessin: "messer.svg"
+note: "Grobe Skizze eines Kochmessers, seitlich gesehen."
+points:
+  - id: "c8nnzqjd"
+    x: 24
+    y: 70
+    terme: "Spitze"
+    sens: "vorderes, spitzes Ende der Klinge"
+  - id: "38mp7ma6"
+    x: 110
+    y: 65
+    terme: "Klingenrücken"
+    sens: "stumpfe obere Kante der Klinge"
+  - id: "ddgc4rn8"
+    x: 110
+    y: 101
+    terme: "Schneide"
+    sens: "scharfe untere Kante der Klinge"
+  - id: "7zcbg1ak"
+    x: 206
+    y: 86
+    terme: "Kropf"
+    sens: "Verdickung zwischen Klinge und Griff"
+  - id: "y1rvbsmc"
+    x: 238
+    y: 85
+    terme: "Niete"
+    sens: "Metallstift, der den Griff zusammenhält"
+  - id: "3c7zprd8"
+    x: 262
+    y: 100
+    terme: "Griff"
+    sens: "Teil, an dem die Hand das Messer hält"

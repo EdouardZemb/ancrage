@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "rootDir": "src",
+    "outDir": "dist",
+    "noEmit": false,
+    // La porte de l'image (S1-D12, job `image` de ci.yml) cherche les textes du cours dans `dist/` :
+    // un commentaire du code qui citerait un titre du cours la ferait échouer (ADR-0011).
+    "removeComments": true
+  },
+  "include": ["src/serveur", "src/domaine"],
+  "exclude": ["**/*.test.ts", "**/*.fixture.ts"]
+}

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 340">
+<rect class="o2" x="30" y="40" width="260" height="282" rx="14"/>
+<rect class="air" x="44" y="54" width="232" height="120" rx="8"/>
+<circle class="o" cx="100" cy="92" r="26"/><circle class="o" cx="222" cy="88" r="20"/>
+<circle class="o" cx="96" cy="146" r="18"/><circle class="o" cx="220" cy="140" r="26"/>
+<circle class="o" cx="70" cy="192" r="8"/><circle class="o" cx="120" cy="192" r="8"/>
+<circle class="o" cx="170" cy="192" r="8"/><circle class="o" cx="220" cy="192" r="8"/>
+<rect class="air" x="50" y="208" width="220" height="100" rx="8"/>
+<path class="bl" stroke-width="6" d="M90 224 L230 224"/>
+<rect class="o" x="76" y="240" width="168" height="54" rx="6"/>
+</svg>

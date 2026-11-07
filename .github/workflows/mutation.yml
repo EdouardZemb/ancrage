@@ -1,0 +1,83 @@
+name: Mutation
+
+# Tests de mutation (Stryker) sur `src/domaine` (ADR-0006), sur l'export, la purge et la
+# suppression de compte (lot 1f) et sur le module `acces` du serveur (lot 2c) : une PR qui touche
+# ces sources, leurs tests, les fixtures et les sources que ceux-ci et ces sources importent
+# directement, la configuration de Stryker ou ce workflow est contrôlée, et une passe complète a
+# lieu chaque lundi. Le seuil bloquant est dans `stryker.config.json` (`thresholds.break`).
+#
+# La passe se fait en deux groupes parallèles, `domaine` et `serveur` (ancrage-donnees#156) : en un seul job, elle
+# approchait le délai de 20 minutes. Chaque groupe prend dans `stryker.config.json` les globs de son
+# dossier (`scripts/mutation-groupe.mjs`), de sorte que la liste reste unique ; chacun est tenu au
+# seuil de 90 %.
+on:
+  pull_request:
+    paths:
+      - 'src/domaine/**'
+      - 'src/serveur/acces/index.ts'
+      - 'src/serveur/acces/acces.test.ts'
+      - 'src/serveur/comptes/jetons.ts'
+      - 'src/serveur/comptes/export.ts'
+      - 'src/serveur/comptes/export.test.ts'
+      - 'src/serveur/comptes/purge.ts'
+      - 'src/serveur/comptes/purge.test.ts'
+      - 'src/serveur/comptes/suppression.ts'
+      - 'src/serveur/comptes/suppression.test.ts'
+      - 'src/serveur/comptes/depot.ts'
+      - 'src/serveur/comptes/depot-droits.ts'
+      - 'src/serveur/base/base.ts'
+      - 'src/serveur/base/schema.ts'
+      - 'src/serveur/base/schema.fixture.ts'
+      - 'src/serveur/base/wal.fixture.ts'
+      - 'src/serveur/environnement.fixture.ts'
+      - 'src/serveur/reponses.fixture.ts'
+      - 'src/serveur/cours-factices.fixture.ts'
+      - 'src/serveur/journal/depot-journal.ts'
+      - 'src/serveur/journal/evenements.fixture.ts'
+      - 'stryker.config.json'
+      - 'scripts/mutation-groupe.mjs'
+      - 'package.json'
+      - '.github/workflows/mutation.yml'
+  schedule:
+    - cron: '0 3 * * 1' # lundi, 03:00 UTC
+  workflow_dispatch:
+
+# Une PR annule sa passe précédente : chaque PR de Dependabot touche package.json, et un rebase la
+# relancerait. La passe du lundi, sur main, n'est jamais annulée (lot 1g).
+concurrency:
+  group: mutation-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  mutation:
+    name: mutation (${{ matrix.groupe }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        groupe: [domaine, serveur]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # corepack doit être actif avant setup-node : le cache pnpm appelle `pnpm store path`.
+      - run: corepack enable
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Fichiers du groupe
+        id: fichiers
+        env:
+          GROUPE: ${{ matrix.groupe }}
+        run: |
+          fichiers=$(node scripts/mutation-groupe.mjs "$GROUPE")
+          echo "fichiers=$fichiers" >> "$GITHUB_OUTPUT"
+      - run: pnpm mutation --mutate "$FICHIERS"
+        env:
+          FICHIERS: ${{ steps.fichiers.outputs.fichiers }}

@@ -1,0 +1,62 @@
+type: "texte-annote"
+id: "pm8segjh"
+titre: "Rezepte"
+statut: "source"
+description: "Kurzformen in Rezepten lesen"
+consigne: "Drei ausgedachte Rezepte: sag, wofür jede markierte Kurzform steht, dann löse die Fragen zum Text."
+reussite: 0.8
+textes:
+  - id: "87n5dzpz"
+    titre: "Rösti"
+    texte: "Am Vortag 800 [[g|Gramm|870kra6b]] Kartoffeln in der Schale kochen. Am nächsten Tag schälen und grob raffeln. 2 [[EL|Esslöffel|92y1t4bp]] Butter in der Bratpfanne erhitzen, die Kartoffeln mit 1 [[TL|Teelöffel|8tg75qak]] Salz würzen und 15 [[Min.|Minuten|cxav1wtt]] braten, bis unten eine goldene Kruste entsteht."
+    questions:
+      - id: "1f6am6a7"
+        question: "Wann werden die Kartoffeln gekocht?"
+        reponse: "Am Vortag"
+        distracteurs:
+          - "Kurz vor dem Essen"
+          - "Nach dem Raffeln"
+          - "Gar nicht"
+      - id: "342zdwmm"
+        question: "Womit werden die Kartoffeln gewürzt?"
+        reponse: "Mit Salz"
+        distracteurs:
+          - "Mit Zucker"
+          - "Mit Zimt"
+          - "Mit Essig"
+  - id: "x0k12c2c"
+    titre: "Apfelwähe"
+    texte: "250 g Mehl, 125 g Butter und 1 [[Pr.|Prise|99000svr]] Salz von Hand krümelig reiben. 1 [[dl|Deziliter|vd5phzd0]] kaltes Wasser beigeben, rasch zu einem Teig zusammenfügen und auswallen. Das Blech damit auslegen, mit Apfelschnitzen belegen und 2 dl Rahm mit zwei Eiern darübergiessen. Bei 200 [[°C|Grad Celsius|ge6yxy2b]] [[ca.|zirka|bpqqpfp7]] 35 Minuten backen."
+    questions:
+      - id: "qdgz0503"
+        question: "Wie viel Wasser kommt in den Teig?"
+        reponse: "Ein Deziliter"
+        distracteurs:
+          - "Zwei Deziliter"
+          - "Ein Liter"
+          - "Ein Esslöffel"
+      - id: "nnnmy8dk"
+        question: "Was wird über die Äpfel gegossen?"
+        reponse: "Rahm mit Eiern"
+        distracteurs:
+          - "Kaltes Wasser"
+          - "Geschmolzene Butter"
+          - "Zuckersirup"
+  - id: "rt0tw5xx"
+    titre: "Gemüsesuppe"
+    texte: "Lauch, Rüebli und Sellerie rüsten und in Würfel schneiden. Das Gemüse in wenig Butter dünsten, mit 1 [[l|Liter|f9xqq2cs]] Wasser ablöschen und eine halbe [[Std.|Stunde|x71zd83w]] köcheln lassen. Mit 1 [[Msp.|Messerspitze|t4xma1kq]] Muskat abschmecken und [[evtl.|eventuell|6heae0ah]] etwas Rahm beigeben."
+    questions:
+      - id: "j3hfgthn"
+        question: "Wie lange köchelt die Suppe?"
+        reponse: "Eine halbe Stunde"
+        distracteurs:
+          - "Fünf Minuten"
+          - "Zwei Stunden"
+          - "Die ganze Nacht"
+      - id: "w7gbpr4a"
+        question: "Welches Gewürz kommt am Schluss dazu?"
+        reponse: "Muskat"
+        distracteurs:
+          - "Zimt"
+          - "Vanille"
+          - "Safran"

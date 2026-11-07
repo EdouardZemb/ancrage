@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "testRunner": "vitest",
+  "plugins": ["@stryker-mutator/vitest-runner"],
+  "plugins_comment": "Avec pnpm, Stryker ne trouve pas le lanceur vitest tout seul : on le nomme. Relu au lot 2c avec Stryker 10.0.0 : sans lui, « Cannot find TestRunner plugin vitest ».",
+  "mutate": [
+    "src/domaine/acces.ts",
+    "src/serveur/acces/index.ts",
+    "src/domaine/journal/*.ts",
+    "!src/domaine/journal/*.test.ts",
+    "src/domaine/progression/etat.ts",
+    "src/domaine/feuilles/deroulement.ts",
+    "src/domaine/feuilles/correction.ts",
+    "src/domaine/seances/feuilles.ts",
+    "src/domaine/notice.ts",
+    "src/serveur/comptes/export.ts",
+    "src/serveur/comptes/purge.ts",
+    "src/serveur/comptes/suppression.ts"
+  ],
+  "thresholds": { "high": 95, "low": 90, "break": 90 },
+  "reporters": ["clear-text", "progress", "html"],
+  "htmlReporter": { "fileName": "reports/mutation/mutation.html" },
+  "vitest": { "configFile": "vitest.config.ts" },
+  "tsconfigFile": "tsconfig.stryker-sans-reecriture.json",
+  "tsconfigFile_comment": "Stryker réécrit le tsconfig avec l'API JavaScript de TypeScript, absente de TypeScript 7 (compilateur natif). Notre tsconfig.json n'a ni extends ni references hors du dépôt : la réécriture ne changerait rien. Ce fichier n'existe pas exprès, pour que Stryker saute la réécriture. Relu au lot 2c avec Stryker 10.0.0 : sans lui, « ts.parseConfigFileTextToJson is not a function »."
+}

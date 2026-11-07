@@ -1,0 +1,81 @@
+{
+  "name": "ancrage",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.34.2",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:deploiement": "sh tests/deploiement/lancer.sh",
+    "lint": "biome check .",
+    "duplication": "jscpd",
+    "types": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.sw.json --noEmit && tsc -p tsconfig.serveur.json --noEmit",
+    "dev:serveur": "tsx watch src/serveur/main.ts",
+    "dev:client": "vite",
+    "build": "vite build && tsc -p tsconfig.serveur.json && node scripts/copier-migrations.mjs",
+    "e2e": "playwright test",
+    "e2e:mise-a-jour": "node scripts/construire-deux-clients.mjs && playwright test --config playwright.mise-a-jour.config.ts",
+    "mutation": "stryker run",
+    "start": "node dist/serveur/main.js",
+    "base:generer": "drizzle-kit generate",
+    "contenus:verifier": "tsx src/serveur/contenus/cli.ts verifier",
+    "contenus:id": "tsx src/serveur/contenus/cli.ts id",
+    "contenus:verrouiller": "tsx src/serveur/contenus/cli.ts verrouiller",
+    "contenus:reference": "tsx src/serveur/contenus/cli.ts reference",
+    "contenus:client": "tsx src/serveur/contenus/cli.ts client",
+    "contenus:a-verifier": "tsx src/serveur/contenus/cli.ts a-verifier"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.1.5",
+    "@fastify/rate-limit": "^11.2.1",
+    "@fastify/static": "^10.1.8",
+    "@fontsource-variable/archivo": "^5.3.0",
+    "@fontsource-variable/source-sans-3": "^5.3.1",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@simplewebauthn/browser": "^14.0.0",
+    "@simplewebauthn/server": "^14.0.3",
+    "better-sqlite3": "^13.0.3",
+    "drizzle-orm": "^0.45.4",
+    "fastify": "^5.12.8",
+    "idb": "^8.0.4",
+    "preact": "^11.1.1",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.29.7",
+    "@biomejs/biome": "^2.6.4",
+    "@playwright/test": "^1.64.1",
+    "@preact/preset-vite": "^2.10.6",
+    "@stryker-mutator/core": "^10.0.0",
+    "@stryker-mutator/vitest-runner": "^10.0.0",
+    "@testing-library/preact": "^3.2.6",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^24.19.2",
+    "drizzle-kit": "^0.31.11",
+    "fake-indexeddb": "^6.2.7",
+    "happy-dom": "^21.0.4",
+    "jscpd": "^5.4.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.1.0",
+    "workbox-build": "^7.4.1",
+    "workbox-precaching": "^7.4.1",
+    "workbox-routing": "^7.4.1"
+  },
+  "pnpm": {
+    "ignoredBuiltDependencies": [
+      "better-sqlite3",
+      "esbuild"
+    ],
+    "overrides": {
+      "qs": "^6.16.1",
+      "@esbuild-kit/core-utils>esbuild": "^0.25.12"
+    }
+  }
+}

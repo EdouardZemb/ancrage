@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 170">
+<path class="air" d="M18 70 L198 60 L198 112 Q110 112 18 70 Z"/>
+<rect class="o2" x="198" y="54" width="16" height="64" rx="4"/>
+<rect class="o" x="214" y="64" width="92" height="42" rx="16"/>
+<circle class="air" cx="238" cy="85" r="5"/><circle class="air" cx="262" cy="85" r="5"/>
+<circle class="air" cx="286" cy="85" r="5"/>
+</svg>

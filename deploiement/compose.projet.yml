@@ -1,0 +1,9 @@
+# Ajouts du projet au service `app` du modèle (compose.yml, qui reste géré par le modèle) :
+# volumes, variables d'environnement, mem_limit… Compose fusionne ce fichier avec le premier.
+#
+# Le `mem_limit` d'ancrage (384m) est celui du modèle : rien à ajouter à `app`.
+services:
+  app: {}
+
+  # L'ancien tunnel d'ancrage (service `cloudflared`) est sorti du compose à la version N+1 :
+  # voir `docs/exploitation.md`, « Le tunnel commun ».

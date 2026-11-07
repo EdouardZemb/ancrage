@@ -1,0 +1,275 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+  push:
+    branches: [main]
+
+# Une PR annule son exécution précédente. Un push sur main ne doit jamais annuler une publication
+# d'image en cours : il attend son tour (GitHub n'en garde alors qu'un en attente).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+# Ce dépôt porte le code. Le contrôle du contenu de l'instance (verrou des identifiants, instantanés de
+# référence, recherche du cours dans le client construit et dans l'image, tests de la compétence
+# /feuille) est parti au dépôt de données, dont la CI prend ce code (S3-D5). Ici, seul le cours
+# d'exemple est contrôlé.
+
+jobs:
+  # Le socle du modèle (modele-projet) : recherche de secrets, confidentialité, format des commits,
+  # actions épinglées. Il remplace l'ancien job `secrets`.
+  socle:
+    uses: ./.github/workflows/modele-socle.yml
+    secrets: inherit
+    permissions:
+      contents: read
+      pull-requests: read
+
+  verifier:
+    name: verifier
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Vrai pour une PR de documentation pure (2b-D1) : `deploiement` et `image` sautent alors leurs
+    # étapes coûteuses (par des `if:` d'étape, jamais de job : un job sauté n'est pas « vert » pour le
+    # garde de fusion).
+    outputs:
+      docs_seules: ${{ steps.nature.outputs.docs_seules }}
+    steps:
+      # Historique complet : le verrou des identifiants est comparé à celui de la base de la PR (ou
+      # du push).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # corepack doit être actif avant setup-node : le cache pnpm appelle `pnpm store path`.
+      - run: corepack enable
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      # La règle est `src/outillage/documentation-seule.ts` (testée). Les renommages comptent par
+      # leurs deux noms (`--no-renames`). Hors d'une PR, ou au moindre échec : `false`, tout tourne.
+      - name: Reconnaître une PR de documentation pure
+        id: nature
+        env:
+          EVENEMENT: ${{ github.event_name }}
+        run: |
+          set -o pipefail
+          resultat=false
+          if [ "$EVENEMENT" = "pull_request" ]; then
+            resultat="$(git diff --name-only --no-renames HEAD^1 HEAD | node src/outillage/documentation-seule.ts)" || resultat=false
+          fi
+          [ "$resultat" = "true" ] || resultat=false
+          echo "docs_seules=$resultat" >> "$GITHUB_OUTPUT"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      # Aucune copie de 10 lignes ou plus, tests compris (1f-D4) : `.jscpd.json` règle la porte.
+      - name: Chercher les copies (jscpd)
+        run: pnpm duplication
+      - run: pnpm types
+      - run: pnpm test
+
+      # La CI exerce drizzle-kit (0.x) : la génération ne pose aucune question, ne plante pas et ne
+      # produit rien de nouveau, sinon le schéma et les migrations divergent.
+      - name: Générer les migrations à vide (drizzle-kit)
+        run: |
+          timeout 120 pnpm base:generer < /dev/null
+          if [ -n "$(git status --porcelain -- src/serveur/base/migrations)" ]; then
+            echo "::error::pnpm base:generer a changé src/serveur/base/migrations : le schéma et les migrations divergent."
+            git status --porcelain -- src/serveur/base/migrations
+            exit 1
+          fi
+
+      # Le cours d'exemple (S1-D11), que le serveur sert hors de la prod sans contenu monté. Le verrou ne
+      # fait que grandir : on le compare à celui de la base (le commit de la branche cible que la PR
+      # rejoint, le commit précédent d'un push). Sans base (`before` vide ou fait de 40 zéros : la
+      # branche vient d'être créée), seul le contrôle du contenu a lieu.
+      - name: Contrôler le cours d'exemple et son verrou des identifiants
+        env:
+          EVENEMENT: ${{ github.event_name }}
+          AVANT: ${{ github.event.before }}
+        run: |
+          if [ "$EVENEMENT" = "pull_request" ]; then
+            # Premier parent du commit de fusion vérifié, et non `origin/<base>` : une relance après
+            # la fusion d'une autre PR comparait à un `origin/main` plus récent (faux « disparu »).
+            base="$(git rev-parse HEAD^1)"
+          else
+            base="$AVANT"
+          fi
+          if [ -z "${base//0/}" ]; then
+            pnpm contenus:verifier
+          else
+            pnpm contenus:verifier --base "$base"
+          fi
+
+      - run: pnpm build
+
+      # Aucun texte de cours dans le code envoyé au navigateur (invariant 3), pas même ceux de l'exemple,
+      # que seule l'API sert.
+      - run: pnpm contenus:client
+
+  # Les tests bats des scripts de déploiement, dans leur image (tests/deploiement/Dockerfile : age
+  # et sops aux versions du serveur) : la même commande qu'en local, rien à installer sur le runner.
+  # Le banc est celui du modèle (modele-projet, cible `serveur`).
+  deploiement:
+    name: deploiement
+    needs: verifier
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Banc des scripts de déploiement
+        if: needs.verifier.outputs.docs_seules != 'true'
+        run: sh tests/deploiement/lancer.sh
+
+  # Construit l'image du Dockerfile, la lance comme en production et la vérifie (action
+  # modele-image-construire : deploiement/ci/verifier-image.sh contrôle la santé, la révision du
+  # commit, l'environnement `ci`, puis SAUVEGARDER et VERIFIER de deploiement/projet.env dans le
+  # conteneur, et VERIFIER_CONTENU sur exemple-contenu/), lui fait passer le test de bout en bout, sur le
+  # cours d'exemple, y exerce le report d'une restauration (REPORTER), puis (push sur main
+  # seulement) la publie sur GHCR (action modele-image-publier). C'est le seul producteur des
+  # images `:main` (staging) et `:sha-<sha>` (base des versions, que modele-version.yml
+  # réétiquette). ADR-0006, M-0004 : aucune image n'est publiée pour un commit dont la CI échoue,
+  # d'où `socle` et `deploiement` aussi.
+  image:
+    name: image
+    needs: [verifier, socle, deploiement]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      # Nécessaire seulement au push sur main ; sur une PR, la publication est sautée.
+      packages: write
+    steps:
+      # Le dépôt est nécessaire pour Playwright (e2e/, configuration), pas pour le Dockerfile seul.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # corepack doit être actif avant setup-node : le cache pnpm appelle `pnpm store path`.
+      - run: corepack enable
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: "Documentation pure : image et bout en bout sautés"
+        if: needs.verifier.outputs.docs_seules == 'true'
+        run: |
+          echo "Documentation pure (2b-D1) : la PR ne change que de la documentation, l'image et le bout en bout sont sautés." >> "$GITHUB_STEP_SUMMARY"
+      - name: Installer les dépendances
+        if: needs.verifier.outputs.docs_seules != 'true'
+        run: pnpm install --frozen-lockfile
+
+      # Le conteneur ancrage reste lancé, sur http://localhost:3000, pour les étapes suivantes. La
+      # mécanique ne pose que ANCRAGE_ENV=ci et ANCRAGE_URL_PUBLIQUE : l'app n'en demande pas d'autre.
+      - uses: ./.github/actions/modele-image-construire
+        if: needs.verifier.outputs.docs_seules != 'true'
+
+      - name: Installer Playwright
+        if: needs.verifier.outputs.docs_seules != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+
+      # Le lien d'invitation du propriétaire, pour le parcours de bout en bout (`e2e/amorcage.ts`).
+      # C'est un secret, même jetable : masqué avant tout affichage (R87). Un échec tardif, après
+      # l'écriture du lien, le rendrait avec le message d'erreur : chaque ligne qui porte une adresse
+      # est masquée d'abord, puis l'échec montre la sortie, le lien en `***`, le message en clair.
+      - name: Créer le lien du propriétaire
+        if: needs.verifier.outputs.docs_seules != 'true'
+        run: |
+          code=0
+          lien="$(docker exec ancrage node dist/serveur/cli.js proprietaire)" || code=$?
+          while IFS= read -r ligne; do
+            case "$ligne" in
+              *://* | */invitation/* | */lien/*)
+                echo "::add-mask::$ligne"
+                # Le jeton seul (dernier segment du lien) : GitHub masque la chaîne exacte, et masquer
+                # le lien entier ne masque pas le jeton seul.
+                jeton="${ligne%/}"
+                jeton="${jeton##*/}"
+                [ -z "$jeton" ] || echo "::add-mask::$jeton"
+                ;;
+            esac
+          done <<< "$lien"
+          if [ "$code" -ne 0 ]; then
+            echo "::error::cli.js proprietaire a échoué (code $code) : $lien"
+            exit 1
+          fi
+          echo "::add-mask::$lien"
+          echo "E2E_LIEN_PROPRIETAIRE=$lien" >> "$GITHUB_ENV"
+
+      # `localhost` et non `127.0.0.1` : WebAuthn refuse une adresse IP comme identifiant de la
+      # partie de confiance. Sur le runner, `localhost` mène au port publié sur 127.0.0.1.
+      - name: Test de bout en bout contre l'image
+        if: needs.verifier.outputs.docs_seules != 'true'
+        run: pnpm e2e
+        env:
+          E2E_URL: http://localhost:3000
+          E2E_ENV: ci
+
+      # Le report d'une restauration (REPORTER de deploiement/projet.env), lancé comme restaurer.sh
+      # le lance : un conteneur jetable de l'image, avec les options de lib.sh, sur deux copies d'un
+      # instantané du conteneur de test, /actuel et /donnees. verifier-image.sh ne l'exerce pas, et
+      # M-0003 le laisse au projet (ancrage-donnees#118). Après le test de bout en bout : la commande refuse une base
+      # en service sans compte, et le parcours de compte y laisse le propriétaire et une suppression
+      # au registre. `docker cp` ne lit pas un tmpfs (/tmp), d'où tar ; les copies sont à
+      # l'utilisateur 1000, comme les données sur le serveur. Le contrat : code 0 et un seul objet
+      # JSON, le rapport.
+      - name: Exercer le report contre l'image
+        if: needs.verifier.outputs.docs_seules != 'true'
+        run: |
+          set -euo pipefail
+          . deploiement/lib.sh
+          copies="$RUNNER_TEMP/report"
+          mkdir -p "$copies/actuel" "$copies/donnees"
+          lire_projet_env SAUVEGARDER
+          docker exec ancrage "${PROJET_MOTS[@]}" /tmp/report
+          for copie in actuel donnees; do
+            docker exec ancrage tar -C /tmp/report -cf - . | tar -xf - -C "$copies/$copie"
+          done
+          sudo chown -R 1000:1000 "$copies/actuel" "$copies/donnees"
+          lire_projet_env REPORTER
+          code=0
+          rapport="$(docker run --rm "${ANCRAGE_OPTIONS_JETABLES[@]}" -v "$copies/actuel:/actuel" \
+            -v "$copies/donnees:/donnees" ancrage:ci "${PROJET_MOTS[@]}" /actuel /donnees)" || code=$?
+          if [ "$code" -ne 0 ]; then
+            echo "::error::REPORTER a échoué contre l'image (code $code) : $rapport"
+            exit 1
+          fi
+          # Le contrôle de restaurer.sh (lancer_reporter) : pas de `jq -e .`, qui rend 0 sur une
+          # entrée vide (jq 1.6) et admet un nombre, une chaîne ou deux documents à la suite.
+          if [ -z "${rapport//[[:space:]]/}" ] \
+            || ! printf '%s\n' "$rapport" | jq -e -s 'length == 1 and (.[0] | type == "object")' >/dev/null 2>&1; then
+            echo "::error::REPORTER a rendu 0, mais sa sortie n'est pas un seul objet JSON : $rapport"
+            exit 1
+          fi
+          echo "report fait (reporter : code 0) : $rapport"
+
+      # Deux versions du client servies à la suite sur la même origine (2a-D8) : le téléphone passe
+      # à la nouvelle au bon moment, jamais en pleine séance. Le test lance lui-même le serveur
+      # construit, sur http://localhost:3100, avec chacun des deux clients : ni l'image ni son
+      # conteneur n'y servent.
+      - name: Passer d'une version à l'autre
+        if: needs.verifier.outputs.docs_seules != 'true'
+        run: pnpm build && pnpm e2e:mise-a-jour
+
+      - uses: ./.github/actions/modele-image-publier
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+      # Après un échec (e2e, révision…), le journal du serveur aide à comprendre. Le conteneur peut
+      # ne pas exister (échec avant `docker run`) : on le tolère.
+      - name: Journal du conteneur
+        if: failure() && needs.verifier.outputs.docs_seules != 'true'
+        run: docker logs ancrage || true
+
+      # `-v` : le volume anonyme de /donnees part avec le conteneur.
+      - name: Supprimer le conteneur
+        if: always() && needs.verifier.outputs.docs_seules != 'true'
+        run: docker rm -f -v ancrage

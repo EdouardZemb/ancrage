@@ -1,0 +1,111 @@
+type: "feuille"
+id: "rkp5s63g"
+numero: 1
+titre: "Arbeitsblatt 1 – In der Küche"
+statut: "source"
+parties:
+  - titre: "Teil A: Geräte und Zutaten"
+    taches:
+      - id: "n60t4c9j"
+        genre: "appariement"
+        consigne: "Verbinde jedes Gerät mit seiner Aufgabe."
+        paires:
+          - id: "2202efbv"
+            terme: "Schwingbesen"
+            cible: "Rahm steif schlagen"
+          - id: "tqx21vm0"
+            terme: "Sieb"
+            cible: "Teigwaren abgiessen"
+          - id: "qwtkw698"
+            terme: "Reibe"
+            cible: "Käse raffeln"
+          - id: "wm4rvg2e"
+            terme: "Schöpfkelle"
+            cible: "Suppe anrichten"
+      - id: "wk908dw2"
+        genre: "classement"
+        consigne: "Ordne jede Zutat ihrer Gruppe zu."
+        categories:
+          - "Gemüse"
+          - "Milchprodukt"
+        elements:
+          - id: "rzhtskyb"
+            terme: "Lauch"
+            categorie: "Gemüse"
+          - id: "cgs579dr"
+            terme: "Rüebli"
+            categorie: "Gemüse"
+          - id: "650w7h2m"
+            terme: "Joghurt"
+            categorie: "Milchprodukt"
+          - id: "0002kzbe"
+            terme: "Quark"
+            categorie: "Milchprodukt"
+  - titre: "Teil B: Auswählen"
+    taches:
+      - id: "hjsazne9"
+        genre: "qcm"
+        consigne: "Welche Antwort passt? Wähle sie aus."
+        questions:
+          - id: "wpvqe83y"
+            question: "Womit misst du einen Deziliter Milch ab?"
+            reponse: "Mit dem Messbecher"
+            distracteurs:
+              - "Mit der Reibe"
+              - "Mit dem Schwingbesen"
+              - "Mit dem Wallholz"
+          - id: "dh8hx2ag"
+            question: "Bei wie viel Grad kocht Wasser auf Meereshöhe?"
+            reponse: "Bei 100 °C"
+            distracteurs:
+              - "Bei 60 °C"
+              - "Bei 80 °C"
+              - "Bei 140 °C"
+      - id: "3v4g7ncc"
+        genre: "vrai-faux"
+        consigne: "Stimmt die Aussage oder nicht?"
+        affirmations:
+          - id: "pw9kkdj6"
+            affirmation: "Ein Sieb hält das Wasser zurück."
+            vrai: false
+            correction: "Ein Sieb lässt das Wasser durch und hält die Teigwaren zurück."
+          - id: "rddt5vda"
+            affirmation: "Butter schmilzt in der warmen Pfanne."
+            vrai: true
+  - titre: "Teil C: Ergänzen, dann Fehler finden"
+    taches:
+      - id: "gqjeg6cq"
+        genre: "trous"
+        consigne: "Setz das passende Wort aus der Liste ein."
+        liste:
+          - "Ofen"
+          - "Pfanne"
+          - "Kühlschrank"
+        phrases:
+          - id: "stzzp68p"
+            texte: "Den Kuchen backst du im ___."
+            reponses:
+              - "Ofen"
+          - id: "m9a9ekgf"
+            texte: "Die Milch bleibt im ___ frisch."
+            reponses:
+              - "Kühlschrank"
+      - id: "hgmas953"
+        genre: "orthographe"
+        consigne: "Schreib das Wort richtig."
+        mots:
+          - id: "w9yv8670"
+            fautif: "Kochlöfel"
+            reponse: "Kochlöffel"
+          - id: "thakbdzy"
+            fautif: "Schüsel"
+            reponse: "Schüssel"
+  - titre: "Teil D: Selber schreiben"
+    taches:
+      - id: "xa4mj9vt"
+        genre: "ouverte"
+        consigne: "Antworte in einem ganzen Satz."
+        questions:
+          - id: "18r2txwr"
+            question: "Warum wäschst du das Gemüse vor dem Rüsten?"
+            reponse: "Damit Erde und Schmutz nicht ins Essen kommen."

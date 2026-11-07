@@ -1,0 +1,33 @@
+type: "schema"
+id: "3mj72f3k"
+titre: "Der Kochherd"
+statut: "source"
+description: "Ein Herd mit Kochfeld und Backofen"
+dessin: "herd.svg"
+note: "Grobe Skizze eines Elektroherds, nicht massstäblich."
+points:
+  - id: "vafpanyf"
+    x: 100
+    y: 92
+    terme: "Kochplatte"
+    sens: "runde Fläche, die den Topf erhitzt"
+  - id: "kesfzbhq"
+    x: 160
+    y: 116
+    terme: "Kochfeld"
+    sens: "ganze obere Fläche mit den Platten"
+  - id: "k1ar5xsc"
+    x: 170
+    y: 192
+    terme: "Drehknopf"
+    sens: "Knopf zum Einstellen der Hitze"
+  - id: "7a5vsg0p"
+    x: 160
+    y: 224
+    terme: "Ofengriff"
+    sens: "Stange zum Öffnen der Ofentür"
+  - id: "1fzmkb4x"
+    x: 160
+    y: 268
+    terme: "Backofen"
+    sens: "heisser Kasten zum Backen und Gratinieren"

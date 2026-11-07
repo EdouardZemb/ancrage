@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>ancrage</title>
+  <!-- ancrage : une ancre blanche sur le bleu-vert du prototype. Le fond couvre tout le carré, et
+       l'ancre tient dans la zone sûre d'une icône masquable (un cercle de 80 % au centre). -->
+  <rect width="512" height="512" fill="#0b7f8f"/>
+  <g fill="none" stroke="#fff" stroke-width="32" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="256" cy="138" r="32"/>
+    <path d="M256 170V406"/>
+    <path d="M202 216H310"/>
+    <path d="M180 290H140A116 116 0 0 0 372 290H332"/>
+  </g>
+</svg>

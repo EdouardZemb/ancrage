@@ -1,0 +1,84 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+      timezone: Europe/Zurich
+    cooldown:
+      default-days: 3
+    commit-message:
+      prefix: chore
+    groups:
+      actions:
+        patterns: ["*"]
+  # Les dépendances npm (lot 1g, ancrage-donnees#17) : mineures et correctifs en une PR, chaque majeure à part.
+  # Node est fixé à 24 (`engines`) : pas de majeure de @types/node.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+      timezone: Europe/Zurich
+    cooldown:
+      default-days: 3
+    commit-message:
+      prefix: chore
+    groups:
+      npm:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # pair 7.x de @preact/preset-vite ; retirer quand il accepte la 8
+      - dependency-name: "@babel/core"
+        update-types: ["version-update:semver-major"]
+      # Stryker 10.1.x double la durée de la mutation (lot 2c, 2c-D4) : sur ce poste, 287 mutants
+      # sur 628 au bout de 10 minutes, contre 438 au bout de 8 en 10.0.0. Ni le pool, ni la
+      # concurrence, ni l'analyse de couverture n'y changent rien. Retirer ces deux règles quand une
+      # version corrige, après avoir remesuré (docs/conception/lot-2c.md).
+      - dependency-name: "@stryker-mutator/core"
+        versions: ["10.1.x"]
+      - dependency-name: "@stryker-mutator/vitest-runner"
+        versions: ["10.1.x"]
+  # Les images épinglées par empreinte : le Dockerfile du projet, à la racine, et celui de l'image
+  # de test de la mécanique (tests/deploiement/Dockerfile, géré par le modèle).
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+      timezone: Europe/Zurich
+    cooldown:
+      default-days: 3
+    commit-message:
+      prefix: chore
+    groups:
+      images:
+        patterns: ["*"]
+    # Une majeure d'image de base est une décision, pas une mise à jour de routine (Node est fixé à 24).
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+  # Une seule image, debian, et pas de groupe : il ajouterait « in the images group across 1
+  # directory » au titre de la PR, qui passerait les 100 caractères des en-têtes (ancrage-donnees#154).
+  - package-ecosystem: docker
+    directory: /tests/deploiement
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+      timezone: Europe/Zurich
+    cooldown:
+      default-days: 3
+    commit-message:
+      prefix: chore
+    # Une majeure d'image de base est une décision, pas une mise à jour de routine (Node est fixé à 24).
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]

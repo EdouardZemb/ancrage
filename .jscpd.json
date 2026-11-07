@@ -1,0 +1,11 @@
+{
+  "path": ["src", "e2e", "scripts"],
+  "format": ["typescript", "tsx", "javascript"],
+  "minLines": 10,
+  "threshold": 0,
+  "exitCode": 1,
+  "reporters": ["console"],
+  "ignore": ["**/node_modules/**", "**/dist/**", "scripts/modele/**"],
+  "ignorePattern": ["(?m)^import\\s[^;]*;"],
+  "gitignore": true
+}

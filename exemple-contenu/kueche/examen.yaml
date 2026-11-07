@@ -1,0 +1,17 @@
+type: "examen"
+id: "vt8qnzf0"
+titre: "Prüfung"
+tailles: [10, 20, 30]
+taille_par_defaut: 20
+secondes_par_question: 45
+minutes_minimum: 5
+note_suffisante: 4
+seuil_chapitre: 0.6
+tirage:
+  schema: 0.10
+  texte: 0.17
+  exercice: 0.25
+  feuille: 0.35
+  mot: 0.12
+  direct: 0.45
+  a_taper: 0.72

@@ -15,7 +15,7 @@
 # --- Base de construction --------------------------------------------------------------------
 # node:24-bookworm-slim (Node 24.22.0), résolue le 2026-10-15 ; empreinte de l'index
 # multi-architecture. corepack (livré avec Node 24) installe le pnpm de `packageManager`.
-FROM node:24-bookworm-slim@sha256:c86ecead9e55a5210ac1727de38a4ca840bf03dcaf34dc9749addbf383b1920c AS base
+FROM node:24-bookworm-slim@sha256:01d566e8d94d8c619591d78652babfccd3c6992a3dffa9ed5ab39e11cf6c70e9 AS base
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 WORKDIR /app
 RUN corepack enable
@@ -44,7 +44,7 @@ RUN rm -rf node_modules \
 
 # --- Exécution ---------------------------------------------------------------------------------
 # Même base que ci-dessus, sans corepack activé ni pnpm.
-FROM node:24-bookworm-slim@sha256:c86ecead9e55a5210ac1727de38a4ca840bf03dcaf34dc9749addbf383b1920c AS execution
+FROM node:24-bookworm-slim@sha256:01d566e8d94d8c619591d78652babfccd3c6992a3dffa9ed5ab39e11cf6c70e9 AS execution
 WORKDIR /app
 
 # `/donnees` (base SQLite) et `/sauvegardes` sont les points de montage du compose : ils

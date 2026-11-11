@@ -323,6 +323,11 @@ function analyserCours(
       intervalles: ecrit.leitner.intervalles,
       nouvellesParSeance: ecrit.leitner.nouvelles_par_seance,
     },
+    ...(ecrit.memoire === undefined
+      ? {}
+      : {
+          memoire: { algorithme: ecrit.memoire.algorithme, retention: ecrit.memoire.retention },
+        }),
     ...(ecrit.derogation_diffusion === undefined
       ? {}
       : {

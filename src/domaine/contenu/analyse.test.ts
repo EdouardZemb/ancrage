@@ -387,6 +387,56 @@ describe('analyserContenus', () => {
     ]);
   });
 
+  it('memoire_acceptee_avec_retention_par_defaut', () => {
+    const { cours, erreurs } = analyserContenus(
+      avecDerogation('  algorithme: "fsrs"\n', 'memoire'),
+    );
+
+    expect(erreurs).toEqual([]);
+    expect(cours[0].memoire).toEqual({ algorithme: 'fsrs', retention: 0.9 });
+    expect(
+      analyserContenus(avecDerogation('  algorithme: "leitner"\n', 'memoire')).cours[0].memoire,
+    ).toEqual({ algorithme: 'leitner', retention: 0.9 });
+  });
+
+  it('memoire_acceptee_avec_retention_ecrite', () => {
+    const { cours, erreurs } = analyserContenus(
+      avecDerogation('  algorithme: "fsrs"\n  retention: 0.85\n', 'memoire'),
+    );
+
+    expect(erreurs).toEqual([]);
+    expect(cours[0].memoire).toEqual({ algorithme: 'fsrs', retention: 0.85 });
+    // Les bornes sont comprises.
+    for (const retention of ['0.8', '0.95']) {
+      const resultat = analyserContenus(
+        avecDerogation(`  algorithme: "fsrs"\n  retention: ${retention}\n`, 'memoire'),
+      );
+      expect(resultat.erreurs).toEqual([]);
+      expect(resultat.cours[0].memoire?.retention).toBe(Number(retention));
+    }
+  });
+
+  it('memoire_refusee_si_mal_formee', () => {
+    expect(erreursAvecDerogation('  algorithme: "sm2"\n', 'memoire')).toEqual([
+      erreur(COURS, 'memoire.algorithme', /« leitner » ou « fsrs »/),
+    ]);
+    expect(erreursAvecDerogation('  retention: 0.9\n', 'memoire')).toEqual([
+      erreur(COURS, 'memoire.algorithme', /obligatoire/i),
+    ]);
+    for (const retention of ['0.79', '0.96']) {
+      expect(
+        erreursAvecDerogation(`  algorithme: "fsrs"\n  retention: ${retention}\n`, 'memoire'),
+      ).toEqual([erreur(COURS, 'memoire.retention', /entre 0,80 et 0,95/)]);
+    }
+    expect(erreursAvecDerogation('  algorithme: "fsrs"\n  jours: 3\n', 'memoire')).toEqual([
+      erreur(COURS, 'memoire.jours', /Clé inconnue/),
+    ]);
+  });
+
+  it('memoire_absente_le_cours_n_a_pas_la_cle', () => {
+    expect('memoire' in analyserContenus(exempleDeCours()).cours[0]).toBe(false);
+  });
+
   it('derogation_diffusion_acceptee', () => {
     const { cours, erreurs } = analyserContenus(
       avecDerogation(`  motif: "${MOTIF}"\n  date: "2026-10-16"\n`),

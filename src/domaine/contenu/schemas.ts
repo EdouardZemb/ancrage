@@ -490,6 +490,20 @@ const reglagesLeitner = z.strictObject({
     .max(100, { error: 'Attendu un nombre entier entre 1 et 100.' }),
 });
 
+const MESSAGE_DE_RETENTION = 'Attendu un nombre entre 0,80 et 0,95.';
+
+const reglagesMemoire = z.strictObject({
+  // Absent, une énumération signale une valeur non admise : on y rend le message « obligatoire ».
+  algorithme: z.enum(['leitner', 'fsrs'], {
+    error: (issue) => (issue.input === undefined ? 'Champ obligatoire absent.' : undefined),
+  }),
+  retention: z
+    .number()
+    .min(0.8, { error: MESSAGE_DE_RETENTION })
+    .max(0.95, { error: MESSAGE_DE_RETENTION })
+    .default(0.9),
+});
+
 export const schemaDeCours = z.strictObject({
   format: z.literal(1),
   id: identifiant,
@@ -497,6 +511,7 @@ export const schemaDeCours = z.strictObject({
   langue: z.string(),
   types_de_carte: z.record(z.string(), z.string()),
   leitner: reglagesLeitner,
+  memoire: reglagesMemoire.optional(),
   derogation_diffusion: derogationDiffusion.optional(),
   modules: z.array(z.string()),
 });

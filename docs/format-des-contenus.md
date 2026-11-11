@@ -91,6 +91,9 @@ types_de_carte:            # l'ordre est conservé
 leitner:                   # obligatoire : voir « Réglages de Leitner »
   intervalles: [0, 1, 2, 4, 8, 16]
   nouvelles_par_seance: 15
+memoire:                   # facultative : voir « Réglage de la mémoire »
+  algorithme: "fsrs"
+  retention: 0.9
 derogation_diffusion:      # facultative : voir « Dérogation de diffusion »
   motif: "<pourquoi>"
   date: "2026-10-16"
@@ -125,6 +128,23 @@ refusée.
 - `nouvelles_par_seance` : un entier de 1 à 100, le nombre de cartes neuves d'une séance.
 
 Le cours de terminologie reprend ceux du prototype : `[0, 1, 2, 4, 8, 16]` et 15.
+
+### Réglage de la mémoire
+
+La clé `memoire` choisit l'algorithme de répétition espacée du cours. Elle est facultative, et toute
+autre clé qu'`algorithme` et `retention` est refusée.
+
+- `algorithme` : `"leitner"` ou `"fsrs"`. Obligatoire dans `memoire`. Toute autre valeur est refusée.
+- `retention` : un nombre de 0,80 à 0,95, bornes comprises, la part des cartes que l'apprenante doit
+  encore savoir au moment de les revoir. Facultatif : 0,90 par défaut.
+
+Sans `memoire`, le cours n'a pas de réglage : la clé est absente du cours analysé, de la forme servie
+et de l'instantané de référence, et rien ne change pour lui. Le client qui reçoit une valeur qu'il ne
+connaît pas (un autre algorithme, une rétention hors bornes) ignore le réglage sans refuser le cours.
+
+**Un cours ne reçoit `memoire` qu'une version après celle qui la connaît.** Le schéma du manifeste est
+strict : l'image précédente, que le retour arrière remet en service, refuserait un manifeste qui porte
+une clé qu'elle ignore (invariant 8).
 
 ### Dérogation de diffusion
 

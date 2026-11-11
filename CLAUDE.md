@@ -242,7 +242,7 @@ Sur le poste, `pnpm` s'appelle par `corepack pnpm …` ; en CI, `corepack enable
   deux clients (`dist-e2e/a` et `dist-e2e/b`), puis les sert l'un après l'autre avec le serveur
   construit sur `http://localhost:3100`, hors séance et en séance. `pnpm e2e` ne le lance pas.
 - `corepack pnpm mutation` : tests de mutation (Stryker) de `src/domaine/acces.ts`, de
-  `src/domaine/journal/*.ts` (tests exclus), de `src/domaine/progression/etat.ts` et `fsrs.ts`, de
+  `src/domaine/journal/*.ts` (tests exclus), de `src/domaine/progression/etat.ts`, `fsrs.ts` et `ordonnanceur.ts`, de
   `src/domaine/feuilles/deroulement.ts` et `correction.ts`, de `src/domaine/seances/feuilles.ts`, de
   `src/domaine/notice.ts` et, côté serveur, de `src/serveur/acces/index.ts` (la moitié serveur du
   module `acces`, ADR-0001), de `src/serveur/comptes/export.ts`, `purge.ts` et `suppression.ts`.

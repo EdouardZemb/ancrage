@@ -5,11 +5,11 @@ feuille de route. On n'y ajoute que ce qui n'a pas encore d'issue.
 
 ## Pédagogie (brief §6)
 
-- **Répétition espacée moderne** : FSRS à la place de Leitner. Le journal de réponses (ADR-0004)
-  permet de rejouer tout l'historique, sans rien perdre.
 - **Effet de test et rappel actif** : privilégier la saisie à la reconnaissance, et mesurer ce
   que cela change.
-- **Alternance des sujets** (*interleaving*) : mêler les chapitres dans une même séance.
+- **Alternance des sujets** (*interleaving*) : seulement ciblée sur des termes que l'on confond.
+  La méta-analyse de Brunmair et Richter (2019) est défavorable à l'alternance généralisée pour des
+  mots : mêler les chapitres dans une même séance n'est pas la piste.
 - **Apprendre de ses erreurs** : repérer les confusions récurrentes. Cela suppose de garder la
   réponse donnée, ce que l'on ne fait pas aujourd'hui (ADR-0007). À peser contre la minimisation.
 - **Surcharge** : plafonner les nouvelles cartes par jour, proposer des séances courtes pour les

@@ -3,7 +3,9 @@ import { act, cleanup, render, waitFor } from '@testing-library/preact';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { coursServiDeTest } from '../../domaine/cours/cours.fixture.js';
 import { type CoursPrepare, preparerCours } from '../../domaine/cours/prepare.js';
+import type { CoursServi } from '../../domaine/cours/servi.js';
 import { schemaEvenement, trierEvenements } from '../../domaine/journal/evenement.js';
+import { ajouterJours } from '../../domaine/journal/temps.js';
 import { identifiantAppareil } from '../appareil.js';
 import { annulerSynchrosProgrammees, demanderSyncArrierePlan } from '../declencheurs.js';
 import { fermerLesBasesDeTest, ouvrirBaseDeTest } from '../stockage/base-locale.fixture.js';
@@ -98,6 +100,33 @@ describe('useProgression', () => {
     expect(progression().etats.get('c1000002')?.boite).toBe(1);
     expect(progression().synchro).toBe('a_jour');
     expect(progression().enAttente).toBe(0);
+  });
+
+  it('echeance_selon_l_algorithme_du_cours', async () => {
+    // Quatre justes, espacées de plus en plus, déjà au journal de l'appareil.
+    const jours = ['2026-10-01', '2026-10-03', '2026-10-08', '2026-10-21'];
+    const dernier = jours.at(-1) as string;
+    const echeance = async (servi: CoursServi): Promise<string | null | undefined> => {
+      page.base = await ouvrirBaseDeTest();
+      for (const [i, jour] of jours.entries()) {
+        await ajouterEvenement(page.base, ALICE, reponseDeTest(i + 1, 'c1000001', true, jour));
+      }
+      render(<Sonde personne={ALICE} cours={preparerCours(servi)} />);
+      await waitFor(() => expect(progression().enCours).toBe(false));
+      const resultat = progression().etats.get('c1000001')?.echeance;
+      cleanup();
+      fermerLesBasesDeTest();
+      return resultat;
+    };
+
+    // Leitner : la boîte 4, huit jours après la dernière juste.
+    expect(await echeance(coursServiDeTest())).toBe('2026-10-29');
+    // FSRS : bien au-delà des 16 jours de la dernière boîte de Leitner.
+    const fsrs = await echeance({
+      ...coursServiDeTest(),
+      memoire: { algorithme: 'fsrs', retention: 0.9 },
+    });
+    expect((fsrs ?? '') > ajouterJours(dernier, 16)).toBe(true);
   });
 
   it('charge_seulement_une_fois_le_journal_local_lu', async () => {

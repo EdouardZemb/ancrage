@@ -9,6 +9,7 @@
     "src/domaine/journal/*.ts",
     "!src/domaine/journal/*.test.ts",
     "src/domaine/progression/etat.ts",
+    "src/domaine/progression/fsrs.ts",
     "src/domaine/feuilles/deroulement.ts",
     "src/domaine/feuilles/correction.ts",
     "src/domaine/seances/feuilles.ts",

@@ -190,3 +190,37 @@ it('boiteDeStabilite', () => {
     expect(boiteDeStabilite(stabilite), String(stabilite)).toBe(boite);
   }
 });
+
+it('une faute puis une juste le même jour : le calcul est fixé', () => {
+  const journal = [
+    repAMidi(1, 'u1', true, '2026-03-02'),
+    repAMidi(2, 'u1', false, '2026-03-04'),
+    repAMidi(3, 'u1', true, '2026-03-04'),
+    repAMidi(4, 'u1', true, '2026-03-05'),
+    repAMidi(5, 'u1', true, '2026-03-07'),
+    repAMidi(6, 'u1', true, '2026-03-11'),
+  ];
+  expect(etatsFsrs(journal, 0.9).get('u1')).toEqual({
+    boite: 4,
+    echeance: '2026-03-23',
+    justes: 5,
+    fausses: 1,
+  });
+});
+
+it('deux fautes puis une juste le même jour : le calcul est fixé', () => {
+  const journal = [
+    repAMidi(1, 'u1', true, '2026-03-02'),
+    repAMidi(2, 'u1', false, '2026-03-05'),
+    repAMidi(3, 'u1', false, '2026-03-05'),
+    repAMidi(4, 'u1', true, '2026-03-05'),
+    repAMidi(5, 'u1', true, '2026-03-06'),
+    repAMidi(6, 'u1', true, '2026-03-08'),
+  ];
+  expect(etatsFsrs(journal, 0.9).get('u1')).toEqual({
+    boite: 2,
+    echeance: '2026-03-10',
+    justes: 4,
+    fausses: 2,
+  });
+});

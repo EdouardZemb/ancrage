@@ -1,6 +1,7 @@
 /*
- * « Karteikarten », la séance Leitner (`renderLearn`, H:1742-1818, et les touches de H:2238-2246) :
- * les cartes dues d'abord, puis des neuves. Une unité directe se retourne ; une unité inverse se
+ * « Karteikarten », la séance de révision (`renderLearn`, H:1742-1818, et les touches de H:2238-2246) :
+ * les cartes dues d'abord, à l'échéance que donne l'algorithme du cours (`ordonnanceur.ts`), puis
+ * des neuves. Une unité directe se retourne ; une unité inverse se
  * retourne aussi, sauf si « Begriffe eintippen » est cochée (H:1767) : on tape alors le terme, qui
  * est jugé juste, presque juste (une faute de frappe) ou faux. Une réponse fausse remet la carte en
  * fin de file. Chaque réponse entre au journal ; la fin de la série déclenche la synchronisation

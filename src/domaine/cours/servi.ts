@@ -30,8 +30,8 @@ export interface CoursServi {
   langue: string;
   typesDeCarte: Record<string, string>;
   leitner: ReglagesLeitner;
-  /** Absent : le cours n'a pas écrit son algorithme de mémoire. */
-  memoire?: ReglagesMemoire;
+  /** Absent : le cours n'a pas écrit son algorithme de mémoire. À lire par `memoireDuCours`. */
+  memoire?: unknown;
   /** Dans l'ordre de `cours.yaml`. */
   modules: ModuleServi[];
 }

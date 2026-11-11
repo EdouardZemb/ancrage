@@ -9,6 +9,8 @@ types_de_carte:
 leitner:
   intervalles: [0, 1, 2, 4, 8, 16]
   nouvelles_par_seance: 15
+memoire:
+  algorithme: "fsrs"
 derogation_diffusion:
   motif: "Cours d'exemple, inventé pour le poste et la CI : il n'a rien à relire."
   date: "2026-11-04"

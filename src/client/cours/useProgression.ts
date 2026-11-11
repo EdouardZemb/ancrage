@@ -15,6 +15,7 @@
  */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { CoursPrepare } from '../../domaine/cours/prepare.js';
+import { memoireDuCours } from '../../domaine/cours/servi.js';
 import {
   creerIdEvenement,
   type Evenement,
@@ -23,7 +24,7 @@ import {
   VERSION_EVENEMENT,
 } from '../../domaine/journal/evenement.js';
 import { horodatage, jourDe } from '../../domaine/journal/temps.js';
-import { etatsDesUnites } from '../../domaine/progression/etat.js';
+import { ordonnanceurDe } from '../../domaine/progression/ordonnanceur.js';
 import { identifiantAppareil } from '../appareil.js';
 import {
   demanderSyncArrierePlan,
@@ -112,6 +113,10 @@ function synchroniserSansEcran(personne: string, cours: string): void {
 export function useProgression(personne: string, cours: CoursPrepare): Progression {
   const id = cours.cours.id;
   const { leitner } = cours.cours;
+  // `memoireDuCours` rend un objet neuf à chaque appel : l'ordonnanceur se mémorise sur ses champs.
+  const memoire = memoireDuCours(cours.cours);
+  const algorithme = memoire?.algorithme;
+  const retention = memoire?.retention;
   const [evenements, setEvenements] = useState<readonly Evenement[]>([]);
   const [charge, setCharge] = useState(false);
   const [erreurEnregistrement, setErreurEnregistrement] = useState(false);
@@ -265,7 +270,18 @@ export function useProgression(personne: string, cours: CoursPrepare): Progressi
     [id, examen, ranger],
   );
 
-  const etats = useMemo(() => etatsDesUnites(evenements, leitner), [evenements, leitner]);
+  const ordonnanceur = useMemo(
+    () =>
+      ordonnanceurDe({
+        leitner,
+        memoire:
+          algorithme === undefined || retention === undefined
+            ? undefined
+            : { algorithme, retention },
+      }),
+    [leitner, algorithme, retention],
+  );
+  const etats = useMemo(() => ordonnanceur(evenements), [ordonnanceur, evenements]);
 
   return {
     evenements,

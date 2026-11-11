@@ -325,6 +325,30 @@ describe('calculerReference', () => {
     expect(unites.get('rzbyrqna:inverse')?.acceptees).toEqual(['kontra', 'probelappen']);
   });
 
+  it('memoire_ecrite_dans_la_reference_et_rien_sans_elle', () => {
+    // Sans `memoire`, la section `cours` est celle d'avant : aucune clé de plus.
+    expect(calculerReference(coursDe(exempleDeCours())).cours).not.toHaveProperty('memoire');
+
+    const fichiers = exempleDeCours();
+    remplacer(
+      fichiers,
+      'essai/cours.yaml',
+      'modules:\n',
+      'memoire:\n  algorithme: "fsrs"\n  retention: 0.85\nmodules:\n',
+    );
+    const { cours } = calculerReference(coursDe(fichiers));
+
+    expect(cours.memoire).toStrictEqual({ algorithme: 'fsrs', retention: 0.85 });
+    expect(Object.keys(cours)).toEqual([
+      'id',
+      'titre',
+      'langue',
+      'typesDeCarte',
+      'leitner',
+      'memoire',
+    ]);
+  });
+
   // Invariant 9 et ADR-0003 : la section `diffusion` porte l'état du cours, sa dérogation, et le
   // nombre des éléments de chaque statut, module par module.
   it('diffusion_d_un_cours_sans_element_a_verifier_ni_derogation', () => {

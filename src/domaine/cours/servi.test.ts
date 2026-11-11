@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { analyserContenus } from '../contenu/analyse.js';
 import { exempleDeCours } from '../contenu/exemple.fixture.js';
 import { coursSans, coursServiDeTest, coursServiParLaV030 } from './cours.fixture.js';
-import { coursServiUtilisable, versCoursServi } from './servi.js';
+import type { CoursServi } from './servi.js';
+import { coursServiUtilisable, memoireDuCours, versCoursServi } from './servi.js';
 
 /** Le cours de test, dont un module est remplacé par ce que rend `changer`. */
 function avecModule(
@@ -52,6 +53,35 @@ describe('coursServiUtilisable', () => {
       { nouvellesParSeance: 15 },
     ]) {
       expect(coursServiUtilisable({ ...cours, leitner }), JSON.stringify(leitner)).toBe(false);
+    }
+  });
+
+  it('memoire_absente_ou_valide_utilisable', () => {
+    const cours = coursServiDeTest();
+    expect(coursServiUtilisable(cours)).toBe(true);
+    expect(memoireDuCours(cours)).toBeUndefined();
+    const avecMemoire = { ...cours, memoire: { algorithme: 'fsrs', retention: 0.9 } };
+    expect(coursServiUtilisable(JSON.parse(JSON.stringify(avecMemoire)))).toBe(true);
+    expect(memoireDuCours(avecMemoire as typeof cours)).toEqual({
+      algorithme: 'fsrs',
+      retention: 0.9,
+    });
+  });
+
+  // Une version suivante peut servir un réglage que ce client ne connaît pas : le cours reste
+  // utilisable, et le réglage est ignoré.
+  it('memoire_inconnue_ou_hors_bornes_ignoree_sans_refuser_le_cours', () => {
+    for (const memoire of [
+      { algorithme: 'sm2', retention: 0.9 },
+      { algorithme: 'fsrs', retention: 0.79 },
+      { algorithme: 'fsrs', retention: 0.96 },
+      { algorithme: 'fsrs' },
+      'fsrs',
+      null,
+    ]) {
+      const cours = { ...coursServiDeTest(), memoire } as unknown as CoursServi;
+      expect(coursServiUtilisable(cours), JSON.stringify(memoire)).toBe(true);
+      expect(memoireDuCours(cours), JSON.stringify(memoire)).toBeUndefined();
     }
   });
 
@@ -206,6 +236,16 @@ describe('versCoursServi', () => {
 
   // La liste blanche (`moduleServi`) sert ce que servait la liste noire : tout, sauf `fichier`.
   // `toStrictEqual` distingue une clé absente d'une clé `undefined`.
+  it('memoire_servie_telle_quelle_et_absente_sans_elle', () => {
+    const [cours] = analyserContenus(exempleDeCours()).cours;
+    expect(versCoursServi(cours)).not.toHaveProperty('memoire');
+
+    const avecMemoire = { ...cours, memoire: { algorithme: 'fsrs' as const, retention: 0.85 } };
+    const servi = versCoursServi(avecMemoire);
+    expect(servi.memoire).toEqual({ algorithme: 'fsrs', retention: 0.85 });
+    expect(coursServiUtilisable(JSON.parse(JSON.stringify(servi)))).toBe(true);
+  });
+
   it('liste_blanche_sert_ce_que_servait_la_liste_noire', () => {
     const [cours] = analyserContenus(exempleDeCours()).cours;
 

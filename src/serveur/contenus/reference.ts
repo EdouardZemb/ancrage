@@ -15,6 +15,7 @@ import type {
   ModuleSchema,
   ModuleTexteAnnote,
   ReglagesLeitner,
+  ReglagesMemoire,
   Tache,
   TirageExamen,
 } from '../../domaine/contenu/modele.js';
@@ -50,6 +51,8 @@ export interface Reference {
     langue: string;
     typesDeCarte: Record<string, string>;
     leitner: ReglagesLeitner;
+    /** Présent seulement si le cours l'écrit : l'instantané d'un cours sans lui ne change pas. */
+    memoire?: ReglagesMemoire;
   };
   /**
    * L'état de relecture du cours : `aVerifier` s'il a au moins un élément « à vérifier », sa
@@ -204,6 +207,11 @@ export function calculerReference(cours: Cours): Reference {
         intervalles: [...cours.leitner.intervalles],
         nouvellesParSeance: cours.leitner.nouvellesParSeance,
       },
+      ...(cours.memoire === undefined
+        ? {}
+        : {
+            memoire: { algorithme: cours.memoire.algorithme, retention: cours.memoire.retention },
+          }),
     },
     diffusion: {
       // La règle même de l'invariant 9, que le module `acces` applique à chaque requête.

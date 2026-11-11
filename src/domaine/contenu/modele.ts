@@ -303,6 +303,15 @@ export interface ReglagesLeitner {
   nouvellesParSeance: number;
 }
 
+/** L'algorithme de répétition espacée d'un cours. */
+export type AlgorithmeDeMemoire = 'leitner' | 'fsrs';
+
+/** Le choix de l'algorithme de mémoire, et la rétention visée (de 0,80 à 0,95, 0,90 par défaut). */
+export interface ReglagesMemoire {
+  algorithme: AlgorithmeDeMemoire;
+  retention: number;
+}
+
 export interface Cours {
   id: string;
   /** Le dossier du cours, à la racine du dossier de contenu. */
@@ -311,6 +320,8 @@ export interface Cours {
   langue: string;
   typesDeCarte: Record<string, string>;
   leitner: ReglagesLeitner;
+  /** Le choix de l'algorithme de mémoire. Absent : le cours n'en a pas écrit. */
+  memoire?: ReglagesMemoire;
   /**
    * La dérogation écrite dans `cours.yaml` qui autorise la diffusion à un groupe d'un cours « à
    * vérifier » (invariant 9). Absente : le cours n'en a pas.

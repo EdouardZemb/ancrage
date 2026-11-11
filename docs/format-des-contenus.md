@@ -115,8 +115,9 @@ cartes (un par chapitre), de schémas et les feuilles (une par Unit) sont aussi 
 
 ### Réglages de Leitner
 
-La clé `leitner` règle la méthode des boîtes, qui dérive la progression des cartes du journal : le
-code ne fixe plus ces valeurs. Elle est obligatoire, ses deux clés aussi, et toute autre clé est
+La clé `leitner` règle la méthode des boîtes : le code ne fixe plus ces valeurs. Pour un cours en
+`fsrs` (voir « Réglage de la mémoire »), `leitner.intervalles` n'est pas lu, mais reste obligatoire :
+c'est ce qui permet le retour à Leitner. `nouvelles_par_seance` vaut pour les deux algorithmes. Elle est obligatoire, ses deux clés aussi, et toute autre clé est
 refusée.
 
 - `intervalles` : exactement 6 entiers, un par boîte de 0 à 5. Ce sont des nombres de jours : une
@@ -135,7 +136,7 @@ La clé `memoire` choisit l'algorithme de répétition espacée du cours. Elle e
 autre clé qu'`algorithme` et `retention` est refusée.
 
 - `algorithme` : `"leitner"` ou `"fsrs"`. Obligatoire dans `memoire`. Toute autre valeur est refusée.
-- `retention` : un nombre de 0,80 à 0,95, bornes comprises, la part des cartes que l'apprenante doit
+- `retention` : sans effet avec `leitner`. Un nombre de 0,80 à 0,95, bornes comprises, la part des cartes que l'apprenante doit
   encore savoir au moment de les revoir. Facultatif : 0,90 par défaut.
 
 Sans `memoire`, le cours n'a pas de réglage : la clé est absente du cours analysé, de la forme servie
@@ -144,7 +145,7 @@ connaît pas (un autre algorithme, une rétention hors bornes) ignore le réglag
 
 **Un cours ne reçoit `memoire` qu'une version après celle qui la connaît.** Le schéma du manifeste est
 strict : l'image précédente, que le retour arrière remet en service, refuserait un manifeste qui porte
-une clé qu'elle ignore (invariant 8).
+une clé qu'elle ignore (invariant 8). Exception : le cours d'exemple vit dans l'image, et l'image précédente garde le sien.
 
 ### Dérogation de diffusion
 

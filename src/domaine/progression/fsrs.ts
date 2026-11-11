@@ -21,6 +21,9 @@ import { ETAT_NEUF, type EtatUnite, journalSansDoublon } from './etat.js';
  *   pas de hasard et se compte en jours entiers ;
  * - une réponse est datée de son jour local (`jourDe`), porté à midi UTC : l'heure ne compte pas,
  *   seul l'écart en jours compte ;
+ * - le jour d'une unité ne recule jamais : le journal est trié par instant, mais le jour local peut
+ *   reculer (changement de fuseau, deux appareils) et la bibliothèque refuse une date antérieure ;
+ *   on garde alors le dernier jour déjà rejoué ;
  * - une réponse juste vaut la note « Good », une fausse « Again » (note binaire).
  *
  * Le test « le calcul est fixé » compare un journal à un état écrit en dur : il se relit à chaque
@@ -80,9 +83,15 @@ export function etatsFsrs(
   const planificateur = ordonnanceur(retention);
   const cartes = new Map<string, ReturnType<typeof planificateur.newCard>>();
   const etats = new Map<string, EtatUnite>();
+  const derniersJours = new Map<string, string>();
   for (const evenement of journalSansDoublon(evenements)) {
     if (evenement.type !== 'reponse') continue;
-    const jour = jourDe(evenement.repondu_a);
+    // Le journal est trié par instant, le jour est local : il peut reculer (changement de fuseau,
+    // deux appareils). Le jour d'une unité ne recule jamais dans le rejeu.
+    const local = jourDe(evenement.repondu_a);
+    const dernier = derniersJours.get(evenement.unite);
+    const jour = dernier !== undefined && dernier > local ? dernier : local;
+    derniersJours.set(evenement.unite, jour);
     const maintenant = midiUtc(jour);
     const carte = cartes.get(evenement.unite) ?? planificateur.newCard({ now: maintenant });
     const juste = evenement.resultat.juste;

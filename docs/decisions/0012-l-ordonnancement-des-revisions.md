@@ -66,6 +66,9 @@ Un cours peut choisir FSRS ; l'ordonnanceur est alors celui de `ts-fsrs` 6.0.0, 
   défaut sont ajustés sur des journaux qui en ont quatre. Aucune mesure n'a été faite ici sur des
   réponses binaires, et les poids ne sont pas réentraînés. On ne sait donc pas encore à quel point
   les intervalles rendus sont justes pour cette application.
+- **Un jour local ne recule jamais dans le rejeu.** Le journal est trié par instant, mais le jour est
+  local : si le jour d'une unité recule (fuseau changé, deux appareils), FSRS garde le dernier jour
+  déjà rejoué, car la bibliothèque refuse une date antérieure.
 - **Le retour à Leitner** se fait par une ligne du manifeste du cours : l'état se dérive du journal,
   aucune donnée ne se perd ni ne se migre.
 - **Le plafond de 16 jours disparaît** pour les cours qui choisissent FSRS : l'intervalle croît

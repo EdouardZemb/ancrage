@@ -100,5 +100,7 @@ it('le passage : FSRS ne charge pas beaucoup plus la révision que Leitner (M1-D
   const duesLeitner = nombreDues(etatsDesUnites(journal, LEITNER), jour31);
   const duesFsrs = nombreDues(etatsFsrs(journal, 0.9), jour31);
   expect(duesFsrs).toBeLessThanOrEqual(duesLeitner + 6);
+  expect(duesLeitner).toBe(9);
+  expect(duesFsrs).toBe(1);
   // Les deux nombres, pour la revue : ils s'affichent si le test échoue, jamais autrement.
 });

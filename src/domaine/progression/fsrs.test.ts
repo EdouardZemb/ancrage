@@ -224,3 +224,33 @@ it('deux fautes puis une juste le même jour : le calcul est fixé', () => {
     fausses: 2,
   });
 });
+
+it("un jour local qui recule est ramené au dernier jour de l'unité", () => {
+  // La seconde réponse est plus tardive en instant, mais son jour local est la veille.
+  const avant = '2026-03-03T00:30:00.000+01:00';
+  const apres = '2026-03-02T23:45:00.000-01:00';
+  const reculee = etatsFsrs(
+    [reponseDeTest(1, 'u1', true, avant), reponseDeTest(2, 'u1', true, apres)],
+    0.9,
+  );
+  const memeJour = etatsFsrs(
+    [
+      reponseDeTest(1, 'u1', true, '2026-03-03T12:00:00.000+01:00'),
+      reponseDeTest(2, 'u1', true, '2026-03-03T13:00:00.000+01:00'),
+    ],
+    0.9,
+  );
+  expect(reculee).toEqual(memeJour);
+});
+
+it('une faute dont le jour local recule est due le jour corrigé, pas la veille', () => {
+  const etat = etatsFsrs(
+    [
+      reponseDeTest(1, 'u1', true, '2026-03-03T00:30:00.000+01:00'),
+      reponseDeTest(2, 'u1', false, '2026-03-02T23:45:00.000-01:00'),
+    ],
+    0.9,
+  ).get('u1');
+  expect(etat?.echeance).toBe('2026-03-03');
+  expect(etat?.fausses).toBe(1);
+});

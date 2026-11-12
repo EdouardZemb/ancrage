@@ -199,8 +199,9 @@ la mémoire »). Rien ne change pour l'apprenante, dont le cours reste en Leitne
   facultative `memoire` du manifeste, et le client l'appelle. Sans la clé, c'est Leitner ;
 - FSRS-6 rejoue le journal par `ts-fsrs`, sans hasard et en note binaire
   (`src/domaine/progression/fsrs.ts`, ADR-0012). Les six « Fächer » se dérivent de la stabilité ;
-- le cours d'exemple est en FSRS. Un cours monté ne reçoit `memoire` qu'une version après celle qui
-  connaît la clé (invariant 8, `docs/format-des-contenus.md`).
+- le cours d'exemple est en `par-chapitre` : son premier module de cartes suit FSRS, avec un examen
+  lointain et inventé, et le reste suit Leitner (M3). Un cours monté ne reçoit `memoire` qu'une
+  version après celle qui connaît la clé (invariant 8, `docs/format-des-contenus.md`).
 
 Ses décisions et ses arbitrages (« M1-D<n> », « M1-R<n> ») sont dans `docs/conception/lot-m1.md`.
 

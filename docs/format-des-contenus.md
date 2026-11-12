@@ -166,6 +166,11 @@ memoire:
   non vide avec `par-chapitre`, refusée avec tout autre algorithme. Un identifiant qui n'est pas celui
   d'un module de cartes du cours est refusé, avec le fichier et la clé dans le message.
 
+Le calcul applique ces clés : les poids de `parametres` à la place de ceux par défaut, le plafond de
+`examen` sur l'échéance rendue (jamais sur la stabilité que garde FSRS), et, avec `par-chapitre`, FSRS
+sur les cartes des modules de `chapitres` seulement. Le cours d'exemple (`exemple-contenu/kueche/`)
+est en `par-chapitre`, avec son premier module de cartes en FSRS et un `examen` lointain et inventé.
+
 Sans `memoire`, le cours n'a pas de réglage : la clé est absente du cours analysé, de la forme servie
 et de l'instantané de référence, et rien ne change pour lui. Il en va de même de chacune des trois
 clés facultatives : absente, elle n'est ni dans la forme servie ni dans l'instantané. Le client qui

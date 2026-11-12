@@ -26,9 +26,22 @@ export function tacheDeSchema(
     (rang) => poidsSelonReponses(etatDe(etats, schema.points[rang].id)),
     hasard,
   );
+  return { cible, options: optionsDuPoint(schema, cible, hasard) };
+}
+
+/**
+ * Les quatre propositions d'un point : lui-même et trois autres au hasard, mélangés (un schéma de
+ * moins de quatre points en propose moins). Le hasard est consommé dans l'ordre de `anatTask` : les
+ * autres points, puis les propositions.
+ */
+export function optionsDuPoint(
+  schema: ModuleServiDe<'schema'>,
+  cible: number,
+  hasard: Hasard,
+): number[] {
   const autres = melanger(
-    rangs.filter((rang) => rang !== cible),
+    schema.points.map((_, rang) => rang).filter((rang) => rang !== cible),
     hasard,
   ).slice(0, 3);
-  return { cible, options: melanger([cible, ...autres], hasard) };
+  return melanger([cible, ...autres], hasard);
 }

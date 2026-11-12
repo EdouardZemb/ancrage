@@ -34,6 +34,20 @@ function Posee(props: { depart: TacheDeMot; onTache(t: TacheDeMot, juste?: boole
   );
 }
 
+function PoseeAvecLibelle() {
+  const depart = tacheDeMot(gastritis, 'bilden', module, hasardDeterministe(1));
+  if (depart.mode !== 'bilden') throw new Error('mode');
+  return (
+    <QuestionMot
+      module={module}
+      tache={{ ...depart, verifie: { juste: true } }}
+      onTache={() => {}}
+      onSuivante={() => {}}
+      libelleSuivante="Weiter"
+    />
+  );
+}
+
 function poser(mode: 'zerlegen' | 'bilden') {
   const onTache = vi.fn();
   const depart = tacheDeMot(gastritis, mode, module, hasardDeterministe(1));
@@ -58,6 +72,12 @@ function tuile(forme: string) {
 }
 
 describe('QuestionMot', () => {
+  it('le_libelle_de_la_suite_se_donne_et_son_defaut_est_nachstes_wort', () => {
+    rendreDansLeCours(<PoseeAvecLibelle />, contexteDeTest());
+    expect(screen.getByRole('button', { name: 'Weiter' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: t.mots_naechstes })).toBeNull();
+  });
+
   it('tacheDeMot_zerlegen_commence_a_la_premiere_partie_avec_quatre_sens', () => {
     const tache = tacheDeMot(gastritis, 'zerlegen', module, hasardDeterministe(1));
     expect(tache).toMatchObject({ mode: 'zerlegen', etape: 0, resultats: [], fini: false });

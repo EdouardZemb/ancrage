@@ -63,6 +63,14 @@ export function duesDuJour(
   return posables.filter((p) => estDue(etatDe(etats, p.id), aujourdhui));
 }
 
+/** Les cartes neuves du cours : celles que le journal n'a jamais vues (boîte 0). */
+export function cartesNeuves(
+  posables: readonly Posable[],
+  etats: ReadonlyMap<string, EtatUnite>,
+): Posable[] {
+  return posables.filter((p) => p.genre === 'carte' && etatDe(etats, p.id).boite === 0);
+}
+
 /** La séance du jour : la file à poser, les éléments déjà revenus une fois, le compte des réponses. */
 export interface SeanceDuJour {
   file: Posable[];
@@ -105,10 +113,7 @@ export function composerSeance(
   const dues = melanger(duesDuJour(posables, etats, aujourdhui), hasard).sort(parEcheance(etats));
   const gardees = melanger(dues.slice(0, TAILLE_DE_SEANCE), hasard);
   const places = Math.max(0, Math.min(nouvelles, TAILLE_DE_SEANCE - gardees.length));
-  const neuves = melanger(
-    posables.filter((p) => p.genre === 'carte' && etatDe(etats, p.id).boite === 0),
-    hasard,
-  ).slice(0, places);
+  const neuves = melanger(cartesNeuves(posables, etats), hasard).slice(0, places);
   return { file: [...gardees, ...neuves], revenus: [], faites: 0, justes: 0 };
 }
 
@@ -125,4 +130,14 @@ export function apresReponseDuJour(seance: SeanceDuJour, juste: boolean): Seance
     return { ...seance, file: reste, faites, justes };
   }
   return { file: [...reste, tete], revenus: [...seance.revenus, tete.id], faites, justes };
+}
+
+/**
+ * Le bilan d'une séance finie : les éléments passés et ceux qui sont finalement justes. Un élément
+ * manqué revient une fois (M2-P3) et reçoit alors deux réponses : on retire de `faites` autant de
+ * réponses que d'éléments revenus. Une réponse juste sort l'élément, donc `justes` compte des
+ * éléments.
+ */
+export function bilanDuJour(seance: SeanceDuJour): { elements: number; justes: number } {
+  return { elements: seance.faites - seance.revenus.length, justes: seance.justes };
 }

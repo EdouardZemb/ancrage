@@ -8,8 +8,10 @@ import {
   coursServiDeTest,
   coursServiParLaV030,
 } from '../../domaine/cours/cours.fixture.js';
+import { preparerCours } from '../../domaine/cours/prepare.js';
 import type { CoursServi } from '../../domaine/cours/servi.js';
 import { ajouterJours, horodatage, jourDe } from '../../domaine/journal/temps.js';
+import { posablesDuCours } from '../../domaine/seances/heute.js';
 import { ErreurApi, lireCours, type Moi } from '../api.js';
 import { enAttente } from '../attente.fixture.js';
 import { contexteAppDeTest, dansLApp } from '../contexte.fixture.js';
@@ -57,6 +59,7 @@ const ID = servi.id;
 
 type OngletDeTest =
   | 'apercu'
+  | 'heute'
   | 'cartes'
   | 'quiz'
   | 'mots'
@@ -105,6 +108,25 @@ function cartesDirectes(): void {
 /** Une préférence du cours, hors de la carte : le reste vient des valeurs par défaut. */
 function preferer(onglet: string, valeur: unknown): void {
   localStorage.setItem(`ancrage.preferences.${ALICE}.${ID}`, JSON.stringify({ [onglet]: valeur }));
+}
+
+/**
+ * Tout ce qui n'est pas une carte est dû aujourd'hui : la séance du jour ne pose alors aucune
+ * carte, dont la réponse avance seule la file, et son premier geste est un verdict en attente.
+ */
+async function semerDesDuesSansCarte(): Promise<void> {
+  const maintenant = Date.now();
+  const aujourdhui = jourDe(horodatage(maintenant, -new Date(maintenant).getTimezoneOffset()));
+  const ids = posablesDuCours(preparerCours(servi))
+    .filter((p) => p.genre !== 'carte')
+    .map(({ id }) => id);
+  for (const [n, id] of ids.entries()) {
+    await ajouterEvenement(
+      page.base as BaseLocale,
+      ALICE,
+      reponseDeTest(n, id, false, ajouterJours(aujourdhui, -7)),
+    );
+  }
 }
 
 async function repondreALaCarte(libelle: string): Promise<void> {
@@ -661,10 +683,13 @@ describe('EcranCours', () => {
     ['schemas', repondreAUneSerie],
     ['exercices', repondreAUneSerie],
     ['feuilles', async () => remplirLAppariement()],
+    // Verdict affiché, suite pas encore donnée : la séance du jour compte déjà comme en cours.
+    ['heute', repondreAUneSerie],
   ] as const)('premier_geste_ouvre_une_seance_%s', async (onglet, geste) => {
     if (onglet === 'cartes') cartesDirectes();
     // Un mot se décompose sans hasard : le mode « mix » tirerait au sort.
     if (onglet === 'mots') preferer('mots', { mode: 'zerlegen' });
+    if (onglet === 'heute') await semerDesDuesSansCarte();
     history.replaceState(null, '', `/cours/${ID}/${onglet}`);
     afficher(onglet);
     await screen.findByRole('tab', { selected: true });

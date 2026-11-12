@@ -142,8 +142,9 @@ test('la_seance_du_jour_mele_les_types', async ({ page }) => {
     const resultat = await resultatDeHeute(page);
     expect(resultat, deCours.heute_resultat).toBeDefined();
     const { justes, faites } = resultat ?? { justes: 0, faites: 0 };
-    // Toute question de la file a reçu une réponse, et une faute en ajoute une seconde.
-    expect(faites).toBeGreaterThanOrEqual(file);
+    // Le résultat compte des éléments : chaque élément de la file est passé une fois, qu'une faute
+    // l'ait fait revenir ou non.
+    expect(faites).toBe(file);
     expect(justes).toBeLessThanOrEqual(faites);
   });
 });

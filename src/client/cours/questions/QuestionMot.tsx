@@ -69,9 +69,12 @@ export function QuestionMot(props: {
   /** La tâche changée ; `juste` n'est donné qu'au geste qui juge le mot, avec la tâche finie. */
   onTache(tache: TacheDeMot, juste?: boolean): void;
   onSuivante(): void;
+  /** Le libellé de la suite ; « Nächstes Wort » par défaut, comme dans l'onglet des mots. */
+  libelleSuivante?: string;
 }) {
   const { module, tache, onTache, onSuivante } = props;
   const { t, hasard } = useCours();
+  const libelleSuivante = props.libelleSuivante ?? t.mots_naechstes;
 
   const morphemes = useMemo(() => new Map(module.morphemes.map((m) => [m.id, m])), [module]);
   const morpheme = (id: string): Morpheme => {
@@ -172,7 +175,7 @@ export function QuestionMot(props: {
             )}
           </div>
           {tache.fini ? (
-            <NaechstesWort onClick={onSuivante} />
+            <NaechstesWort libelle={libelleSuivante} onClick={onSuivante} />
           ) : (
             <Options options={tache.options} choisir={choisirUnePartie} />
           )}
@@ -209,7 +212,7 @@ export function QuestionMot(props: {
             )}
           </div>
           {tache.verifie !== null ? (
-            <NaechstesWort onClick={onSuivante} />
+            <NaechstesWort libelle={libelleSuivante} onClick={onSuivante} />
           ) : (
             <>
               <div class="tiles">
@@ -267,12 +270,11 @@ export function QuestionMot(props: {
   );
 }
 
-/** « Nächstes Wort », qui a le focus dès qu'il paraît (H:1884). */
-function NaechstesWort(props: { onClick(): void }) {
-  const { t } = useCours();
+/** Le bouton de la suite (« Nächstes Wort » dans l'onglet), qui a le focus dès qu'il paraît (H:1884). */
+function NaechstesWort(props: { libelle: string; onClick(): void }) {
   return (
     <button type="button" class="primary" ref={focaliser} onClick={props.onClick}>
-      {t.mots_naechstes}
+      {props.libelle}
     </button>
   );
 }

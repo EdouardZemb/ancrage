@@ -163,15 +163,15 @@ export async function repondreALaTete(page: Page): Promise<GenreDeHeute> {
   if (await visible(cours.locator('.tiles'))) {
     await cours.locator('.tiles .tile:enabled').first().click();
     await bouton(de.pruefen).click();
-    await bouton(de.mots_naechstes).click();
+    await bouton(de.suivante).click();
     return 'mot';
   }
   if (await visible(cours.locator('.word'))) {
     // Une partie après l'autre, jusqu'au mot fini (un mot a quelques parties).
-    for (let partie = 0; partie < 8 && !(await visible(bouton(de.mots_naechstes))); partie++) {
+    for (let partie = 0; partie < 8 && !(await visible(bouton(de.suivante))); partie++) {
       await premiereProposition.click();
     }
-    await bouton(de.mots_naechstes).click();
+    await bouton(de.suivante).click();
     return 'mot';
   }
   if (await visible(cours.locator('svg.sv'))) {
@@ -188,6 +188,6 @@ export async function repondreALaTete(page: Page): Promise<GenreDeHeute> {
   // Des propositions : un exercice à options (sa ligne d'aide le dit), sinon une question de fiche.
   const exercice = await visible(cours.getByText(de.exercices_hinweis, { exact: true }));
   await premiereProposition.click();
-  await bouton(exercice ? de.suivante : de.quiz_suivante).click();
+  await bouton(de.suivante).click();
   return exercice ? 'exercice' : 'fermee';
 }

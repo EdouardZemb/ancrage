@@ -5,6 +5,8 @@ import { hasardDeterministe } from '../hasard.js';
 import type { EtatUnite } from '../progression/etat.js';
 import {
   apresReponseDuJour,
+  bilanDuJour,
+  cartesNeuves,
   composerSeance,
   duesDuJour,
   type Posable,
@@ -370,4 +372,37 @@ it('apres_reponse_du_jour_ne_change_pas_la_seance_d_entree', () => {
   apresReponseDuJour(avant, false);
 
   expect(avant).toEqual({ file: [a, b], revenus: [], faites: 0, justes: 0 });
+});
+
+it('bilan_du_jour_compte_les_elements_et_non_les_reponses', () => {
+  const [a] = lesPosables();
+
+  // Un élément manqué puis réussi au retour : deux réponses, un élément, un juste.
+  const bilan = bilanDuJour(seance([], { revenus: [a.id], faites: 2, justes: 1 }));
+
+  expect(bilan).toEqual({ elements: 1, justes: 1 });
+});
+
+it('bilan_du_jour_un_element_manque_deux_fois_compte_une_fois_et_aucun_juste', () => {
+  const [a] = lesPosables();
+
+  const bilan = bilanDuJour(seance([], { revenus: [a.id], faites: 3, justes: 1 }));
+
+  expect(bilan).toEqual({ elements: 2, justes: 1 });
+});
+
+it('bilan_du_jour_sans_retour_les_elements_sont_les_reponses', () => {
+  expect(bilanDuJour(seance([], { faites: 5, justes: 4 }))).toEqual({ elements: 5, justes: 4 });
+});
+
+it('cartes_neuves_ne_garde_que_les_cartes_de_la_boite_zero', () => {
+  const tous = lesPosables();
+  const cartes = tous.filter((p) => p.genre === 'carte');
+  const [vue, ...autres] = cartes;
+  const etats = new Map<string, EtatUnite>([[vue.id, etat('2026-10-30', 2)]]);
+
+  const neuves = cartesNeuves(tous, etats);
+
+  expect(neuves.map(({ id }) => id)).toEqual(autres.map(({ id }) => id));
+  expect(neuves.every((p) => p.genre === 'carte')).toBe(true);
 });

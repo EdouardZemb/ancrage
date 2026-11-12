@@ -1,14 +1,16 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/preact';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { coursServiDeTest } from '../../../domaine/cours/cours.fixture.js';
 import type { CoursServi } from '../../../domaine/cours/servi.js';
 import type { Evenement } from '../../../domaine/journal/evenement.js';
 import {
+  cartesNeuves,
   duesDuJour,
   type Posable,
   posablesDuCours,
   type SeanceDuJour,
+  TAILLE_DE_SEANCE,
 } from '../../../domaine/seances/heute.js';
 import {
   AUJOURDHUI_DE_TEST,
@@ -54,7 +56,12 @@ function coursAvecNouvelles(nouvelles: number): CoursServi {
 
 /** Un contexte à la mémoire donnée, au hasard constant : « zerlegen », et le premier tirage. */
 function contexteDe(
-  options: { cours?: CoursServi; evenements?: Evenement[]; memoire?: Map<string, unknown> } = {},
+  options: {
+    cours?: CoursServi;
+    evenements?: Evenement[];
+    memoire?: Map<string, unknown>;
+    aujourdhui?: string;
+  } = {},
 ): ContexteCours {
   const contexte = contexteDeTest(options);
   contexte.hasard = () => 0;
@@ -71,14 +78,24 @@ function posable(contexte: ContexteCours, id: string): Posable {
 function amorcer(contexte: ContexteCours, memoire: Map<string, unknown>, ids: string[]): void {
   const file = ids.map((id) => posable(contexte, id));
   const seance: SeanceDuJour = { file, revenus: [], faites: 0, justes: 0 };
-  const dues = duesDuJour(posablesDuCours(contexte.cours), contexte.etats, contexte.aujourdhui);
+  const posables = posablesDuCours(contexte.cours);
+  const dues = duesDuJour(posables, contexte.etats, contexte.aujourdhui);
   const etat: EtatDeHeute = {
-    cle: cleDuJour(contexte.aujourdhui, dues),
+    cle: cleDuJour(contexte.aujourdhui, dues, cartesNeuves(posables, contexte.etats)),
     seance,
     question: questionDe(file[0], contexte.cours, contexte.hasard),
     repondue: null,
   };
   memoire.set('heute', etat);
+}
+
+/** Une séance d'une seule carte, Herz, posée sur l'écran. */
+function poserLaCarteSeule(): { contexte: ContexteCours; memoire: Map<string, unknown> } {
+  const memoire = new Map<string, unknown>();
+  const contexte = contexteDe({ memoire });
+  amorcer(contexte, memoire, [HERZ]);
+  rendreDansLeCours(<Heute />, contexte);
+  return { contexte, memoire };
 }
 
 function etatGarde(memoire: Map<string, unknown>): EtatDeHeute {
@@ -125,7 +142,7 @@ describe('Heute', () => {
       choisir(sensDuMorpheme(contexte, segment.morpheme));
     }
     expect(contexte.enregistrer).toHaveBeenLastCalledWith(GASTRITIS, true);
-    cliquer(t.mots_naechstes);
+    cliquer(t.suivante);
 
     // Un point de schéma : on le nomme parmi les propositions.
     choisir('Mitte');
@@ -141,7 +158,7 @@ describe('Heute', () => {
     choisir('über dem Mass');
     expect(contexte.enregistrer).toHaveBeenLastCalledWith(QCM, true);
     expect(contexte.enregistrer).toHaveBeenCalledTimes(5);
-    cliquer(t.quiz_suivante);
+    cliquer(t.suivante);
 
     expect(screen.getByRole('heading', { name: t.heute_fin })).toBeTruthy();
     expect(screen.getByText(formater(t.heute_resultat, { justes: 5, faites: 5 }))).toBeTruthy();
@@ -174,7 +191,7 @@ describe('Heute', () => {
     expect(etatGarde(memoire).repondue).toBe(true);
     expect(heuteEnCours(etatGarde(memoire))).toBe(true);
 
-    cliquer(t.quiz_suivante);
+    cliquer(t.suivante);
 
     expect(etatGarde(memoire).seance.faites).toBe(1);
     expect(etatGarde(memoire).repondue).toBeNull();
@@ -252,10 +269,7 @@ describe('Heute', () => {
   });
 
   it('une_faute_remet_l_element_en_fin_une_fois_puis_la_seance_finit', async () => {
-    const memoire = new Map<string, unknown>();
-    const contexte = contexteDe({ memoire });
-    amorcer(contexte, memoire, [HERZ]);
-    rendreDansLeCours(<Heute />, contexte);
+    const { contexte } = poserLaCarteSeule();
 
     cliquer(t.cartes_retourner);
     cliquer(t.cartes_pas_su);
@@ -270,7 +284,7 @@ describe('Heute', () => {
     expect(contexte.enregistrer).toHaveBeenNthCalledWith(1, HERZ, false);
     expect(contexte.enregistrer).toHaveBeenNthCalledWith(2, HERZ, false);
     expect(screen.getByRole('heading', { name: t.heute_fin })).toBeTruthy();
-    expect(screen.getByText(formater(t.heute_resultat, { justes: 0, faites: 2 }))).toBeTruthy();
+    expect(screen.getByText(formater(t.heute_resultat, { justes: 0, faites: 1 }))).toBeTruthy();
     // La synchronisation attend que la dernière réponse soit rangée.
     await waitFor(() => expect(contexte.finDeSeance).toHaveBeenCalledTimes(1));
   });
@@ -299,7 +313,7 @@ describe('Heute', () => {
     expect(progression()).toContain('0 beantwortet');
   });
 
-  it('la_fin_sans_rien_de_du_ne_propose_pas_de_suivante', () => {
+  it('la_fin_sans_rien_de_du_dit_la_journee_faite_et_mene_a_l_apercu', () => {
     const memoire = new Map<string, unknown>();
     const contexte = contexteDe({ memoire });
     amorcer(contexte, memoire, [HERZ]);
@@ -309,8 +323,99 @@ describe('Heute', () => {
     cliquer(t.cartes_su);
 
     expect(screen.getByRole('heading', { name: t.heute_fin })).toBeTruthy();
+    expect(screen.getByText(t.heute_fertig)).toBeTruthy();
+    expect(screen.getByText(t.heute_rien_suite)).toBeTruthy();
     expect(screen.queryByText(/Noch \d+ fällig/)).toBeNull();
     expect(screen.queryByRole('button', { name: t.heute_encore })).toBeNull();
+
+    cliquer(t.heute_vers_apercu);
+
+    expect(contexte.aller).toHaveBeenCalledWith('apercu');
+  });
+
+  it('le_resultat_compte_les_elements_un_manque_puis_reussi_donne_un_sur_un', () => {
+    const { contexte } = poserLaCarteSeule();
+
+    cliquer(t.cartes_retourner);
+    cliquer(t.cartes_pas_su);
+    cliquer(t.cartes_retourner);
+    cliquer(t.cartes_su);
+
+    expect(contexte.enregistrer).toHaveBeenCalledTimes(2);
+    expect(screen.getByText(formater(t.heute_resultat, { justes: 1, faites: 1 }))).toBeTruthy();
+    expect(screen.getByText('1 von 1 richtig.')).toBeTruthy();
+  });
+
+  it('l_ecran_de_fin_n_attend_pas_le_rangement_pour_les_dues', async () => {
+    const memoire = new Map<string, unknown>();
+    const contexte = contexteDe({ memoire, evenements: manquees(HERZ, LEBER) });
+    // Le rangement de la réponse est en cours : le journal montre encore Herz comme due.
+    let ranger: (rangee: boolean) => void = () => undefined;
+    contexte.enregistrer = vi.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          ranger = resolve;
+        }),
+    );
+    amorcer(contexte, memoire, [HERZ]);
+    rendreDansLeCours(<Heute />, contexte);
+
+    cliquer(t.cartes_retourner);
+    cliquer(t.cartes_su);
+
+    expect(screen.getByRole('heading', { name: t.heute_fin })).toBeTruthy();
+    expect(screen.getByText(new RegExp(formater(t.heute_reste, { n: 1 })))).toBeTruthy();
+    expect(screen.queryByText(new RegExp(formater(t.heute_reste, { n: 2 })))).toBeNull();
+    expect(contexte.enregistrer).toHaveBeenCalledTimes(1);
+    expect(contexte.finDeSeance).not.toHaveBeenCalled();
+    ranger(true);
+    await waitFor(() => expect(contexte.finDeSeance).toHaveBeenCalledTimes(1));
+  });
+
+  it('le_lendemain_une_application_restee_ouverte_compose_une_seance_neuve', () => {
+    const memoire = new Map<string, unknown>();
+    const hier = contexteDe({ memoire });
+    amorcer(hier, memoire, [HERZ]);
+    rendreDansLeCours(<Heute />, hier);
+    cliquer(t.cartes_retourner);
+    cliquer(t.cartes_su);
+    expect(screen.getByRole('heading', { name: t.heute_fin })).toBeTruthy();
+    cleanup();
+
+    rendreDansLeCours(<Heute />, contexteDe({ memoire, aujourdhui: '2026-10-18' }));
+
+    expect(screen.queryByRole('heading', { name: t.heute_fin })).toBeNull();
+    expect(etatGarde(memoire).cle.startsWith('2026-10-18|')).toBe(true);
+    expect(etatGarde(memoire).seance.file.length).toBeGreaterThan(0);
+    expect(etatGarde(memoire).seance.faites).toBe(0);
+  });
+
+  it('une_carte_neuve_repondue_ailleurs_avant_le_premier_geste_sort_de_la_file', () => {
+    const memoire = new Map<string, unknown>();
+    rendreDansLeCours(<Heute />, contexteDe({ memoire }));
+    const neuve = fileDe(memoire)[0];
+    cleanup();
+
+    // La carte neuve est répondue juste dans un autre onglet : elle n'est ni neuve ni due.
+    const evenements = [reponseDeTest(10, neuve, true, AUJOURDHUI_DE_TEST)];
+    rendreDansLeCours(<Heute />, contexteDe({ memoire, evenements }));
+
+    expect(fileDe(memoire)).not.toContain(neuve);
+  });
+
+  it('le_stock_du_premier_jour_la_file_garde_vingt_et_l_en_tete_dit_toutes_les_dues', () => {
+    const contexte = contexteDe();
+    const ids = posablesDuCours(contexte.cours).map(({ id }) => id);
+    expect(ids.length).toBeGreaterThan(TAILLE_DE_SEANCE);
+    const evenements = manquees(...ids);
+    rendreDansLeCours(<Heute />, contexteDe({ evenements }));
+
+    expect(progression()).toBe(
+      `${formater(t.heute_compte, { dues: ids.length, neues: 0 })} · ${formater(
+        t.heute_progression,
+        { faites: 0, restantes: TAILLE_DE_SEANCE },
+      )}`,
+    );
   });
 
   it('rien_de_du_ni_de_neuf_l_ecran_le_dit_et_mene_a_l_apercu', () => {

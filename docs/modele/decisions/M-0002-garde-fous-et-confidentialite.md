@@ -12,9 +12,11 @@
 - **Amendé** le 2026-10-29, avec le lot 12 : dans un dépôt de code, la porte refuse aussi les
   fichiers de l'instance, lus sur leur chemin, et toute clé publique `age` ; le garde refuse l'envoi
   d'une étiquette de données (M-0006, § 3 et § 6)
-- **Amendé** le 2026-11-04, avec le correctif #94 : en cible `donnees`, la porte des fichiers
-  masqués examine aussi l'instance, dont les secrets chiffrés, et son remède n'admet que ce qu'elle
-  examine, par des lignes ancrées
+- **Amendé** le 2026-11-04, avec le correctif modele-projet#94 : en cible `donnees`, la porte des
+  fichiers masqués examine aussi l'instance, dont les secrets chiffrés, et son remède n'admet que ce
+  qu'elle examine, par des lignes ancrées
+- **Amendé** le 2026-11-06, avec le lot 14 : la CI refuse aussi la licence et la carte de la racine,
+  et le hook `SessionStart` signale un gabarit resté vide que le README lie
 - **Contexte amont** : M-0001 (les garde-fous de qualité comme condition d'entrée)
 
 ## Contexte
@@ -46,7 +48,7 @@ pas de la discipline de celui qui travaille ?
   Claude `PreToolUse` sur les outils `Bash`, `PowerShell` et `Monitor`, et sur tout outil MCP qui
   porte une commande. Le garde refuse toute modification de `core.hooksPath`, sauf la réparation
   `git config core.hooksPath .githooks`.
-- Un dépôt **privé** reste possible. Il n'a alors que les hooks, et la CI de base.
+- Un dépôt **privé** reste possible. Il n'a alors que les hooks et la CI (le socle et `texte-pr`).
 - **La porte de confidentialité est obligatoire**, dans tous les projets. Ses motifs génériques sont
   versionnés ; ses motifs privés (noms de machines, d'utilisateurs, chemins) sont gardés hors dépôt,
   sur le poste et dans un secret de la CI. Une session à distance n'a pas la liste privée : la CI
@@ -135,7 +137,17 @@ pas de la discipline de celui qui travaille ?
   PR ou un workflow venus d'ailleurs que le dépôt s'affichent sans le texte qu'ils portent. Une PR
   d'un fork paraît ainsi sans titre ni nom de contrôle, un workflow absent de la copie, sans son
   nom. La CI du socle exige ce hook comme elle exige le garde : sans lui, un rouge passerait
-  inaperçu jusqu'à la prochaine PR.
+  inaperçu jusqu'à la prochaine PR. Il signale aussi un gabarit resté vide que le README lie, et un
+  README qui ne lie aucun document du dépôt (amendement du 2026-11-06) : personne n'ouvre une
+  exécution verte, et ce hook est le seul canal qu'une session lit. Ce contrôle avertit, sans
+  jamais refuser, et lit la copie sans lancer de sous-processus.
+- **La CI refuse la licence et la carte de la racine** (amendement du 2026-11-06), par
+  `scripts/modele/documentation.py`, à la dernière étape du job `confidentialite` du socle, déjà
+  requis par la règle de protection. En nature `code`, `LICENSE` doit être présent et non vide ; la
+  nature s'y lit comme la lit la porte, jamais dans la PR. Dans tout dépôt, chaque fichier `.md` de
+  la racine, sauf `README.md`, est lié par un lien Markdown, `CLAUDE.md` depuis le README, un autre
+  depuis le README ou depuis « Ce qui fait foi » de `CLAUDE.md` : un nom entre accents graves ne se
+  suit pas ; `README.md` et `CLAUDE.md` doivent exister.
 - **Le modèle lui-même est public.** Rien de ce qu'il contient ne nomme le serveur, son utilisateur
   ou son réseau.
 - **Un refus se corrige, il ne se contourne jamais.**
@@ -146,7 +158,7 @@ pas de la discipline de celui qui travaille ?
   option, et un secret poussé est à considérer comme compromis, même supprimé ensuite.
 - Un dépôt privé est moins bien protégé qu'un dépôt public : rien ne retient un contournement des
   hooks. C'est un risque accepté : le garde de Claude est alors la seule serrure côté agent, et la
-  CI du socle le seul filet.
+  CI (le socle et `texte-pr`) le seul filet.
 - Dans un dépôt de données, la porte n'empêche plus un nom de serveur ou une adresse d'entrer dans
   l'historique : elle le signale. Elle y refuse toujours les secrets. L'historique d'un dépôt de
   données n'est donc pas prêt à être publié : il ne le sera jamais, et un dépôt d'avant M-0006 se

@@ -13,7 +13,6 @@ L'application s'installe, marche hors ligne, et l'interface d'un cours est dans 
 Ce dépôt porte le code, un cours d'exemple inventé (`exemple-contenu/`) et les documents ; le
 travail s'y fait en français. Il ne porte ni vrai cours, ni secret, ni valeur d'un hôte : ce qui
 fait d'une installation celle d'une personne est dans un dépôt de données privé, qui n'est pas ici.
-Il n'a pas de licence : tous droits réservés.
 
 L'état du projet est dans [CLAUDE.md](CLAUDE.md#état), les versions dans [les publications](https://github.com/EdouardZemb/ancrage/releases).
 
@@ -49,3 +48,7 @@ Les autres commandes sont dans [CLAUDE.md](CLAUDE.md#commandes).
 ## Contribuer
 
 Projet personnel : aucune contribution n'est attendue.
+
+## Licence
+
+[Tous droits réservés](LICENSE)

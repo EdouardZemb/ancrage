@@ -12,16 +12,18 @@ const sortie = () => path.join(dossierDuTest(), 'rapport.html');
 const cours = coursDExemple();
 const AUJOURDHUI = '2026-03-02';
 
-async function lancer(...argv: string[]) {
+async function lancerLe(aujourdhui: string, ...argv: string[]) {
   const out: string[] = [];
   const err: string[] = [];
   const code = await executer(
     argv,
     { out: (ligne) => out.push(ligne), err: (ligne) => err.push(ligne) },
-    { aujourdhui: AUJOURDHUI },
+    { aujourdhui },
   );
   return { code, texte: [...out, ...err].join('\n') };
 }
+
+const lancer = (...argv: string[]) => lancerLe(AUJOURDHUI, ...argv);
 
 /** Les arguments d'un rapport complet ; `en` en remplace ou en ajoute. */
 const arguments_ = (...en: string[]) => [
@@ -218,8 +220,9 @@ test('la_date_d_examen_du_manifeste_sert_a_defaut_de_jusquau', async () => {
   const sansOption = arguments_().filter(
     (a, i, tous) => a !== '--jusquau' && tous[i - 1] !== '--jusquau',
   );
-  const resultat = await lancer(...sansOption);
+  // Le rapport est daté de deux mois avant l'examen de l'exemple : la projection reste courte.
+  const resultat = await lancerLe('2030-05-01', ...sansOption);
   expect(resultat.code).toBe(0);
   // Le manifeste de l'exemple fixe l'examen au 30/06/2030.
   expect(fs.readFileSync(sortie(), 'utf8')).toContain('examen le 30/06/2030');
-}, 120_000);
+});

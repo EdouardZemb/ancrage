@@ -1,0 +1,116 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { expect, test } from 'vitest';
+import { ouvrirBase } from '../../serveur/base/base.js';
+import {
+  COURS_DE_TEST,
+  ecrireJournal,
+  installerDossierTemporaire,
+  journalSimule,
+  reponseInventee,
+} from './ecrire-journal.fixture.js';
+import { lireJournaux } from './lire-journaux.js';
+
+const dossierDuTest = installerDossierTemporaire();
+const base = () => path.join(dossierDuTest(), 'copie.sqlite');
+
+test('deux_personnes_donnent_deux_journaux_sans_rien_qui_les_nomme', () => {
+  const a = journalSimule({ unites: 3, passages: 4, graine: 1 });
+  const b = journalSimule({ unites: 2, passages: 5, graine: 2 });
+  const personnes = ecrireJournal(base(), [a, b]);
+
+  const { journaux } = lireJournaux(base(), COURS_DE_TEST);
+
+  expect(journaux.map((journal) => journal.length).sort()).toEqual([10, 12]);
+  const texte = JSON.stringify(journaux);
+  for (const personne of personnes) {
+    expect(texte).not.toContain(personne.id);
+    expect(texte).not.toContain(personne.nom);
+  }
+  // L'appareil non plus : il désignerait la personne d'un téléphone à l'autre.
+  expect(texte).not.toContain('4b3f0a52');
+});
+
+test('un_journal_est_dans_l_ordre_du_journal_de_sa_personne', () => {
+  const journal = journalSimule({ unites: 2, passages: 4, graine: 3 });
+  ecrireJournal(base(), [journal]);
+  const { journaux } = lireJournaux(base(), COURS_DE_TEST);
+  expect(journaux[0]?.map((e) => e.id)).toEqual(journal.map((e) => e.id));
+  expect(journaux[0]?.map((e) => e.resultat)).toEqual(journal.map((e) => e.resultat));
+});
+
+test('une_base_sans_ce_cours_rend_une_liste_vide', () => {
+  ecrireJournal(base(), [journalSimule({ unites: 2, passages: 3, graine: 4 })]);
+  expect(lireJournaux(base(), 'z9999999').journaux).toEqual([]);
+});
+
+test('un_examen_est_ecarte_et_les_autres_cours_ne_sont_pas_lus', () => {
+  const autre = reponseInventee(Date.UTC(2026, 0, 2), 900, 'm0000001', true, 'z9999999');
+  ecrireJournal(base(), [[...journalSimule({ unites: 1, passages: 3, graine: 5 }), autre]]);
+  const ouverte = ouvrirBase(base());
+  ouverte.sqlite
+    .prepare(
+      `insert into evenement (id, personne, cours, numero, unite, type, resultat, repondu_a, appareil, v, recu_a)
+       values ('01929f3a-5b3c-7000-8000-0000000000aa', 'personne-inventee-1', ?, 99, 'exam0001', 'examen',
+       '{"points":18,"questions":24,"note":4.5,"minutes":12,"chapitres":3}', '2026-02-01T09:00:00.000+00:00', 'x', 1, 'x')`,
+    )
+    .run(COURS_DE_TEST);
+  ouverte.sqlite.pragma('journal_mode = DELETE');
+  ouverte.sqlite.close();
+
+  const { journaux } = lireJournaux(base(), COURS_DE_TEST);
+  expect(journaux).toHaveLength(1);
+  expect(journaux[0]).toHaveLength(3);
+  expect(journaux[0]?.every((e) => e.type === 'reponse' && e.cours === COURS_DE_TEST)).toBe(true);
+});
+
+test('plusieurs_reponses_d_un_meme_jour_font_autant_de_revues', () => {
+  const matin = Date.UTC(2026, 0, 5, 10);
+  const journal = [0, 1, 2].map((n) => reponseInventee(matin + n * 60_000, n, 'm0000001', n !== 1));
+  ecrireJournal(base(), [journal]);
+  const { journaux } = lireJournaux(base(), COURS_DE_TEST);
+  expect(journaux[0]?.map((e) => e.resultat)).toEqual([
+    { juste: true },
+    { juste: false },
+    { juste: true },
+  ]);
+});
+
+test('la_base_n_est_pas_modifiee_et_rien_ne_parait_a_cote', () => {
+  ecrireJournal(base(), [journalSimule({ unites: 2, passages: 3, graine: 6 })]);
+  const avant = fs.readFileSync(base());
+  expect(fs.readdirSync(dossierDuTest())).toEqual(['copie.sqlite']);
+
+  lireJournaux(base(), COURS_DE_TEST);
+
+  expect(fs.readdirSync(dossierDuTest())).toEqual(['copie.sqlite']);
+  expect(fs.readFileSync(base()).equals(avant)).toBe(true);
+});
+
+test.skipIf(process.platform === 'win32')(
+  'une_copie_faite_par_vacuum_into_se_lit_dans_un_dossier_en_lecture_seule_sans_fichier_cree',
+  () => {
+    // La base vit en mode WAL, comme celle du serveur ; la copie, que `VACUUM INTO` écrit en un
+    // seul fichier, se lit dans un dossier où rien ne peut être créé.
+    const source = path.join(dossierDuTest(), 'source.sqlite');
+    ecrireJournal(source, [journalSimule({ unites: 2, passages: 3, graine: 7 })]);
+    const enService = ouvrirBase(source);
+    const lecture = path.join(dossierDuTest(), 'lecture');
+    fs.mkdirSync(lecture);
+    const copie = path.join(lecture, 'copie.sqlite');
+    enService.sqlite.prepare('vacuum into ?').run(copie);
+    enService.sqlite.close();
+    fs.chmodSync(lecture, 0o555);
+
+    const { journaux } = lireJournaux(copie, COURS_DE_TEST);
+
+    expect(journaux).toHaveLength(1);
+    expect(fs.readdirSync(lecture)).toEqual(['copie.sqlite']);
+    fs.chmodSync(lecture, 0o755);
+  },
+);
+
+test('une_base_absente_leve_une_erreur_et_n_en_cree_pas', () => {
+  expect(() => lireJournaux(path.join(dossierDuTest(), 'absente.sqlite'), COURS_DE_TEST)).toThrow();
+  expect(fs.readdirSync(dossierDuTest())).toEqual([]);
+});

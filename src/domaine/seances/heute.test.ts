@@ -2,12 +2,14 @@ import { expect, it } from 'vitest';
 import { coursServiDeTest } from '../cours/cours.fixture.js';
 import { preparerCours } from '../cours/prepare.js';
 import { hasardDeterministe } from '../hasard.js';
+import type { Evenement } from '../journal/evenement.js';
 import type { EtatUnite } from '../progression/etat.js';
 import {
   apresReponseDuJour,
   bilanDuJour,
   cartesNeuves,
   composerSeance,
+  decouvertesLe,
   duesDuJour,
   type Posable,
   posablesDuCours,
@@ -58,6 +60,13 @@ function duesEchelonnees(n: number): Map<string, EtatUnite> {
     });
   return etats;
 }
+
+/** Les candidates neuves : les cartes du cours (le choix de « Karteikarten »), au plus `quota`. */
+function neuves(quota: number): { candidates: Posable[]; quota: number } {
+  return { candidates: lesPosables().filter((p) => p.genre === 'carte'), quota };
+}
+
+const SANS_NEUVES = { candidates: [], quota: 0 };
 
 function ids(liste: readonly Posable[]): string[] {
   return liste.map((p) => p.id);
@@ -172,7 +181,13 @@ it('dues_du_jour_echeance_aujourd_hui_oui_demain_non', () => {
 it('compose_seance_garde_les_vingt_echeances_les_plus_anciennes', () => {
   const etats = duesEchelonnees(30);
 
-  const { file } = composerSeance(lesPosables(), etats, AUJOURDHUI, 0, hasardDeterministe(3));
+  const { file } = composerSeance(
+    lesPosables(),
+    etats,
+    AUJOURDHUI,
+    SANS_NEUVES,
+    hasardDeterministe(3),
+  );
 
   expect(TAILLE_DE_SEANCE).toBe(20);
   expect(file).toHaveLength(20);
@@ -189,7 +204,13 @@ it('compose_seance_prend_les_plus_anciennes_meme_en_fin_de_liste', () => {
     etats.set(p.id, etat(`2026-09-${String(25 - rang).padStart(2, '0')}`));
   });
 
-  const { file } = composerSeance(lesPosables(), etats, AUJOURDHUI, 0, hasardDeterministe(1));
+  const { file } = composerSeance(
+    lesPosables(),
+    etats,
+    AUJOURDHUI,
+    SANS_NEUVES,
+    hasardDeterministe(1),
+  );
 
   expect(ids(file).sort()).toEqual(ids(fin.slice(5)).sort());
 });
@@ -200,7 +221,13 @@ it('compose_seance_compare_les_echeances_comme_des_chaines_de_date', () => {
   etats.set('q0000001', etat('2026-10-02'));
   etats.set('q0000002', etat('2026-09-30'));
 
-  const { file } = composerSeance(lesPosables(), etats, AUJOURDHUI, 0, hasardDeterministe(2));
+  const { file } = composerSeance(
+    lesPosables(),
+    etats,
+    AUJOURDHUI,
+    SANS_NEUVES,
+    hasardDeterministe(2),
+  );
 
   // 22 dues pour 20 places : les deux échéances les plus anciennes restent.
   expect(file).toHaveLength(20);
@@ -212,8 +239,8 @@ it('compose_seance_a_echeance_egale_la_meme_graine_donne_la_meme_file', () => {
   const etats = new Map<string, EtatUnite>();
   for (const p of lesPosables().slice(0, 30)) etats.set(p.id, etat('2026-10-01'));
 
-  const a = composerSeance(lesPosables(), etats, AUJOURDHUI, 0, hasardDeterministe(5));
-  const b = composerSeance(lesPosables(), etats, AUJOURDHUI, 0, hasardDeterministe(5));
+  const a = composerSeance(lesPosables(), etats, AUJOURDHUI, SANS_NEUVES, hasardDeterministe(5));
+  const b = composerSeance(lesPosables(), etats, AUJOURDHUI, SANS_NEUVES, hasardDeterministe(5));
 
   expect(ids(a.file)).toEqual(ids(b.file));
 });
@@ -228,7 +255,7 @@ it('compose_seance_a_echeance_egale_des_graines_differentes_departagent_differem
       lesPosables(),
       etats,
       AUJOURDHUI,
-      0,
+      SANS_NEUVES,
       hasardDeterministe(graine),
     );
     selections.add(ids(file).sort().join(','));
@@ -241,7 +268,13 @@ it('compose_seance_les_dues_d_abord_puis_les_cartes_neuves', () => {
   const etats = duesEchelonnees(5);
   const dues = new Set(ids(lesEntrelaces().slice(0, 5)));
 
-  const { file } = composerSeance(lesPosables(), etats, AUJOURDHUI, 3, hasardDeterministe(4));
+  const { file } = composerSeance(
+    lesPosables(),
+    etats,
+    AUJOURDHUI,
+    neuves(3),
+    hasardDeterministe(4),
+  );
 
   expect(file).toHaveLength(8);
   expect(file.slice(0, 5).every((p) => dues.has(p.id))).toBe(true);
@@ -254,14 +287,14 @@ it('compose_seance_complete_les_vingt_par_les_cartes_neuves_qui_restent_de_place
     lesPosables(),
     duesEchelonnees(19),
     AUJOURDHUI,
-    3,
+    neuves(3),
     hasardDeterministe(1),
   );
   const vingt = composerSeance(
     lesPosables(),
     duesEchelonnees(20),
     AUJOURDHUI,
-    3,
+    neuves(3),
     hasardDeterministe(1),
   );
 
@@ -273,14 +306,26 @@ it('compose_seance_complete_les_vingt_par_les_cartes_neuves_qui_restent_de_place
 });
 
 it('compose_seance_ne_prend_pas_plus_de_nouvelles_que_demande', () => {
-  const { file } = composerSeance(lesPosables(), new Map(), AUJOURDHUI, 4, hasardDeterministe(1));
+  const { file } = composerSeance(
+    lesPosables(),
+    new Map(),
+    AUJOURDHUI,
+    neuves(4),
+    hasardDeterministe(1),
+  );
 
   expect(file).toHaveLength(4);
   expect(file.every((p) => p.genre === 'carte')).toBe(true);
 });
 
 it('compose_seance_sans_rien_de_du_ni_de_neuf_rend_une_file_vide', () => {
-  const vide = composerSeance([], new Map(), AUJOURDHUI, 5, hasardDeterministe(1));
+  const vide = composerSeance(
+    [],
+    new Map(),
+    AUJOURDHUI,
+    { candidates: [], quota: 5 },
+    hasardDeterministe(1),
+  );
 
   expect(vide).toEqual({ file: [], revenus: [], faites: 0, justes: 0 });
 });
@@ -288,7 +333,13 @@ it('compose_seance_sans_rien_de_du_ni_de_neuf_rend_une_file_vide', () => {
 it('compose_seance_les_nouveautes_ne_sont_que_des_cartes', () => {
   const sansCarte = lesPosables().filter((p) => p.genre !== 'carte');
 
-  const { file } = composerSeance(sansCarte, new Map(), AUJOURDHUI, 10, hasardDeterministe(1));
+  const { file } = composerSeance(
+    sansCarte,
+    new Map(),
+    AUJOURDHUI,
+    { candidates: sansCarte, quota: 10 },
+    hasardDeterministe(1),
+  );
 
   expect(file).toEqual([]);
 });
@@ -299,7 +350,13 @@ it('compose_seance_ne_prend_pas_pour_neuve_une_carte_deja_repondue', () => {
   // Toutes sauf la première sont répondues, mais pas dues.
   for (const p of cartes.slice(1)) etats.set(p.id, etat('2026-12-01'));
 
-  const { file } = composerSeance(lesPosables(), etats, AUJOURDHUI, 10, hasardDeterministe(1));
+  const { file } = composerSeance(
+    lesPosables(),
+    etats,
+    AUJOURDHUI,
+    neuves(10),
+    hasardDeterministe(1),
+  );
 
   expect(ids(file)).toEqual([cartes[0].id]);
 });
@@ -308,7 +365,7 @@ it('compose_seance_ne_change_pas_les_entrees', () => {
   const etats = duesEchelonnees(25);
   const avant = ids(lesPosables());
 
-  composerSeance(lesPosables(), etats, AUJOURDHUI, 3, hasardDeterministe(1));
+  composerSeance(lesPosables(), etats, AUJOURDHUI, neuves(3), hasardDeterministe(1));
 
   expect(ids(lesPosables())).toEqual(avant);
   expect(etats.size).toBe(25);
@@ -405,4 +462,141 @@ it('cartes_neuves_ne_garde_que_les_cartes_de_la_boite_zero', () => {
 
   expect(neuves.map(({ id }) => id)).toEqual(autres.map(({ id }) => id));
   expect(neuves.every((p) => p.genre === 'carte')).toBe(true);
+});
+
+/* Le plafond par jour (M2-P9) : les cartes découvertes un jour, d'après le journal. */
+
+const HERZ = 'c1000001';
+const LEBER = 'c1000002';
+const LES_DEUX = new Set([HERZ, LEBER]);
+const APPAREIL = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+
+function reponse(n: number, unite: string, reponduA: string, juste = true): Evenement {
+  return {
+    id: `01929f3a-5b3c-7000-8000-${String(n).padStart(12, '0')}`,
+    cours: 'cs000001',
+    unite,
+    type: 'reponse',
+    resultat: { juste },
+    repondu_a: reponduA,
+    appareil: APPAREIL,
+    v: 1,
+  };
+}
+
+function examen(n: number, unite: string, reponduA: string): Evenement {
+  return {
+    id: `01929f3a-5b3c-7000-8000-${String(n).padStart(12, '0')}`,
+    cours: 'cs000001',
+    unite,
+    type: 'examen',
+    resultat: { points: 1, questions: 2, note: 3, minutes: 4, chapitres: 1 },
+    repondu_a: reponduA,
+    appareil: APPAREIL,
+    v: 1,
+  };
+}
+
+const AUJOURDHUI_A_10H = `${AUJOURDHUI}T10:00:00.000+02:00`;
+const HIER_A_10H = '2026-10-16T10:00:00.000+02:00';
+
+it('decouvertes_le_compte_les_cartes_dont_la_premiere_reponse_est_de_ce_jour', () => {
+  const journal = [
+    reponse(1, HERZ, AUJOURDHUI_A_10H, false),
+    reponse(2, LEBER, AUJOURDHUI_A_10H),
+    reponse(3, LEBER, AUJOURDHUI_A_10H),
+  ];
+
+  expect(decouvertesLe(journal, AUJOURDHUI, LES_DEUX)).toBe(2);
+  expect(decouvertesLe(journal, AUJOURDHUI, new Set([HERZ]))).toBe(1);
+  expect(decouvertesLe(journal, '2026-10-16', LES_DEUX)).toBe(0);
+  expect(decouvertesLe([], AUJOURDHUI, LES_DEUX)).toBe(0);
+  expect(decouvertesLe(journal, AUJOURDHUI, new Set())).toBe(0);
+});
+
+it('decouvertes_le_ne_compte_ni_un_mot_ni_un_exercice_ni_une_carte_hors_du_choix', () => {
+  const journal = [
+    reponse(1, 'w0000001', AUJOURDHUI_A_10H),
+    reponse(2, 'e1000001', AUJOURDHUI_A_10H),
+    reponse(3, 'c1000003', AUJOURDHUI_A_10H),
+    reponse(4, HERZ, AUJOURDHUI_A_10H),
+  ];
+
+  expect(decouvertesLe(journal, AUJOURDHUI, LES_DEUX)).toBe(1);
+});
+
+it('decouvertes_le_une_carte_deja_repondue_un_jour_d_avant_n_est_pas_decouverte', () => {
+  const journal = [reponse(1, HERZ, HIER_A_10H), reponse(2, HERZ, AUJOURDHUI_A_10H)];
+
+  expect(decouvertesLe(journal, AUJOURDHUI, LES_DEUX)).toBe(0);
+  expect(decouvertesLe(journal, '2026-10-16', LES_DEUX)).toBe(1);
+});
+
+it('decouvertes_le_la_premiere_reponse_est_la_plus_ancienne_pas_la_premiere_arrivee', () => {
+  // Le journal arrive dans le désordre : la réponse d'aujourd'hui avant celle d'hier.
+  const journal = [reponse(1, HERZ, AUJOURDHUI_A_10H), reponse(2, HERZ, HIER_A_10H)];
+
+  expect(decouvertesLe(journal, AUJOURDHUI, LES_DEUX)).toBe(0);
+  expect(decouvertesLe(journal, '2026-10-16', LES_DEUX)).toBe(1);
+});
+
+it('decouvertes_le_prend_le_jour_local_de_la_reponse', () => {
+  // 00 h 30 locale (+02:00) : le 17 en local, mais encore le 16 en UTC.
+  const journal = [reponse(1, HERZ, `${AUJOURDHUI}T00:30:00.000+02:00`)];
+
+  expect(decouvertesLe(journal, AUJOURDHUI, LES_DEUX)).toBe(1);
+  expect(decouvertesLe(journal, '2026-10-16', LES_DEUX)).toBe(0);
+});
+
+it('decouvertes_le_un_evenement_d_examen_ne_compte_pas_mais_ses_reponses_oui', () => {
+  const seulExamen = [examen(1, HERZ, AUJOURDHUI_A_10H)];
+  const avecReponse = [...seulExamen, reponse(2, LEBER, AUJOURDHUI_A_10H)];
+
+  expect(decouvertesLe(seulExamen, AUJOURDHUI, LES_DEUX)).toBe(0);
+  expect(decouvertesLe(avecReponse, AUJOURDHUI, LES_DEUX)).toBe(1);
+});
+
+it('decouvertes_le_un_evenement_recu_deux_fois_compte_une_fois', () => {
+  const journal = [reponse(1, HERZ, AUJOURDHUI_A_10H), reponse(1, HERZ, AUJOURDHUI_A_10H)];
+
+  expect(decouvertesLe(journal, AUJOURDHUI, LES_DEUX)).toBe(1);
+});
+
+it('compose_seance_un_quota_nul_ne_pose_aucune_neuve', () => {
+  const { file } = composerSeance(
+    lesPosables(),
+    duesEchelonnees(2),
+    AUJOURDHUI,
+    { ...neuves(0) },
+    hasardDeterministe(1),
+  );
+
+  expect(file).toHaveLength(2);
+});
+
+it('compose_seance_ne_tire_ses_neuves_que_parmi_les_candidates', () => {
+  const cartes = lesPosables().filter((p) => p.genre === 'carte');
+  const choix = cartes.slice(0, 3);
+
+  const { file } = composerSeance(
+    lesPosables(),
+    new Map(),
+    AUJOURDHUI,
+    { candidates: choix, quota: 10 },
+    hasardDeterministe(1),
+  );
+
+  expect(ids(file).sort()).toEqual(ids(choix).sort());
+});
+
+it('compose_seance_borne_le_quota_par_la_place_que_laissent_les_dues', () => {
+  const { file } = composerSeance(
+    lesPosables(),
+    duesEchelonnees(18),
+    AUJOURDHUI,
+    neuves(10),
+    hasardDeterministe(1),
+  );
+
+  expect(file).toHaveLength(TAILLE_DE_SEANCE);
 });

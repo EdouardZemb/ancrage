@@ -2,14 +2,18 @@ import type { UniteDeCarte } from '../cartes/unites.js';
 import type { Exercice, FamilleExercices, Mot } from '../contenu/modele.js';
 import type { CoursPrepare, ModuleServiDe } from '../cours/prepare.js';
 import { type Hasard, melanger } from '../hasard.js';
-import { type EtatUnite, estDue, etatDe } from '../progression/etat.js';
+import type { Evenement } from '../journal/evenement.js';
+import { jourDe } from '../journal/temps.js';
+import { type EtatUnite, estDue, etatDe, journalSansDoublon } from '../progression/etat.js';
 import { type ElementFerme, elementsTirables, GENRES_FERMES, idDeLElement } from './feuilles.js';
 
 /*
  * La séance du jour, « Heute » (M2) : une file qui mêle tout ce qui est dû aujourd'hui, quel que
- * soit le type de l'unité, puis quelques cartes neuves. Le domaine ne lit ni l'horloge ni le
- * hasard : le jour, l'état de chaque unité (que rend l'ordonnanceur du cours) et le hasard sont des
- * paramètres.
+ * soit le type de l'unité, puis quelques cartes neuves. Les neuves viennent du choix fait dans
+ * Karteikarten (M2-P10), et `nouvelles_par_seance` y est un plafond par jour (M2-P9) : le quota de
+ * la séance est ce que ce plafond laisse après les cartes déjà découvertes aujourd'hui
+ * (`decouvertesLe`). Le domaine ne lit ni l'horloge ni le hasard : le jour, l'état de chaque unité
+ * (que rend l'ordonnanceur du cours), les candidates, le quota et le hasard sont des paramètres.
  */
 
 /** Le plafond d'une séance du jour. */
@@ -71,6 +75,36 @@ export function cartesNeuves(
   return posables.filter((p) => p.genre === 'carte' && etatDe(etats, p.id).boite === 0);
 }
 
+/**
+ * Les cartes de `cartes` découvertes le `jour` (M2-P9) : celles dont la première réponse du journal
+ * est de ce jour (local), où qu'elle ait été donnée. La première est la plus ancienne, dans l'ordre
+ * du journal sans doublon, et non la première arrivée. Une réponse à une autre unité, ou un
+ * événement d'examen, ne compte pas.
+ */
+export function decouvertesLe(
+  evenements: readonly Evenement[],
+  jour: string,
+  cartes: ReadonlySet<string>,
+): number {
+  const vues = new Set<string>();
+  let decouvertes = 0;
+  for (const evenement of journalSansDoublon(evenements)) {
+    if (evenement.type !== 'reponse' || !cartes.has(evenement.unite)) continue;
+    if (vues.has(evenement.unite)) continue;
+    vues.add(evenement.unite);
+    if (jourDe(evenement.repondu_a) === jour) decouvertes++;
+  }
+  return decouvertes;
+}
+
+/** Les cartes neuves d'une séance du jour : les candidates (le choix de Karteikarten) et le quota. */
+export interface NeuvesDuJour {
+  /** Les posables de genre `carte` du choix ; seules celles en boîte 0 entrent dans la séance. */
+  candidates: readonly Posable[];
+  /** Le plafond du jour moins les cartes découvertes aujourd'hui, au moins 0. */
+  quota: number;
+}
+
 /** La séance du jour : la file à poser, les éléments déjà revenus une fois, le compte des réponses. */
 export interface SeanceDuJour {
   file: Posable[];
@@ -100,21 +134,21 @@ function parEcheance(etats: ReadonlyMap<string, EtatUnite>) {
 /**
  * La file du jour (M2-P2) : les dues, mélangées puis triées par échéance croissante d'un tri stable
  * (à échéance égale, le hasard départage), les `TAILLE_DE_SEANCE` premières gardées puis mélangées
- * pour l'ordre de passage ; ensuite, dans la place qui reste, au plus `nouvelles` cartes neuves,
- * mélangées.
+ * pour l'ordre de passage ; ensuite, dans la place qui reste, au plus `neuves.quota` cartes
+ * neuves des `neuves.candidates`, mélangées (M2-P9, M2-P10).
  */
 export function composerSeance(
   posables: readonly Posable[],
   etats: ReadonlyMap<string, EtatUnite>,
   aujourdhui: string,
-  nouvelles: number,
+  neuves: NeuvesDuJour,
   hasard: Hasard,
 ): SeanceDuJour {
   const dues = melanger(duesDuJour(posables, etats, aujourdhui), hasard).sort(parEcheance(etats));
   const gardees = melanger(dues.slice(0, TAILLE_DE_SEANCE), hasard);
-  const places = Math.max(0, Math.min(nouvelles, TAILLE_DE_SEANCE - gardees.length));
-  const neuves = melanger(cartesNeuves(posables, etats), hasard).slice(0, places);
-  return { file: [...gardees, ...neuves], revenus: [], faites: 0, justes: 0 };
+  const places = Math.max(0, Math.min(neuves.quota, TAILLE_DE_SEANCE - gardees.length));
+  const tirees = melanger(cartesNeuves(neuves.candidates, etats), hasard).slice(0, places);
+  return { file: [...gardees, ...tirees], revenus: [], faites: 0, justes: 0 };
 }
 
 /**

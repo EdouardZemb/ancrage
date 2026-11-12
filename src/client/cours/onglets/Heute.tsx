@@ -131,7 +131,11 @@ export function Heute() {
   const neuvesDuCours = useMemo(() => cartesNeuves(posables, etats), [posables, etats]);
   const cle = cleDuJour(aujourdhui, dues, neuvesDuCours);
 
+  // Les éléments que la séance en cours a réussis : le journal ne les montre qu'une fois rangés,
+  // et l'écran de fin ne les compte plus parmi les dues. Une séance neuve repart d'un ensemble vide.
+  const reussis = useRef(new Set<string>());
   const composer = (): EtatDeHeute => {
+    reussis.current = new Set();
     const seance = composerSeance(posables, etats, aujourdhui, nouvelles, hasard);
     return { cle, seance, question: questionDe(seance.file[0], cours, hasard), repondue: null };
   };
@@ -152,7 +156,6 @@ export function Heute() {
 
   // La dernière réponse enregistrée : la synchronisation attend qu'elle soit rangée.
   const rangement = useRef<Promise<boolean>>(Promise.resolve(true));
-  const reussis = useRef(new Set<string>());
   const ranger = (id: string, juste: boolean) => {
     rangement.current = enregistrer(id, juste);
     // Le journal ne la montre qu'une fois rangée : l'écran de fin ne compte plus cet élément dû.

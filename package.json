@@ -26,7 +26,8 @@
     "contenus:verrouiller": "tsx src/serveur/contenus/cli.ts verrouiller",
     "contenus:reference": "tsx src/serveur/contenus/cli.ts reference",
     "contenus:client": "tsx src/serveur/contenus/cli.ts client",
-    "contenus:a-verifier": "tsx src/serveur/contenus/cli.ts a-verifier"
+    "contenus:a-verifier": "tsx src/serveur/contenus/cli.ts a-verifier",
+    "memoire:ajuster": "tsx src/outillage/memoire/cli-ajuster.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.5",
@@ -49,6 +50,7 @@
   "devDependencies": {
     "@babel/core": "^7.29.13",
     "@biomejs/biome": "^2.6.5",
+    "@open-spaced-repetition/binding": "0.6.1",
     "@playwright/test": "^1.65.0",
     "@preact/preset-vite": "^2.10.6",
     "@stryker-mutator/core": "^10.0.0",

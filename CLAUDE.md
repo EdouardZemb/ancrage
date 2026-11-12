@@ -302,6 +302,12 @@ Sur le poste, `pnpm` s'appelle par `corepack pnpm …` ; en CI, `corepack enable
   vérifier » de chaque cours, en HTML et en PDF (Chromium de Playwright), dans `dossier`
   (`dist/a-verifier` par défaut). Elle est en allemand, pour la relecture sur papier : les cartes et
   la morphologie en tableau, les autres éléments en cadres.
+- `corepack pnpm memoire:ajuster --base <copie.sqlite> --cours <id>` : outil du poste, hors de l'image
+  (`src/outillage/memoire/`, dépendance de développement `@open-spaced-repetition/binding`). Ajuste les 21
+  poids de FSRS-6 sur les journaux du cours dans une copie de la base, ouverte en lecture seule, tous
+  comptes confondus et sans rien qui nomme une personne. Écrit le bloc `parametres:` du manifeste, puis la
+  qualité de la prédiction avant et après. Codes : 0 ajusté ; 2 moins de 1 000 révisions exploitables ;
+  64 usage ; 1 base illisible. `docs/exploitation.md`, « Ajuster les paramètres de FSRS d'un cours ».
 - `corepack pnpm contenus:reference --references <dossier>` : régénère l'instantané
   `<cours>.reference.json` de chaque cours, et celui de la notice composée, `notice.json`, dans
   `<dossier>`. `--references` est obligatoire, sans défaut : sans lui, code 64. Au dépôt de données, ce

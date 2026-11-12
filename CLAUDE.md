@@ -192,8 +192,21 @@ scission, et rien n'y change pour l'apprenante :
 - la recherche du cours dans le code est un hook de `.claude/settings.json`, `scripts/cours-absent.ts`,
   et la CI du dépôt de données (S3-D5, S3-D6).
 
+Le lot M1 a donné à chaque cours son ordonnanceur de révisions (ancrage#5, milestone « Le parcours et
+la mémoire »). Rien ne change pour l'apprenante, dont le cours reste en Leitner :
+- `ordonnanceurDe` (`src/domaine/progression/ordonnanceur.ts`) choisit Leitner ou FSRS d'après la clé
+  facultative `memoire` du manifeste, et le client l'appelle. Sans la clé, c'est Leitner ;
+- FSRS-6 rejoue le journal par `ts-fsrs`, sans hasard et en note binaire
+  (`src/domaine/progression/fsrs.ts`, ADR-0012). Les six « Fächer » se dérivent de la stabilité ;
+- le cours d'exemple est en FSRS. Un cours monté ne reçoit `memoire` qu'une version après celle qui
+  connaît la clé (invariant 8, `docs/format-des-contenus.md`).
+
+Ses décisions et ses arbitrages (« M1-D<n> », « M1-R<n> ») sont dans `docs/conception/lot-m1.md`.
+Le lot suivant de la milestone est la séance composée « Heute ».
+
 Les suites sans urgence d'un lot vont dans une issue « Au prochain passage »
-(ancrage-donnees#81 est fermée ; celle des lots 2c, 2d, F3, S1 et S2 est ancrage-donnees#156). Une
+(ancrage-donnees#81 est fermée ; celle des lots 2c, 2d, F3, S1 et S2 est ancrage-donnees#156 ; celle
+du lot M1 est ancrage#11). Une
 PR qui touche un fichier de cette liste regarde sa case, et la coche si elle la règle.
 
 Le déploiement est aligné sur la cible `serveur` de `modele-projet` (l'alignement date du lot 2 du

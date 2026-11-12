@@ -137,19 +137,55 @@ Le cours de terminologie reprend ceux du prototype : `[0, 1, 2, 4, 8, 16]` et 15
 ### Réglage de la mémoire
 
 La clé `memoire` choisit l'algorithme de répétition espacée du cours. Elle est facultative, et toute
-autre clé qu'`algorithme` et `retention` est refusée.
+autre clé que celles ci-dessous est refusée.
 
-- `algorithme` : `"leitner"` ou `"fsrs"`. Obligatoire dans `memoire`. Toute autre valeur est refusée.
+```yaml
+memoire:
+  algorithme: "par-chapitre"
+  retention: 0.9
+  parametres: [0.2120, 1.2931, 2.3065, …]   # les 21 poids de FSRS-6
+  examen: "2027-06-30"
+  chapitres: ["<identifiant d'un module de cartes>"]
+```
+
+- `algorithme` : `"leitner"`, `"fsrs"` ou `"par-chapitre"`. Obligatoire dans `memoire`. Toute autre
+  valeur est refusée. Avec `par-chapitre`, les cartes des modules de `chapitres` suivent FSRS ; tout
+  le reste du cours (les autres cartes, les mots, les points, les exercices, les fiches) reste en
+  Leitner.
 - `retention` : sans effet avec `leitner`. Un nombre de 0,80 à 0,95, bornes comprises, la part des cartes que l'apprenante doit
   encore savoir au moment de les revoir. Facultatif : 0,90 par défaut.
+- `parametres` : les 21 poids de FSRS-6, ceux que l'ajustement sur le journal d'un cours rend.
+  Facultatif : sans eux, les poids par défaut de FSRS-6. Exactement 21 nombres, tous dans les bornes
+  du modèle (`checkFSRS6Parameters` de `ts-fsrs`) : 20 ou 22 poids, un poids hors bornes ou qui n'est
+  pas un nombre sont refusés. Admis avec `fsrs` et `par-chapitre`, refusé avec `leitner`.
+- `examen` : une date `AAAA-MM-JJ` qui existe, entre guillemets doubles. Facultatif. Une réponse
+  donnée `n` jours avant elle reçoit une échéance d'au plus la moitié de `n` jours (arrondie vers le
+  bas, un jour au moins) ; le jour de l'examen et après, rien ne la plafonne. Admis avec `fsrs` et
+  `par-chapitre`, refusé avec `leitner`.
+- `chapitres` : une liste d'identifiants de modules de cartes du cours, sans doublon. Obligatoire et
+  non vide avec `par-chapitre`, refusée avec tout autre algorithme. Un identifiant qui n'est pas celui
+  d'un module de cartes du cours est refusé, avec le fichier et la clé dans le message.
 
 Sans `memoire`, le cours n'a pas de réglage : la clé est absente du cours analysé, de la forme servie
-et de l'instantané de référence, et rien ne change pour lui. Le client qui reçoit une valeur qu'il ne
-connaît pas (un autre algorithme, une rétention hors bornes) ignore le réglage sans refuser le cours.
+et de l'instantané de référence, et rien ne change pour lui. Il en va de même de chacune des trois
+clés facultatives : absente, elle n'est ni dans la forme servie ni dans l'instantané. Le client qui
+reçoit une valeur qu'il ne connaît pas (un autre algorithme, une rétention hors bornes, des poids ou
+une date invalides, `par-chapitre` sans chapitres) ignore le réglage, donc calcule en Leitner, sans
+refuser le cours.
 
-**Un cours ne reçoit `memoire` qu'une version après celle qui la connaît.** Le schéma du manifeste est
-strict : l'image précédente, que le retour arrière remet en service, refuserait un manifeste qui porte
-une clé qu'elle ignore (invariant 8). Exception : le cours d'exemple vit dans l'image, et l'image précédente garde le sien.
+**Un appareil resté à la version précédente** ne connaît pas les trois clés :
+- avec `par-chapitre`, il ne comprend pas la valeur et retombe sur Leitner pour tout le cours, y
+  compris les chapitres en FSRS : c'est le repli sûr ;
+- avec `fsrs` et `parametres` ou `examen`, il retire ces clés, qu'il ne connaît pas, et calcule avec
+  les poids par défaut, sans plafond : ses échéances diffèrent de celles des appareils à jour jusqu'à
+  sa mise à jour, au lancement suivant.
+
+**Un cours ne reçoit `memoire` qu'une version après celle qui la connaît, et chacune de ses clés de
+même.** Le schéma du manifeste est strict : l'image précédente, que le retour arrière remet en
+service, refuserait un manifeste qui porte une clé qu'elle ignore (invariant 8). Un serveur d'avant
+cette version refuse donc de démarrer sur un manifeste qui porte `parametres`, `examen`, `chapitres`
+ou `par-chapitre` : après le premier manifeste neuf, on ne redescend plus sous la version qui les
+connaît. Exception : le cours d'exemple vit dans l'image, et l'image précédente garde le sien.
 
 ### Dérogation de diffusion
 

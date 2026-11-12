@@ -11,6 +11,7 @@ import type {
   SegmentDeTexte,
   Tache,
 } from '../contenu/modele.js';
+import { lireReglagesDeMemoire } from '../progression/reglages.js';
 
 /*
  * Ce que `GET /api/cours/:id` rend, et que le client range hors-ligne : le modèle résolu du cours
@@ -332,17 +333,12 @@ const leitner = z.object({ intervalles: liste(z.int()).length(6), nouvellesParSe
 /*
  * `memoire` n'est pas contrôlé avec le cours : un réglage que ce client ne connaît pas (un autre
  * algorithme, servi par une version suivante) ne rend pas le cours inutilisable. `memoireDuCours`
- * ne rend que ce qu'il sait lire.
+ * ne rend que ce que `lireReglagesDeMemoire` sait lire.
  */
-const memoire = z.object({
-  algorithme: z.enum(['leitner', 'fsrs']),
-  retention: z.number().min(0.8).max(0.95),
-});
 
 /** Les réglages de mémoire du cours, ou `undefined` s'il n'en a pas ou si ce client ne les connaît pas. */
 export function memoireDuCours(cours: CoursServi): ReglagesMemoire | undefined {
-  const lus = memoire.safeParse(cours.memoire);
-  return lus.success ? lus.data : undefined;
+  return lireReglagesDeMemoire(cours.memoire);
 }
 
 const moduleCartes = z.object({

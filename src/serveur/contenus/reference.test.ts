@@ -1,3 +1,4 @@
+import { FSRS6_DEFAULT_WEIGHTS } from 'ts-fsrs/models/fsrs-6';
 import { describe, expect, it } from 'vitest';
 import { analyserContenus } from '../../domaine/contenu/analyse.js';
 import { exempleDeCours, REGLAGES_DE_L_EXAMEN } from '../../domaine/contenu/exemple.fixture.js';
@@ -347,6 +348,39 @@ describe('calculerReference', () => {
       'leitner',
       'memoire',
     ]);
+  });
+
+  it('memoire_par_chapitre_ecrite_en_entier_dans_la_reference', () => {
+    const poids = [...FSRS6_DEFAULT_WEIGHTS];
+    const fichiers = exempleDeCours();
+    remplacer(
+      fichiers,
+      'essai/cours.yaml',
+      'modules:\n',
+      `memoire:\n  algorithme: "par-chapitre"\n  retention: 0.88\n  parametres: [${poids.join(', ')}]\n  examen: "2028-02-29"\n  chapitres: ["epas79zz"]\nmodules:\n`,
+    );
+    const { cours } = calculerReference(coursDe(fichiers));
+
+    expect(cours.memoire).toStrictEqual({
+      algorithme: 'par-chapitre',
+      retention: 0.88,
+      parametres: poids,
+      examen: '2028-02-29',
+      chapitres: ['epas79zz'],
+    });
+  });
+
+  it('memoire_fsrs_sans_les_cles_nouvelles_n_en_porte_aucune', () => {
+    const fichiers = exempleDeCours();
+    remplacer(
+      fichiers,
+      'essai/cours.yaml',
+      'modules:\n',
+      'memoire:\n  algorithme: "fsrs"\nmodules:\n',
+    );
+    const { memoire } = calculerReference(coursDe(fichiers)).cours;
+
+    expect(memoire).toStrictEqual({ algorithme: 'fsrs', retention: 0.9 });
   });
 
   // Invariant 9 et ADR-0003 : la section `diffusion` porte l'état du cours, sa dérogation, et le

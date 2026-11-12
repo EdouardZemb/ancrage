@@ -23,6 +23,7 @@ export type Route =
  */
 const ONGLETS_A_CHEMIN: ReadonlySet<string> = new Set(
   Object.keys({
+    heute: true,
     cartes: true,
     quiz: true,
     mots: true,
@@ -83,10 +84,18 @@ export function cheminDuCours(cours: string, onglet: Onglet = 'apercu'): string 
   return onglet === 'apercu' ? `/cours/${cours}` : `/cours/${cours}/${onglet}`;
 }
 
-/** Où mène l'accueil (`/`) : au cours s'il n'y en a qu'un, au compte sinon (décisions 4 et 20). */
+/**
+ * Le chemin sur lequel un cours s'ouvre : « Heute », la séance du jour (M2-P1). `/cours/<id>` reste
+ * l'aperçu.
+ */
+export function cheminDOuverture(cours: string): string {
+  return cheminDuCours(cours, 'heute');
+}
+
+/** Où mène l'accueil (`/`) : à l'ouverture du cours s'il n'y en a qu'un, au compte sinon (décisions 4 et 20). */
 export function destinationDeLAccueil(cours: readonly { id: string }[]): string {
   const [seul] = cours;
-  return cours.length === 1 && seul !== undefined ? cheminDuCours(seul.id) : '/compte';
+  return cours.length === 1 && seul !== undefined ? cheminDOuverture(seul.id) : '/compte';
 }
 
 /** Ce que l'on sait du visiteur : `inconnu` tant que `GET /api/moi` n'a pas répondu. */

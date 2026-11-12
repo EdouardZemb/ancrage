@@ -32,11 +32,17 @@ function etatsDuCours(evenements: readonly Evenement[], cours: CoursServi) {
 export const AUJOURDHUI_DE_TEST = '2026-10-17';
 
 export function contexteDeTest(
-  options: { cours?: CoursServi; evenements?: Evenement[]; aujourdhui?: string } = {},
+  options: {
+    cours?: CoursServi;
+    evenements?: Evenement[];
+    aujourdhui?: string;
+    /** La mémoire des onglets : la même d'un contexte à l'autre, pour rendre un onglet à nouveau. */
+    memoire?: Map<string, unknown>;
+  } = {},
 ): ContexteCours {
   const cours = preparerCours(options.cours ?? coursServiDeTest());
   const evenements = options.evenements ?? [];
-  const memoire = new Map<string, unknown>();
+  const memoire = options.memoire ?? new Map<string, unknown>();
   const oublier = oubliDOngletSur(memoire);
   return {
     cours,

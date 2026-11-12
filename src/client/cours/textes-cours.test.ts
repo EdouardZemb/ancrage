@@ -4,6 +4,7 @@ import { formater, TEXTES_COURS, textesDuCours } from './textes-cours.js';
 
 /** Les onglets dont le libellé est un texte d'interface ; les autres prennent le titre du module. */
 const ONGLETS_D_INTERFACE: Onglet[] = [
+  'heute',
   'apercu',
   'cartes',
   'quiz',

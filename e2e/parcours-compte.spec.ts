@@ -123,18 +123,18 @@ function passkeysDeLaFiche(laFiche: Locator): Locator {
   return laFiche.getByRole('list', { name: textesAdmin.passkeys_titre }).getByRole('listitem');
 }
 
-/** L'adresse d'un cours : `/cours/` et l'identifiant du cours, huit chiffres ou minuscules. */
-function adresseDuCours(origine: string): RegExp {
+/** L'adresse d'un cours : `/cours/`, son identifiant (huit chiffres ou minuscules), puis `suite` : `/heute` à l'ouverture, vide pour l'aperçu. */
+function adresseDuCours(origine: string, suite = '/heute'): RegExp {
   const echappee = origine.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(`^${echappee}/cours/[0-9a-z]{8}$`);
+  return new RegExp(`^${echappee}/cours/[0-9a-z]{8}${suite}$`);
 }
 
 /**
  * Après une connexion, on arrive sur le cours : son titre en tête, ses onglets, et l'état de la
  * synchronisation, qui finit à jour (le journal du serveur a répondu).
  */
-async function surLeCours(page: Page, origine: string): Promise<void> {
-  await expect(page).toHaveURL(adresseDuCours(origine));
+async function surLeCours(page: Page, origine: string, suite = '/heute'): Promise<void> {
+  await expect(page).toHaveURL(adresseDuCours(origine, suite));
   await expect(titre(page, COURS)).toBeVisible();
   await expect(page.getByRole('tablist')).toBeVisible();
   await expect(etatSynchro(page)).toHaveText(TEXTES_COURS.de.synchro_a_jour);
@@ -788,6 +788,7 @@ parcours('invitation_passkey_reconnexion_et_lien_de_secours', async ({ telephone
       // rechargée en ligne relit le journal : les trois réponses du premier téléphone y sont.
       await pageControlee(page);
       await surLeCours(page, origine);
+      await ouvrirOnglet(page, 'apercu');
       await expect.poll(() => reponsesDuJour(page), { message: 'réponses du jour' }).toBe(3);
 
       // Playwright coupe le réseau de la page et de son service worker (Chromium).
@@ -799,6 +800,7 @@ parcours('invitation_passkey_reconnexion_et_lien_de_secours', async ({ telephone
       expect(rechargee?.fromServiceWorker()).toBe(true);
       await expect(page.getByTestId('bandeau-session')).toHaveText(de.session_hors_ligne);
       await expect(titre(page, COURS)).toBeVisible();
+      // Le rechargement garde l'onglet : l'aperçu, qui dit les réponses du jour.
       await expect.poll(() => reponsesDuJour(page), { message: 'réponses du jour' }).toBe(3);
 
       // L'envoi part 3 s après la dernière réponse, et échoue : la file garde les deux réponses.
@@ -827,7 +829,7 @@ parcours('invitation_passkey_reconnexion_et_lien_de_secours', async ({ telephone
     // Le premier lit celles du second au démarrage suivant de l'application, sur l'aperçu.
     await ouvrirOnglet(lernende, 'apercu');
     await lernende.reload();
-    await surLeCours(lernende, origine);
+    await surLeCours(lernende, origine, '');
     await expect.poll(() => reponsesDuJour(lernende), { message: 'premier téléphone' }).toBe(7);
 
     // Le même journal, le même état : l'aperçu dit la même chose sur les deux.

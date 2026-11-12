@@ -160,7 +160,7 @@ test('en_seance_la_version_attend_la_sortie_du_cours', async ({ page }) => {
   });
 
   await test.step('2. sur le cours, il répond à une carte : une séance commence', async () => {
-    await expect(page).toHaveURL(/\/cours\/[0-9a-z]{8}$/);
+    await expect(page).toHaveURL(/\/cours\/[0-9a-z]{8}\/heute$/);
     await pageControlee(page);
     await repondreGewusst(page, 1);
     await expect(version).toHaveText('ci · dev · e2e-a');

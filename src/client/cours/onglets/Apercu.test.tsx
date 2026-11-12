@@ -58,8 +58,9 @@ describe('Apercu', () => {
 
     const total = contexte.cours.unites.length;
     expect(chiffre('Fragen sicher gewusst')).toBe(`1 / ${total}`);
-    // La carte fausse le 15 ; le mot faux aujourd'hui n'est pas une carte.
-    expect(chiffre('heute zu wiederholen')).toBe('1');
+    // La carte fausse le 15 et les deux mots faux (le 16 et aujourd'hui, la boîte 1 revient le
+    // jour même) sont dus : le chiffre est celui de « Heute » (M2-P5).
+    expect(chiffre('heute zu wiederholen')).toBe('3');
     expect(chiffre('Wörter zerlegt / gebildet')).toBe('1 / 3');
     // Le dernier examen remis, pas le meilleur.
     expect(chiffre('letzte Prüfungsnote')).toBe('5.0');
@@ -68,6 +69,20 @@ describe('Apercu', () => {
       'Jede Karte wird in beide Richtungen abgefragt: Begriff → Bedeutung und Bedeutung → ' +
         'Begriff. 3 Tage in Folge gelernt · 4 Antworten heute.',
     );
+  });
+
+  it('apercu_un_mot_du_compte_dans_les_a_revoir_aujourd_hui_pas_dans_son_chapitre', () => {
+    // M2-P5 : le chiffre est celui de « Heute », tous types confondus ; la ligne d'un chapitre
+    // ne compte que ses cartes.
+    const contexte = contexteDeTest({
+      evenements: [reponseDeTest(1, 'w0000001', false, '2026-10-10')],
+    });
+    rendreDansLeCours(<Apercu />, contexte);
+
+    expect(chiffre('heute zu wiederholen')).toBe('1');
+    for (const chapitre of lignes('Kapitel')) {
+      expect(chapitre.textContent).toContain(' 0 fällig · ');
+    }
   });
 
   it('apercu_sans_journal_aucune_note', () => {

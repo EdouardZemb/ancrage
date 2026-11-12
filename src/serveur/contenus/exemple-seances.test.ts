@@ -45,6 +45,7 @@ describe("cours d'exemple : cours préparé", () => {
     expect(prepare.feuilles.length).toBeGreaterThan(0);
     expect(prepare.examen).toBeDefined();
     expect(ongletsDuCours(prepare)).toEqual([
+      'heute',
       'apercu',
       'cartes',
       'quiz',

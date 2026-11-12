@@ -4,7 +4,7 @@ import { listerCours, modifierMoi } from '../api.js';
 import { LienInterne, MessageErreur } from '../composants.js';
 import { useAction, useApp, useChargement } from '../contexte.js';
 import { signalerNom } from '../passkeys-signal.js';
-import { cheminDuCours } from '../routeur.js';
+import { cheminDOuverture } from '../routeur.js';
 import { declarerSeance } from '../seance.js';
 import { LANGUES, type Langue } from '../textes.js';
 import { SectionDeconnexion, useDeconnexion } from './CompteDeconnexion.js';
@@ -106,7 +106,7 @@ export function Compte() {
           <ul class="liste" data-testid="liste-cours">
             {cours.donnees.map((unCours) => (
               <li key={unCours.id}>
-                <LienInterne vers={cheminDuCours(unCours.id)}>{unCours.titre}</LienInterne>
+                <LienInterne vers={cheminDOuverture(unCours.id)}>{unCours.titre}</LienInterne>
               </li>
             ))}
           </ul>

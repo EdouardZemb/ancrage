@@ -283,6 +283,7 @@ describe('EcranCours', () => {
     const barre = await screen.findByRole('tablist');
     const onglets = within(barre).getAllByRole('tab');
     expect(onglets.map((onglet) => onglet.textContent)).toEqual([
+      t.onglet_heute,
       t.onglet_apercu,
       t.onglet_cartes,
       t.onglet_quiz,
@@ -298,6 +299,7 @@ describe('EcranCours', () => {
     expect(onglets.map((onglet) => onglet.getAttribute('aria-selected'))).toEqual([
       'false',
       'false',
+      'false',
       'true',
       'false',
       'false',
@@ -308,9 +310,12 @@ describe('EcranCours', () => {
       'false',
     ]);
 
-    fireEvent.click(onglets[9]);
+    fireEvent.click(onglets[10]);
     expect(location.pathname).toBe(`/cours/${ID}/progression`);
+    // « Heute » est en tête, et mène à son chemin ; l'aperçu garde `/cours/<id>` (M2-P1).
     fireEvent.click(onglets[0]);
+    expect(location.pathname).toBe(`/cours/${ID}/heute`);
+    fireEvent.click(onglets[1]);
     expect(location.pathname).toBe(`/cours/${ID}`);
   });
 

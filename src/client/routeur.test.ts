@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
 import {
+  cheminDOuverture,
   cheminDuCours,
   destinationDeLAccueil,
   naviguer,
@@ -48,6 +49,7 @@ describe('route', () => {
       onglet: 'apercu',
     });
     for (const onglet of [
+      'heute',
       'cartes',
       'quiz',
       'mots',
@@ -83,6 +85,25 @@ describe('route', () => {
     });
   });
 
+  it('heute_a_son_chemin_et_l_ouverture_du_cours_y_mene', () => {
+    // M2-P1 : « Heute » est à `/cours/<id>/heute`, l'aperçu reste à `/cours/<id>`.
+    const heute: Route = { ecran: 'cours', cours: 'abc12345', onglet: 'heute' };
+    expect(route('/cours/abc12345/heute')).toEqual(heute);
+    expect(cheminDuCours('abc12345', 'heute')).toBe('/cours/abc12345/heute');
+    expect(cheminDOuverture('abc12345')).toBe('/cours/abc12345/heute');
+    expect(route(cheminDOuverture('abc12345'))).toEqual(heute);
+    expect(route('/cours/abc12345')).toEqual({
+      ecran: 'cours',
+      cours: 'abc12345',
+      onglet: 'apercu',
+    });
+    expect(route('/cours/abc12345/Heute')).toEqual({
+      ecran: 'cours',
+      cours: 'abc12345',
+      onglet: 'apercu',
+    });
+  });
+
   it('route_feuilles', () => {
     // L'onglet des Arbeitsblätter a son chemin, qui se relit en lui-même (F1-D1).
     const feuilles: Route = { ecran: 'cours', cours: 'abc12345', onglet: 'feuilles' };
@@ -92,7 +113,7 @@ describe('route', () => {
   });
 
   it('accueil_mene_au_cours_unique_sinon_au_compte', () => {
-    expect(destinationDeLAccueil([{ id: 'abc12345' }])).toBe('/cours/abc12345');
+    expect(destinationDeLAccueil([{ id: 'abc12345' }])).toBe('/cours/abc12345/heute');
     expect(destinationDeLAccueil([])).toBe('/compte');
     expect(destinationDeLAccueil([{ id: 'abc12345' }, { id: 'def67890' }])).toBe('/compte');
   });

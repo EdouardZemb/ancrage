@@ -15,6 +15,18 @@ export function cartesEnCours(s: {
   return s.seance.faites > 0 && s.seance.file.length > 0;
 }
 
+/**
+ * « Heute » : la file n'est pas vide, et une réponse a été comptée ou attend sa suite. La file
+ * n'avance qu'à la suite : sans `repondue`, la séance ne serait pas en cours pendant le verdict de
+ * la première réponse.
+ */
+export function heuteEnCours(s: {
+  seance: { faites: number; file: readonly unknown[] };
+  repondue: boolean | null;
+}): boolean {
+  return s.seance.file.length > 0 && (s.seance.faites > 0 || s.repondue !== null);
+}
+
 /** Prüfung : un passage commencé et pas remis. */
 export function examenEnCours(p: { resultat: unknown } | null): boolean {
   return p !== null && p.resultat === null;

@@ -3,6 +3,7 @@ import {
   cartesEnCours,
   examenEnCours,
   feuilleEnCours,
+  heuteEnCours,
   serieCommencee,
   tacheEntamee,
   texteEnCours,
@@ -18,6 +19,19 @@ describe('seances-en-cours', () => {
     expect(cartesEnCours({ seance: { faites: 2, file: [] } })).toBe(false);
     expect(cartesEnCours({ seance: { faites: 2, file: ['u'] } })).toBe(true);
     expect(cartesEnCours({ seance: { faites: 0, file: ['u'] } })).toBe(false);
+  });
+
+  it('heute_en_cours_des_la_premiere_reponse_jugee_et_tant_que_la_file_n_est_pas_vide', () => {
+    const file = ['u'];
+    // Aucune réponse : pas une séance.
+    expect(heuteEnCours({ seance: { faites: 0, file }, repondue: null })).toBe(false);
+    // La première réponse est jugée, la file n'a pas encore avancé : déjà en cours.
+    expect(heuteEnCours({ seance: { faites: 0, file }, repondue: true })).toBe(true);
+    expect(heuteEnCours({ seance: { faites: 0, file }, repondue: false })).toBe(true);
+    expect(heuteEnCours({ seance: { faites: 1, file }, repondue: null })).toBe(true);
+    // La file est vide : la séance est finie.
+    expect(heuteEnCours({ seance: { faites: 3, file: [] }, repondue: null })).toBe(false);
+    expect(heuteEnCours({ seance: { faites: 0, file: [] }, repondue: true })).toBe(false);
   });
 
   it('examen_remis_n_est_plus_une_seance', () => {

@@ -50,6 +50,7 @@ import { Cartes } from './onglets/Cartes.js';
 import { Examen } from './onglets/Examen.js';
 import { Exercices } from './onglets/Exercices.js';
 import { Feuilles } from './onglets/Feuilles.js';
+import { Heute } from './onglets/Heute.js';
 import { Mots } from './onglets/Mots.js';
 // Le type `Progression` de `useProgression` porte déjà ce nom.
 import { Progression as OngletProgression } from './onglets/Progression.js';
@@ -95,6 +96,8 @@ function libelleDOnglet(
   t: Record<CleTexteCours, string>,
 ): string {
   switch (onglet) {
+    case 'heute':
+      return t.onglet_heute;
     case 'apercu':
       return t.onglet_apercu;
     case 'cartes':
@@ -133,6 +136,8 @@ function CartesDuCours() {
 function OngletCourant(props: { onglet: Onglet }) {
   const { onglet } = props;
   switch (onglet) {
+    case 'heute':
+      return <Heute />;
     case 'apercu':
       return <Apercu />;
     case 'cartes':

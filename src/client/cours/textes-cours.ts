@@ -11,6 +11,7 @@
 
 const de = {
   // Les onglets dont le libellé n'est pas le titre d'un module (H:199-208).
+  onglet_heute: 'Heute',
   onglet_apercu: 'Übersicht',
   onglet_cartes: 'Karteikarten',
   onglet_quiz: 'Quiz',
@@ -18,6 +19,17 @@ const de = {
   // Les fiches d'exercices des Units : un onglet pour toutes, pas un par module (F1-D1).
   onglet_feuilles: 'Arbeitsblätter',
   onglet_progression: 'Fortschritt',
+
+  // La séance du jour (M2) : ce qui est dû aujourd'hui, de tous les types, puis des cartes neuves.
+  heute_compte: '{dues} fällig · {neues} neu',
+  heute_progression: '{faites} beantwortet · {restantes} offen',
+  heute_fin: 'Runde geschafft!',
+  heute_resultat: '{justes} von {faites} richtig.',
+  heute_reste: 'Noch {n} fällig.',
+  heute_encore: 'Nächste Runde',
+  heute_rien: 'Heute ist nichts fällig.',
+  heute_rien_suite: 'In den anderen Bereichen kannst du frei üben.',
+  heute_vers_apercu: 'Zur Übersicht',
 
   // L'état de la synchronisation, en tête du cours (H:197, H:1595-1605).
   synchro_en_cours: 'Speichere …',

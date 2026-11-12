@@ -23,9 +23,10 @@ export interface Chapitre {
 
 /**
  * Les écrans d'un cours : l'aperçu est à `/cours/<id>`, chacun des autres à `/cours/<id>/<onglet>`
- * (décision 20). `feuilles` montre toutes les feuilles du cours (F1-D1).
+ * (décision 20) ; « Heute », la séance du jour, est à `/cours/<id>/heute` (M2-P1). `feuilles` montre toutes les feuilles du cours (F1-D1).
  */
 export type Onglet =
+  | 'heute'
   | 'apercu'
   | 'cartes'
   | 'quiz'
@@ -105,12 +106,12 @@ export function preparerCours(cours: CoursServi): CoursPrepare {
 }
 
 /**
- * Les onglets du cours, dans l'ordre du prototype (décision 19) : l'aperçu et la progression
- * toujours, les cartes et le quiz s'il y a un module de cartes, puis un onglet par type de module.
+ * Les onglets du cours, dans l'ordre du prototype (décision 19), « Heute » en tête (M2-P1) : « Heute »,
+ * l'aperçu et la progression toujours, les cartes et le quiz s'il y a un module de cartes, puis un onglet par type de module.
  * Celui des feuilles, que le prototype n'avait pas, vient entre les exercices et l'examen (F1-D1).
  */
 export function ongletsDuCours(cours: CoursPrepare): Onglet[] {
-  const onglets: Onglet[] = ['apercu'];
+  const onglets: Onglet[] = ['heute', 'apercu'];
   if (cours.chapitres.length > 0) onglets.push('cartes', 'quiz');
   if (cours.morphologie !== undefined) onglets.push('mots');
   if (cours.schemas.length > 0) onglets.push('schemas');

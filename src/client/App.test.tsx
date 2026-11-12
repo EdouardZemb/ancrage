@@ -415,7 +415,7 @@ describe('démarrage', () => {
 
     // La liste et le contenu viennent de l'appareil (R23) ; on révise, un bandeau le dit.
     expect(await screen.findByRole('heading', { name: servi.titre })).toBeTruthy();
-    expect(location.pathname).toBe(`/cours/${ID}`);
+    expect(location.pathname).toBe(`/cours/${ID}/heute`);
     expect(bandeau()?.textContent).toBe('Offline – deine Antworten werden später synchronisiert');
     expect(screen.getByRole('tablist')).toBeTruthy();
     await waitFor(() =>
@@ -460,7 +460,7 @@ describe('démarrage', () => {
 
     // On continue à réviser (décision 14) : le cours s'ouvre depuis l'appareil.
     expect(await screen.findByRole('heading', { name: servi.titre })).toBeTruthy();
-    expect(location.pathname).toBe(`/cours/${ID}`);
+    expect(location.pathname).toBe(`/cours/${ID}/heute`);
     const lien = await screen.findByRole('link', {
       name: 'Sitzung abgelaufen – bitte neu anmelden',
     });
@@ -1615,7 +1615,7 @@ describe('écran en erreur (1e-D13)', () => {
     expect(screen.queryByRole('alert')).toBeNull();
     expect(location.pathname).toBe('/');
     expect(await screen.findByRole('heading', { name: servi.titre })).toBeTruthy();
-    expect(location.pathname).toBe(`/cours/${ID}`);
+    expect(location.pathname).toBe(`/cours/${ID}/heute`);
   });
 
   it('filet_de_l_accueil_sans_lien_vers_lui_meme', async () => {

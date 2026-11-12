@@ -13,6 +13,7 @@ import { dernieresReponses, scoreDeFeuille } from '../../../domaine/feuilles/der
 import { examensPasses, reponsesParJour, serie } from '../../../domaine/progression/etat.js';
 import { reussis, statistiquesDeChapitre } from '../../../domaine/progression/statistiques.js';
 import { unitesDuChoix } from '../../../domaine/seances/cartes.js';
+import { duesDuJour, posablesDuCours } from '../../../domaine/seances/heute.js';
 import { Avancement, enGras } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
 import { formater } from '../textes-cours.js';
@@ -82,6 +83,11 @@ export function Apercu() {
   const dernieres = useMemo(() => dernieresReponses(evenements), [evenements]);
 
   const tout = statistiquesDeChapitre(cours.unites, etats, aujourdhui);
+  // « À revoir aujourd'hui » est le compte de « Heute » : tout ce que la séance peut poser (M2-P5).
+  const dues = useMemo(
+    () => duesDuJour(posablesDuCours(cours), etats, aujourdhui).length,
+    [cours, etats, aujourdhui],
+  );
   const { morphologie, schemas, textes, exercices, feuilles } = cours;
 
   const lernen = (chapitre: string) => {
@@ -154,7 +160,7 @@ export function Apercu() {
     <section>
       <div class="stats">
         <Chiffre valeur={tout.sures} sur={tout.total} libelle={t.apercu_sures} />
-        <Chiffre valeur={tout.dues} libelle={t.apercu_dues} />
+        <Chiffre valeur={dues} libelle={t.apercu_dues} />
         {mots !== undefined && (
           <Chiffre valeur={mots.faits} sur={mots.total} libelle={t.apercu_mots} />
         )}

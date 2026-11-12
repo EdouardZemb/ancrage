@@ -250,6 +250,7 @@ describe('unitesConnues', () => {
 
 describe('ongletsDuCours', () => {
   const TOUS = [
+    'heute',
     'apercu',
     'cartes',
     'quiz',
@@ -284,8 +285,12 @@ describe('ongletsDuCours', () => {
     );
   });
 
-  it('onglets_d_un_cours_sans_module_gardent_l_apercu_et_la_progression', () => {
-    expect(onglets({ ...coursServiDeTest(), modules: [] })).toEqual(['apercu', 'progression']);
+  it('onglets_d_un_cours_sans_module_gardent_heute_l_apercu_et_la_progression', () => {
+    expect(onglets({ ...coursServiDeTest(), modules: [] })).toEqual([
+      'heute',
+      'apercu',
+      'progression',
+    ]);
   });
 
   it('onglets_d_un_seul_module_de_cartes_donnent_les_cartes_et_le_quiz', () => {
@@ -294,6 +299,7 @@ describe('ongletsDuCours', () => {
     if (premier === undefined) throw new Error('la fixture a des cartes');
 
     expect(onglets({ ...cours, modules: [premier] })).toEqual([
+      'heute',
       'apercu',
       'cartes',
       'quiz',

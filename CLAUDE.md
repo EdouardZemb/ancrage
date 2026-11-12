@@ -203,11 +203,25 @@ la mémoire »). Rien ne change pour l'apprenante, dont le cours reste en Leitne
   connaît la clé (invariant 8, `docs/format-des-contenus.md`).
 
 Ses décisions et ses arbitrages (« M1-D<n> », « M1-R<n> ») sont dans `docs/conception/lot-m1.md`.
-Le lot suivant de la milestone est la séance composée « Heute ».
+
+Le lot M2 a donné au cours sa séance du jour, « Heute » (ancrage#14) :
+- « Heute » est le premier onglet, à `/cours/<id>/heute`, et l'écran sur lequel l'accueil et le
+  compte ouvrent le cours (`src/client/cours/onglets/Heute.tsx`). L'adresse nue du cours reste
+  l'aperçu ;
+- la séance mêle, en 20 éléments au plus, tout ce qui est dû aujourd'hui d'après `ordonnanceurDe`
+  (cartes, mots, points de schéma, exercices, questions fermées de fiche), les plus en retard
+  d'abord, puis des cartes neuves (`src/domaine/seances/heute.ts`). Une faute revient une fois ;
+- les cartes neuves viennent du chapitre choisi dans Karteikarten, et `nouvelles_par_seance` y est
+  un plafond par jour ;
+- la question de chaque onglet est un composant commun (`src/client/cours/questions/`), que l'onglet
+  et « Heute » posent tous deux. Ni l'API, ni le manifeste, ni le journal n'ont changé.
+
+Ses décisions et ses arbitrages (« M2-P<n> », « M2-R<n> ») sont dans `docs/conception/lot-m2.md`.
+Le lot suivant de la milestone est FSRS pour un cours réel, ajusté et suivi (ancrage#21).
 
 Les suites sans urgence d'un lot vont dans une issue « Au prochain passage »
 (ancrage-donnees#81 est fermée ; celle des lots 2c, 2d, F3, S1 et S2 est ancrage-donnees#156 ; celle
-du lot M1 est ancrage#11). Une
+des lots M1 et M2 est ancrage#11). Une
 PR qui touche un fichier de cette liste regarde sa case, et la coche si elle la règle.
 
 Le déploiement est aligné sur la cible `serveur` de `modele-projet` (l'alignement date du lot 2 du

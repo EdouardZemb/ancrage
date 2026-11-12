@@ -4,7 +4,7 @@ import { preparerCours } from '../cours/prepare.js';
 import { poidsObserves } from '../hasard.fixture.js';
 import { hasardDeterministe } from '../hasard.js';
 import type { EtatUnite } from '../progression/etat.js';
-import { tacheDeSchema } from './schemas.js';
+import { optionsDuPoint, tacheDeSchema } from './schemas.js';
 
 /* Données factices, écrites à la main (invariant 7). */
 
@@ -73,4 +73,20 @@ it('tache_de_schema_sans_point_leve_une_erreur_claire', () => {
   expect(() => tacheDeSchema({ ...schema, points: [] }, new Map(), hasardDeterministe(1))).toThrow(
     RangeError,
   );
+});
+
+it('options_du_point_contient_la_cible_et_trois_autres_rangs_distincts', () => {
+  for (let graine = 1; graine <= 50; graine++) {
+    const options = optionsDuPoint(schema, 2, hasardDeterministe(graine));
+
+    expect(options).toHaveLength(4);
+    expect(new Set(options).size).toBe(4);
+    expect(options).toContain(2);
+  }
+});
+
+it('options_du_point_d_un_schema_de_deux_points_en_propose_deux', () => {
+  const petit = { ...schema, points: schema.points.slice(0, 2) };
+
+  expect([...optionsDuPoint(petit, 1, hasardDeterministe(1))].sort()).toEqual([0, 1]);
 });

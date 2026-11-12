@@ -14,6 +14,7 @@
     "src/domaine/feuilles/deroulement.ts",
     "src/domaine/feuilles/correction.ts",
     "src/domaine/seances/feuilles.ts",
+    "src/domaine/seances/heute.ts",
     "src/domaine/notice.ts",
     "src/serveur/comptes/export.ts",
     "src/serveur/comptes/purge.ts",

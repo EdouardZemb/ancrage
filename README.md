@@ -1,15 +1,23 @@
 # ancrage
 
 Application d'apprentissage **mobile d'abord**, auto-hébergée : des cours, des droits par cours, et
-une progression par personne, synchronisée depuis le téléphone. L'interface d'un cours est dans sa
-langue ; le travail sur le projet se fait en français.
+une progression par personne.
 
-Ce dépôt porte le code, un cours d'exemple inventé (`exemple-contenu/`) et les documents de
-conception et d'exploitation. Il n'a pas de licence : tous droits réservés. Ce qui fait d'une
-installation celle d'une personne (le vrai cours, les secrets, les valeurs de l'hôte) est dans un
-dépôt de données privé, qui n'est pas ici.
+## Pourquoi
 
-## Lancer l'application sur le cours d'exemple
+Retenir un vocabulaire demande des rappels espacés, là où l'on a cinq minutes : sur le téléphone,
+avec ou sans réseau. `ancrage` sert des cours à des personnes invitées. Chaque cours a ses droits,
+et chaque personne sa progression, tenue en journal sur le téléphone puis synchronisée.
+L'application s'installe, marche hors ligne, et l'interface d'un cours est dans sa langue.
+
+Ce dépôt porte le code, un cours d'exemple inventé (`exemple-contenu/`) et les documents ; le
+travail s'y fait en français. Il ne porte ni vrai cours, ni secret, ni valeur d'un hôte : ce qui
+fait d'une installation celle d'une personne est dans un dépôt de données privé, qui n'est pas ici.
+Il n'a pas de licence : tous droits réservés.
+
+L'état du projet est dans [CLAUDE.md](CLAUDE.md#état), les versions dans [les publications](https://github.com/EdouardZemb/ancrage/releases).
+
+## Démarrer
 
 Il faut Node 24 et `corepack`.
 
@@ -21,14 +29,23 @@ corepack pnpm start
 ```
 
 Le serveur écoute sur `http://localhost:3000`. Sans contenu monté, il sert le cours d'exemple et le
-dit au démarrage. Pour travailler avec rechargement automatique : `corepack pnpm dev:serveur` et
-`corepack pnpm dev:client`. Les tests : `corepack pnpm test`.
+dit au démarrage.
 
-## Où lire la suite
+Les autres commandes sont dans [CLAUDE.md](CLAUDE.md#commandes).
 
-- Pour travailler dans ce dépôt, que l'on soit une personne ou une IA : [`CLAUDE.md`](CLAUDE.md),
-  qui donne les commandes, les invariants et la méthode.
-- Les décisions : [`docs/decisions/`](docs/decisions/).
-- Le format des contenus : [`docs/format-des-contenus.md`](docs/format-des-contenus.md).
-- L'exploitation : [`docs/exploitation.md`](docs/exploitation.md).
-- Les décisions de chaque lot : [`docs/conception/`](docs/conception/).
+## Où lire quoi
+
+| Document | À lire quand |
+|---|---|
+| [CLAUDE.md](CLAUDE.md) | avant de travailler ici |
+| [La méthode](docs/modele/methode.md) | pour la façon de travailler, commune aux projets nés de `modele-projet` |
+| [Les pistes](docs/pistes.md) | pour ce qui est noté sans être engagé |
+| [Le registre](docs/registre.md) | pour ce que les lots ont appris |
+| [Les décisions](docs/decisions/) | pour ce qui a été décidé, et pourquoi |
+| [Les décisions de chaque lot](docs/conception/) | pour une décision numérotée que cite le code |
+| [Le format des contenus](docs/format-des-contenus.md) | pour écrire ou relire un cours |
+| [L'exploitation](docs/exploitation.md) | pour mettre en service, déployer, restaurer |
+
+## Contribuer
+
+Projet personnel : aucune contribution n'est attendue.

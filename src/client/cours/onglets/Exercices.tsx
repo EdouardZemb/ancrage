@@ -14,36 +14,18 @@
  * exercice n'a rien à poser : l'onglet le dit, et ne plante pas.
  */
 import type { Exercice, FamilleExercices } from '../../../domaine/contenu/modele.js';
-import { egalStrict } from '../../../domaine/correction.js';
 import type { ModuleServiDe } from '../../../domaine/cours/prepare.js';
 import { reussis } from '../../../domaine/progression/statistiques.js';
 import { choisirExercice } from '../../../domaine/seances/exercices.js';
-import { useTouches } from '../clavier.js';
-import {
-  ChoixDeMode,
-  classeDeLaQuestion,
-  focaliser,
-  Options,
-  SaisieDeLaReponse,
-} from '../composants-cours.js';
+import { ChoixDeMode } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
+import { QuestionDExercice, type ReponseDExercice } from '../questions/QuestionDExercice.js';
 import { serieCommencee } from '../seances-en-cours.js';
 import { formater } from '../textes-cours.js';
-
-/** L'invite d'un article commence ainsi : la bonne réponse vient la compléter (H:2181). */
-const TROU_D_ARTICLE = /^___\s*/;
-/** Les touches de 1 à 9 choisissent la première à la neuvième option. */
-const OPTIONS_PAR_TOUCHE = 9;
 
 interface Tirage {
   famille: FamilleExercices;
   exercice: Exercice;
-}
-
-/** Ce que la personne a répondu, et si c'était juste. */
-interface Reponse {
-  juste: boolean;
-  donnee: string;
 }
 
 /** `tirage` est `null` quand le choix n'a aucun exercice. */
@@ -52,19 +34,12 @@ interface Serie {
   faites: number;
   justes: number;
   tirage: Tirage | null;
-  reponse: Reponse | null;
+  reponse: ReponseDExercice | null;
 }
 
 export function Exercices() {
   const { cours } = useCours();
   return cours.exercices === undefined ? null : <ExercicesDuModule module={cours.exercices} />;
-}
-
-/** La réponse telle que le verdict la montre : un article est suivi de son mot. */
-function reponseMontree(exercice: Exercice): string {
-  return TROU_D_ARTICLE.test(exercice.invite)
-    ? `${exercice.reponse} ${exercice.invite.replace(TROU_D_ARTICLE, '')}`
-    : exercice.reponse;
 }
 
 function ExercicesDuModule(props: { module: ModuleServiDe<'exercices'> }) {
@@ -95,26 +70,17 @@ function ExercicesDuModule(props: { module: ModuleServiDe<'exercices'> }) {
   if (serie !== courante) setCourante(serie);
 
   const { tirage, reponse } = serie;
-  const options = tirage?.exercice.options;
 
-  const repondre = (donnee: string) => {
+  const repondre = (jugee: ReponseDExercice) => {
     if (tirage === null || reponse !== null) return;
-    const juste = egalStrict(donnee, tirage.exercice.reponse);
     setCourante({
       ...serie,
       faites: serie.faites + 1,
-      justes: serie.justes + (juste ? 1 : 0),
-      reponse: { juste, donnee },
+      justes: serie.justes + (jugee.juste ? 1 : 0),
+      reponse: jugee,
     });
-    void enregistrer(tirage.exercice.id, juste);
+    void enregistrer(tirage.exercice.id, jugee.juste);
   };
-
-  const touches = Object.fromEntries(
-    (options ?? [])
-      .slice(0, OPTIONS_PAR_TOUCHE)
-      .map((option, i) => [String(i + 1), () => repondre(option)]),
-  );
-  useTouches(touches, options !== undefined && reponse === null);
 
   const exercices = module.familles.flatMap((famille) => famille.exercices);
   const acquis = reussis(
@@ -140,39 +106,13 @@ function ExercicesDuModule(props: { module: ModuleServiDe<'exercices'> }) {
       {tirage === null ? (
         <p class="muted">{t.onglet_vide}</p>
       ) : (
-        <>
-          <div class="card" style={{ minHeight: '180px' }}>
-            <span class="kind">{tirage.famille.libelle}</span>
-            <span class={classeDeLaQuestion(tirage.exercice.invite)}>{tirage.exercice.invite}</span>
-            {options === undefined && reponse === null && (
-              <SaisieDeLaReponse onVerifier={repondre} />
-            )}
-            {reponse !== null && (
-              <>
-                <div class={`verdict ${reponse.juste ? 'ok' : 'ko'}`}>
-                  <span>{reponse.juste ? t.verdict_juste : t.verdict_fausse}</span>
-                  {!reponse.juste && reponse.donnee !== '' && <s>{reponse.donnee}</s>}
-                  <b>{reponseMontree(tirage.exercice)}</b>
-                </div>
-                {tirage.exercice.regle ? <p class="rule">{tirage.exercice.regle}</p> : null}
-              </>
-            )}
-          </div>
-          {options !== undefined && reponse === null && (
-            <Options options={options} choisir={(i) => repondre(options[i])} />
-          )}
-          {reponse !== null && (
-            <button
-              type="button"
-              class="primary"
-              ref={focaliser}
-              onClick={() => setCourante({ ...serie, tirage: tirer(), reponse: null })}
-            >
-              {t.suivante}
-            </button>
-          )}
-          <p class="kbd">{t.exercices_hinweis}</p>
-        </>
+        <QuestionDExercice
+          famille={tirage.famille}
+          exercice={tirage.exercice}
+          reponse={reponse}
+          onReponse={repondre}
+          onSuivante={() => setCourante({ ...serie, tirage: tirer(), reponse: null })}
+        />
       )}
     </section>
   );

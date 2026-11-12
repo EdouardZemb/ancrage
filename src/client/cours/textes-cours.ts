@@ -28,6 +28,7 @@ const de = {
   heute_reste: 'Noch {n} fällig.',
   heute_encore: 'Nächste Runde',
   heute_rien: 'Heute ist nichts fällig.',
+  heute_fertig: 'Für heute ist alles erledigt.',
   heute_rien_suite: 'In den anderen Bereichen kannst du frei üben.',
   heute_vers_apercu: 'Zur Übersicht',
 

@@ -16,9 +16,10 @@
 import { useMemo, useRef } from 'preact/hooks';
 import type { CoursPrepare } from '../../../domaine/cours/prepare.js';
 import type { Hasard } from '../../../domaine/hasard.js';
-import { etatDe } from '../../../domaine/progression/etat.js';
 import {
   apresReponseDuJour,
+  bilanDuJour,
+  cartesNeuves,
   composerSeance,
   duesDuJour,
   type Posable,
@@ -59,9 +60,17 @@ export interface EtatDeHeute {
   repondue: boolean | null;
 }
 
-/** La clé d'une séance : le jour, puis les identifiants des dues du moment (M2-P6). */
-export function cleDuJour(aujourdhui: string, dues: readonly Posable[]): string {
-  return `${aujourdhui}|${dues.map(({ id }) => id).join(',')}`;
+/**
+ * La clé d'une séance : le jour, les identifiants des dues du moment, puis ceux des cartes neuves
+ * (M2-P6). Une carte neuve répondue ailleurs change la clé, comme une due.
+ */
+export function cleDuJour(
+  aujourdhui: string,
+  dues: readonly Posable[],
+  neuves: readonly Posable[],
+): string {
+  const ids = (liste: readonly Posable[]) => liste.map(({ id }) => id).join(',');
+  return `${aujourdhui}|${ids(dues)}|${ids(neuves)}`;
 }
 
 /**
@@ -119,16 +128,21 @@ export function Heute() {
     () => duesDuJour(posables, etats, aujourdhui),
     [posables, etats, aujourdhui],
   );
-  const cle = cleDuJour(aujourdhui, dues);
+  const neuvesDuCours = useMemo(() => cartesNeuves(posables, etats), [posables, etats]);
+  const cle = cleDuJour(aujourdhui, dues, neuvesDuCours);
 
   const composer = (): EtatDeHeute => {
     const seance = composerSeance(posables, etats, aujourdhui, nouvelles, hasard);
     return { cle, seance, question: questionDe(seance.file[0], cours, hasard), repondue: null };
   };
   const [courante, setCourante] = useEtatDOnglet<EtatDeHeute>('heute', composer, heuteEnCours);
-  // La liste des dues a changé avant le premier geste : on recompose.
+  // Les dues ou les cartes neuves ont changé avant le premier geste, ou la séance est finie et le
+  // jour a changé (une application restée ouverte la nuit) : on recompose.
   let etat = courante;
-  if (courante.cle !== cle && courante.seance.faites === 0 && courante.repondue === null) {
+  const avantLePremierGeste = courante.seance.faites === 0 && courante.repondue === null;
+  const finieUnAutreJour =
+    courante.seance.file.length === 0 && !courante.cle.startsWith(`${aujourdhui}|`);
+  if ((courante.cle !== cle && avantLePremierGeste) || finieUnAutreJour) {
     etat = composer();
   }
   if (etat !== courante) setCourante(etat);
@@ -138,8 +152,11 @@ export function Heute() {
 
   // La dernière réponse enregistrée : la synchronisation attend qu'elle soit rangée.
   const rangement = useRef<Promise<boolean>>(Promise.resolve(true));
+  const reussis = useRef(new Set<string>());
   const ranger = (id: string, juste: boolean) => {
     rangement.current = enregistrer(id, juste);
+    // Le journal ne la montre qu'une fois rangée : l'écran de fin ne compte plus cet élément dû.
+    if (juste) reussis.current.add(id);
   };
   const finir = (suivante: SeanceDuJour) => {
     if (suivante.file.length === 0) void rangement.current.then(() => finDeSeance());
@@ -170,26 +187,37 @@ export function Heute() {
   };
   const encore = () => setCourante(composer());
 
-  const neuves = seance.file.filter(
-    (p) => p.genre === 'carte' && etatDe(etats, p.id).boite === 0,
-  ).length;
+  const neuves = cartesNeuves(seance.file, etats).length;
+  // À l'écran de fin : les dues que la séance n'a pas déjà réussies, le journal pouvant être en retard.
+  const restantes = dues.filter(({ id }) => !reussis.current.has(id)).length;
 
   if (tete === undefined || question === null) {
+    const { elements, justes } = bilanDuJour(seance);
     return (
       <section>
         {seance.faites > 0 ? (
           <div class="done">
             <h2>{t.heute_fin}</h2>
             <p class="muted">
-              {formater(t.heute_resultat, { justes: seance.justes, faites: seance.faites })}
-              {dues.length > 0 && ` ${formater(t.heute_reste, { n: dues.length })}`}
+              {formater(t.heute_resultat, { justes, faites: elements })}
+              {restantes > 0 && ` ${formater(t.heute_reste, { n: restantes })}`}
             </p>
-            {dues.length > 0 && (
+            {restantes > 0 ? (
               <div class="controls">
                 <button type="button" class="primary" onClick={encore}>
                   {t.heute_encore}
                 </button>
               </div>
+            ) : (
+              <>
+                <p class="muted">{t.heute_fertig}</p>
+                <p class="muted">{t.heute_rien_suite}</p>
+                <div class="controls">
+                  <button type="button" class="primary" onClick={() => aller('apercu')}>
+                    {t.heute_vers_apercu}
+                  </button>
+                </div>
+              </>
             )}
           </div>
         ) : (
@@ -239,6 +267,7 @@ export function Heute() {
               : juger({ genre: 'mot', tache: suite }, juste)
           }
           onSuivante={suivante}
+          libelleSuivante={t.suivante}
         />
       )}
       {tete.genre === 'point' && question.genre === 'point' && (
@@ -267,7 +296,7 @@ export function Heute() {
       {tete.genre === 'fermee' && question.genre === 'fermee' && (
         <QuestionAChoix
           question={question.question}
-          libelleSuivante={t.quiz_suivante}
+          libelleSuivante={t.suivante}
           onChoix={(i, juste) =>
             juger({ genre: 'fermee', question: { ...question.question, choisie: i } }, juste)
           }

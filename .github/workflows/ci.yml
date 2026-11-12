@@ -253,7 +253,8 @@ jobs:
           echo "report fait (reporter : code 0) : $rapport"
 
       # Deux versions du client servies à la suite sur la même origine (2a-D8) : le téléphone passe
-      # à la nouvelle au bon moment, jamais en pleine séance. Le test lance lui-même le serveur
+      # à la nouvelle au bon moment, jamais en pleine séance. Il lance aussi le parcours de la séance
+      # du jour (« Heute »), de la composition de la file à l'écran de fin. Le test lance lui-même le serveur
       # construit, sur http://localhost:3100, avec chacun des deux clients : ni l'image ni son
       # conteneur n'y servent.
       - name: Passer d'une version à l'autre

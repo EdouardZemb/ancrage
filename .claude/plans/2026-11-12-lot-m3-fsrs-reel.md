@@ -54,7 +54,7 @@ la lit.
   qu'un client de la version N+1 a pu émettre, le serveur ne redescend plus sous la version N : un
   serveur d'avant refuserait le lot, et la file du cours resterait bloquée, sans perte, jusqu'au
   retour d'un serveur qui accepte. `docs/exploitation.md` le dit.
-- **M3-P2, les modes.** Huit valeurs, qui disent le geste et non l'onglet : `retournee` (carte
+- **M3-P2, les modes.** Neuf valeurs, qui disent le geste et non l'onglet : `retournee` (carte
   retournée, jugée par la personne), `saisie` (réponse tapée, jugée par l'application), `corrigee`
   (saisie jugée fausse, puis déclarée juste par la personne), `choix` (une proposition parmi
   plusieurs, liste d'une phrase à trous comprise), `assemblage` (tuiles d'un mot), `pointage` (un

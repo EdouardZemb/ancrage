@@ -5,7 +5,7 @@ import {
 } from 'ts-fsrs/middlewares';
 import { FSRS6_DEFAULT_WEIGHTS, FSRS6Model } from 'ts-fsrs/models/fsrs-6';
 import type { Evenement } from '../journal/evenement.js';
-import { ajouterJours, jourDe } from '../journal/temps.js';
+import { ajouterJours, jourDe, joursEntre } from '../journal/temps.js';
 import { ETAT_NEUF, type EtatUnite, journalSansDoublon } from './etat.js';
 
 /*
@@ -24,7 +24,11 @@ import { ETAT_NEUF, type EtatUnite, journalSansDoublon } from './etat.js';
  * - le jour d'une unité ne recule jamais : le journal est trié par instant, mais le jour local peut
  *   reculer (changement de fuseau, deux appareils) et la bibliothèque refuse une date antérieure ;
  *   on garde alors le dernier jour déjà rejoué ;
- * - une réponse juste vaut la note « Good », une fausse « Again » (note binaire).
+ * - une réponse juste vaut la note « Good », une fausse « Again » (note binaire) ;
+ * - les poids sont ceux du cours (`parametres`, M3-P4), sinon ceux par défaut ;
+ * - le plafond d'avant l'examen (`examen`, M3-P5) ne borne que l'échéance rendue, jamais la carte de
+ *   la bibliothèque : la stabilité, donc la `boite`, ne le voit pas. Il part du jour que le rejeu
+ *   retient pour la réponse, jamais d'aujourd'hui : deux appareils au même journal s'accordent.
  *
  * Le test « le calcul est fixé » compare un journal à un état écrit en dur : il se relit à chaque
  * montée de version de `ts-fsrs`.
@@ -47,14 +51,23 @@ export function boiteDeStabilite(joursDeStabilite: number): 1 | 2 | 3 | 4 | 5 {
   return 5;
 }
 
-/** Un ordonnanceur FSRS-6 sans dispersion ni étapes courtes, à la rétention visée. */
-function ordonnanceur(retention: number) {
+/** Ce que règle un cours pour FSRS : la rétention visée, des poids ajustés, la date de l'examen. */
+export interface ReglagesFsrs {
+  retention: number;
+  /** Les 21 poids de FSRS-6 ; sans eux, les poids par défaut. */
+  parametres?: readonly number[] | undefined;
+  /** `AAAA-MM-JJ` : une réponse donnée `n` jours avant a une échéance d'au plus `n / 2` jours. */
+  examen?: string | undefined;
+}
+
+/** Un ordonnanceur FSRS-6 sans dispersion ni étapes courtes, à la rétention et aux poids visés. */
+function ordonnanceur({ retention, parametres }: ReglagesFsrs) {
   return defineScheduler({ model: FSRS6Model, chrono: dateChrono })
     .use(schedulerDesiredRetentionMiddleware)
     .use(schedulerScheduledDaysMiddleware)
     .create({
       config: {
-        weights: FSRS6_DEFAULT_WEIGHTS,
+        weights: parametres === undefined ? FSRS6_DEFAULT_WEIGHTS : [...parametres],
         enableShortTerm: false,
         numRelearningSteps: 0,
         desiredRetention: retention,
@@ -66,11 +79,48 @@ function ordonnanceur(retention: number) {
 const midiUtc = (jour: string): Date => new Date(`${jour}T12:00:00.000Z`);
 
 /**
+ * La suite des révisions de chaque unité, telle que le rejeu la lit (M3-P10) : une révision par
+ * réponse, dans l'ordre du journal sans doublon, avec le jour que le rejeu retient (le jour local,
+ * qui ne recule jamais pour une unité) et le verdict. Les unités viennent dans l'ordre de leur
+ * première réponse ; un examen n'y entre pas. C'est aussi ce que l'ajustement des paramètres lit.
+ */
+export function revuesDuJournal(
+  evenements: readonly Evenement[],
+): { unite: string; jours: string[]; justes: boolean[] }[] {
+  const revues = new Map<string, { unite: string; jours: string[]; justes: boolean[] }>();
+  for (const evenement of journalSansDoublon(evenements)) {
+    if (evenement.type !== 'reponse') continue;
+    const suite = revues.get(evenement.unite) ?? { unite: evenement.unite, jours: [], justes: [] };
+    revues.set(evenement.unite, suite);
+    // Le journal est trié par instant, le jour est local : il peut reculer (changement de fuseau,
+    // deux appareils). Le jour d'une unité ne recule jamais dans le rejeu.
+    const local = jourDe(evenement.repondu_a);
+    const dernier = suite.jours.at(-1);
+    suite.jours.push(dernier !== undefined && dernier > local ? dernier : local);
+    suite.justes.push(evenement.resultat.juste);
+  }
+  return [...revues.values()];
+}
+
+/**
+ * L'intervalle que le plafond d'avant l'examen laisse à une réponse juste donnée au `jour` :
+ * la moitié des jours qui restent, arrondie vers le bas, et un jour au moins. À un jour de
+ * l'examen, cela fait un jour, plus que la moitié ; le jour de l'examen et après, il n'y a plus de
+ * plafond (M3-P5).
+ */
+function plafondDe(jour: string, examen: string | undefined): number {
+  if (examen === undefined) return Number.POSITIVE_INFINITY;
+  const restant = joursEntre(jour, examen);
+  return restant >= 1 ? Math.max(1, Math.floor(restant / 2)) : Number.POSITIVE_INFINITY;
+}
+
+/**
  * L'état de chaque unité qui a reçu une réponse, dans l'ordre du journal, selon FSRS-6 réglé pour
- * la `retention` visée (0,9 : neuf rappels sur dix).
+ * la `retention` visée (0,9 : neuf rappels sur dix), les `parametres` du cours et son `examen`.
  *
  * - Une réponse juste fixe l'échéance au jour de la réponse plus l'intervalle que rend la
- *   bibliothèque, en jours entiers et d'au moins un jour ; la `boite` se dérive de la stabilité.
+ *   bibliothèque, en jours entiers et d'au moins un jour, borné par le plafond d'avant l'examen ;
+ *   la `boite` se dérive de la stabilité.
  * - Une réponse fausse renvoie en boîte 1, à revoir le jour même (M1-D3).
  * - Un examen n'y entre pas : ses questions ont chacune produit une réponse.
  *
@@ -78,36 +128,34 @@ const midiUtc = (jour: string): Date => new Date(`${jour}T12:00:00.000Z`);
  */
 export function etatsFsrs(
   evenements: readonly Evenement[],
-  retention: number,
+  reglages: ReglagesFsrs,
 ): ReadonlyMap<string, EtatUnite> {
-  const planificateur = ordonnanceur(retention);
-  const cartes = new Map<string, ReturnType<typeof planificateur.newCard>>();
+  const planificateur = ordonnanceur(reglages);
   const etats = new Map<string, EtatUnite>();
-  const derniersJours = new Map<string, string>();
-  for (const evenement of journalSansDoublon(evenements)) {
-    if (evenement.type !== 'reponse') continue;
-    // Le journal est trié par instant, le jour est local : il peut reculer (changement de fuseau,
-    // deux appareils). Le jour d'une unité ne recule jamais dans le rejeu.
-    const local = jourDe(evenement.repondu_a);
-    const dernier = derniersJours.get(evenement.unite);
-    const jour = dernier !== undefined && dernier > local ? dernier : local;
-    derniersJours.set(evenement.unite, jour);
-    const maintenant = midiUtc(jour);
-    const carte = cartes.get(evenement.unite) ?? planificateur.newCard({ now: maintenant });
-    const juste = evenement.resultat.juste;
-    const revue = planificateur.review({
-      card: carte,
-      grade: juste ? Rating.Good : Rating.Again,
-      now: maintenant,
+  for (const { unite, jours, justes } of revuesDuJournal(evenements)) {
+    let carte: ReturnType<typeof planificateur.newCard> | undefined;
+    let etat = ETAT_NEUF;
+    jours.forEach((jour, rang) => {
+      const maintenant = midiUtc(jour);
+      const juste = justes[rang] === true;
+      const revue = planificateur.review({
+        card: carte ?? planificateur.newCard({ now: maintenant }),
+        grade: juste ? Rating.Good : Rating.Again,
+        now: maintenant,
+      });
+      carte = revue.card;
+      const intervalle = Math.min(
+        Math.max(1, revue.card.scheduledDays),
+        plafondDe(jour, reglages.examen),
+      );
+      etat = {
+        boite: juste ? boiteDeStabilite(revue.card.stability) : 1,
+        echeance: juste ? ajouterJours(jour, intervalle) : jour,
+        justes: etat.justes + (juste ? 1 : 0),
+        fausses: etat.fausses + (juste ? 0 : 1),
+      };
     });
-    cartes.set(evenement.unite, revue.card);
-    const avant = etats.get(evenement.unite) ?? ETAT_NEUF;
-    etats.set(evenement.unite, {
-      boite: juste ? boiteDeStabilite(revue.card.stability) : 1,
-      echeance: juste ? ajouterJours(jour, Math.max(1, revue.card.scheduledDays)) : jour,
-      justes: avant.justes + (juste ? 1 : 0),
-      fausses: avant.fausses + (juste ? 0 : 1),
-    });
+    etats.set(unite, etat);
   }
   return etats;
 }

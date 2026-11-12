@@ -9,11 +9,10 @@ import type { ComponentChild } from 'preact';
 import { useMemo, useRef, useState } from 'preact/hooks';
 import { vi } from 'vitest';
 import { coursServiDeTest } from '../../domaine/cours/cours.fixture.js';
-import { type Onglet, preparerCours } from '../../domaine/cours/prepare.js';
-import { type CoursServi, memoireDuCours } from '../../domaine/cours/servi.js';
+import { type CoursPrepare, type Onglet, preparerCours } from '../../domaine/cours/prepare.js';
+import type { CoursServi } from '../../domaine/cours/servi.js';
 import { hasardDeterministe } from '../../domaine/hasard.js';
 import type { Evenement } from '../../domaine/journal/evenement.js';
-import { ordonnanceurDe } from '../../domaine/progression/ordonnanceur.js';
 import { APPAREIL_DE_TEST, idDeTest } from '../stockage/evenements.fixture.js';
 import {
   type ContexteCours,
@@ -21,12 +20,13 @@ import {
   etatDOngletSur,
   oubliDOngletSur,
 } from './contexte-cours.js';
+import { ordonnanceurDuCours } from './ordonnanceur-du-cours.js';
 import { preferencesParDefaut } from './preferences.js';
 import { TEXTES_COURS } from './textes-cours.js';
 
 /** L'état des unités, selon l'algorithme du cours, comme `useProgression`. */
-function etatsDuCours(evenements: readonly Evenement[], cours: CoursServi) {
-  return ordonnanceurDe({ leitner: cours.leitner, memoire: memoireDuCours(cours) })(evenements);
+function etatsDuCours(evenements: readonly Evenement[], cours: CoursPrepare) {
+  return ordonnanceurDuCours(cours)(evenements);
 }
 
 export const AUJOURDHUI_DE_TEST = '2026-10-17';
@@ -48,7 +48,7 @@ export function contexteDeTest(
     cours,
     t: TEXTES_COURS.de,
     evenements,
-    etats: etatsDuCours(evenements, cours.cours),
+    etats: etatsDuCours(evenements, cours),
     aujourdhui: options.aujourdhui ?? AUJOURDHUI_DE_TEST,
     enregistrer: vi.fn(async () => true),
     enregistrerExamen: vi.fn(async () => true),
@@ -81,7 +81,7 @@ export function rendreDansUnCoursVivant(onglet: ComponentChild, contexte: Contex
       () => ({
         ...contexte,
         evenements,
-        etats: etatsDuCours(evenements, contexte.cours.cours),
+        etats: etatsDuCours(evenements, contexte.cours),
         preferences,
         enregistrer: (unite, juste) => {
           rang.current += 1;

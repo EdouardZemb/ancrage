@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { ajouterJours, horodatage, jourDe } from './temps.js';
+import { ajouterJours, horodatage, jourDe, joursEntre } from './temps.js';
 
 /*
  * NE PAS METTRE DE `describe` DANS CE FICHIER : voir le commentaire de `../acces.test.ts` (Stryker
@@ -86,4 +86,18 @@ it('ajouter_jours_passe_les_mois_et_le_changement_d_heure', () => {
   expect(ajouterJours('2026-10-26', -2)).toBe('2026-10-24');
   expect(ajouterJours('2026-03-07', 2)).toBe('2026-03-09');
   expect(ajouterJours('2026-10-31', 2)).toBe('2026-11-02');
+});
+
+it('joursEntre_compte_les_jours_et_ne_depend_pas_du_fuseau', () => {
+  expect(joursEntre('2026-03-02', '2026-03-02')).toBe(0);
+  expect(joursEntre('2026-03-02', '2026-03-03')).toBe(1);
+  expect(joursEntre('2026-03-03', '2026-03-02')).toBe(-1);
+  expect(joursEntre('2026-01-01', '2027-01-01')).toBe(365);
+  expect(joursEntre('2028-02-28', '2028-03-01')).toBe(2);
+  // Les nuits de 23 h et de 25 h comptent un jour : Europe et États-Unis.
+  expect(joursEntre('2026-03-28', '2026-03-30')).toBe(2);
+  expect(joursEntre('2026-10-24', '2026-10-26')).toBe(2);
+  expect(joursEntre('2026-03-07', '2026-03-09')).toBe(2);
+  expect(joursEntre('2026-10-31', '2026-11-02')).toBe(2);
+  expect(joursEntre('2026-11-02', '2026-10-31')).toBe(-2);
 });

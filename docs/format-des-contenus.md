@@ -126,9 +126,11 @@ refusée.
   de la boîte 0 (les cartes neuves), vaut 0. Il n'est jamais lu : une réponse juste mène au moins
   en boîte 1, et une carte neuve n'est jamais due, elle entre dans une séance parmi les
   `nouvelles_par_seance`.
-- `nouvelles_par_seance` : un entier de 1 à 100, le nombre de cartes neuves d'une séance. Il borne aussi les cartes neuves de la séance du jour
-  (« Heute »), dans la place que laissent les dues : les dues passent d'abord, la séance en garde 20
-  au plus.
+- `nouvelles_par_seance` : un entier de 1 à 100. Dans Karteikarten, c'est la taille d'une série de
+  cartes neuves. Dans la séance du jour (« Heute »), c'est un plafond par jour : les cartes déjà
+  découvertes aujourd'hui, c'est-à-dire dont la première réponse date d'aujourd'hui, où qu'elle ait
+  été donnée, en sont retirées. Les neuves y viennent du choix fait dans Karteikarten, dans la place
+  que laissent les dues : les dues passent d'abord, la séance en garde 20 au plus.
 
 Le cours de terminologie reprend ceux du prototype : `[0, 1, 2, 4, 8, 16]` et 15.
 

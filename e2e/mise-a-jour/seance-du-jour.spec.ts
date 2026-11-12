@@ -31,8 +31,10 @@ const deCours = TEXTES_COURS.de;
 
 /** La taille d'une séance (`TAILLE_DE_SEANCE`) : la boucle des réponses ne dépasse jamais le double. */
 const TAILLE_DE_SEANCE = 20;
-/** Les cartes neuves d'une séance du cours d'exemple (`nouvelles_par_seance`). */
-const NOUVELLES_PAR_SEANCE = 15;
+/** Le plafond de cartes neuves par jour du cours d'exemple (`nouvelles_par_seance`, M2-P9). */
+const NOUVELLES_PAR_JOUR = 15;
+/** Les unités du premier chapitre du cours d'exemple, le choix par défaut de Karteikarten (M2-P10) : 9 cartes, chacune dans les deux sens. */
+const UNITES_DU_PREMIER_CHAPITRE = 18;
 /** Les essais pour tomber sur une faute, quand une réponse choisie à l'aveugle se trouve juste. */
 const ESSAIS_DE_FAUTE = 12;
 
@@ -102,6 +104,9 @@ test('la_seance_du_jour_mele_les_types', async ({ page }) => {
 
   // Les unités dont la dernière réponse est fausse : une faute chacune, dans un onglet.
   let fautes = 0;
+  // La carte ratée dans Karteikarten reçoit sa première réponse aujourd'hui : elle compte parmi les
+  // découvertes du jour, et sort des neuves du premier chapitre.
+  const decouvertes = 1;
   await test.step('2. trois fautes sûres, dans trois onglets', async () => {
     await fauteSurUneCarte(page);
     fautes++;
@@ -117,12 +122,15 @@ test('la_seance_du_jour_mele_les_types', async ({ page }) => {
     await expect(page).toHaveURL(/\/cours\/[0-9a-z]{8}\/heute$/);
     const compte = await compteDeHeute(page);
     expect(compte.dues, 'unités dues').toBe(fautes);
-    expect(compte.neues, 'cartes neuves').toBe(NOUVELLES_PAR_SEANCE);
+    // Le plafond du jour moins la découverte, dans le premier chapitre moins cette même carte.
+    const neuves = Math.min(
+      NOUVELLES_PAR_JOUR - decouvertes,
+      UNITES_DU_PREMIER_CHAPITRE - decouvertes,
+    );
+    expect(compte.neues, 'cartes neuves').toBe(neuves);
     expect(compte.faites).toBe(0);
     file = compte.restantes;
-    expect(file, 'file de la séance').toBe(
-      Math.min(TAILLE_DE_SEANCE, fautes + NOUVELLES_PAR_SEANCE),
-    );
+    expect(file, 'file de la séance').toBe(Math.min(TAILLE_DE_SEANCE, fautes + neuves));
   });
 
   const genres = new Set<GenreDeHeute>();

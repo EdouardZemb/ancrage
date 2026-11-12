@@ -4,8 +4,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { coursServiDeTest } from '../../../domaine/cours/cours.fixture.js';
 import type { CoursServi } from '../../../domaine/cours/servi.js';
 import type { Evenement } from '../../../domaine/journal/evenement.js';
+import { unitesDuChoix } from '../../../domaine/seances/cartes.js';
 import {
   cartesNeuves,
+  decouvertesLe,
   duesDuJour,
   type Posable,
   posablesDuCours,
@@ -68,20 +70,46 @@ function contexteDe(
   return contexte;
 }
 
+/** Le contexte, avec ce chapitre choisi dans Karteikarten. */
+function avecChapitre(contexte: ContexteCours, chapitre: string): ContexteCours {
+  contexte.preferences = {
+    ...contexte.preferences,
+    cartes: { ...contexte.preferences.cartes, chapitre, saisie: false },
+  };
+  return contexte;
+}
+
 function posable(contexte: ContexteCours, id: string): Posable {
   const trouve = posablesDuCours(contexte.cours).find((p) => p.id === id);
   if (trouve === undefined) throw new Error(`Aucun posable ${id}`);
   return trouve;
 }
 
+/** La clé qu'aurait la séance du contexte : les dues, les neuves du choix des cartes, le quota. */
+function cleDe(contexte: ContexteCours): string {
+  const posables = posablesDuCours(contexte.cours);
+  const dues = duesDuJour(posables, contexte.etats, contexte.aujourdhui);
+  const { chapitre, sens } = contexte.preferences.cartes;
+  const choix = new Set(unitesDuChoix(contexte.cours, chapitre, sens).map(({ id }) => id));
+  const neuves = cartesNeuves(
+    posables.filter(({ id }) => choix.has(id)),
+    contexte.etats,
+  );
+  const decouvertes = decouvertesLe(
+    contexte.evenements,
+    contexte.aujourdhui,
+    new Set(contexte.cours.unites.map(({ id }) => id)),
+  );
+  const quota = Math.max(0, contexte.cours.cours.leitner.nouvellesParSeance - decouvertes);
+  return cleDuJour(contexte.aujourdhui, dues, neuves, quota);
+}
+
 /** La mémoire de l'onglet, amorcée avec une file écrite à la main : le premier élément est posé. */
 function amorcer(contexte: ContexteCours, memoire: Map<string, unknown>, ids: string[]): void {
   const file = ids.map((id) => posable(contexte, id));
   const seance: SeanceDuJour = { file, revenus: [], faites: 0, justes: 0 };
-  const posables = posablesDuCours(contexte.cours);
-  const dues = duesDuJour(posables, contexte.etats, contexte.aujourdhui);
   const etat: EtatDeHeute = {
-    cle: cleDuJour(contexte.aujourdhui, dues, cartesNeuves(posables, contexte.etats)),
+    cle: cleDe(contexte),
     seance,
     question: questionDe(file[0], contexte.cours, contexte.hasard),
     repondue: null,
@@ -229,7 +257,7 @@ describe('Heute', () => {
     const avant = contexteDe({ memoire, evenements: manquees(HERZ, LEBER) });
     rendreDansLeCours(<Heute />, avant);
     expect(fileDe(memoire).slice(0, 2).sort()).toEqual([HERZ, LEBER]);
-    expect(progression()).toContain(`${formater(t.heute_compte, { dues: 2, neues: 15 })}`);
+    expect(progression()).toContain(`${formater(t.heute_compte, { dues: 2, neues: 13 })}`);
     cleanup();
 
     // Herz est répondue dans un autre onglet : elle n'est plus due.
@@ -242,7 +270,7 @@ describe('Heute', () => {
 
     expect(fileDe(memoire)).not.toContain(HERZ);
     expect(fileDe(memoire)[0]).toBe(LEBER);
-    expect(progression()).toContain(formater(t.heute_compte, { dues: 1, neues: 15 }));
+    expect(progression()).toContain(formater(t.heute_compte, { dues: 1, neues: 13 }));
   });
 
   it('apres_une_premiere_reponse_la_file_ne_suit_plus_le_journal', () => {
@@ -455,6 +483,109 @@ describe('Heute', () => {
         restantes: 5,
       })}`,
     );
+  });
+
+  it('les_neuves_ne_viennent_que_du_chapitre_choisi_dans_les_cartes', () => {
+    const memoire = new Map<string, unknown>();
+    const contexte = contexteDe({ memoire });
+    const [premier, second] = contexte.cours.chapitres.map(({ id }) => id);
+
+    rendreDansLeCours(<Heute />, contexte);
+    const duPremier = new Set(unitesDuChoix(contexte.cours, premier, 'mix').map(({ id }) => id));
+    expect(fileDe(memoire).length).toBeGreaterThan(0);
+    expect(fileDe(memoire).every((id) => duPremier.has(id))).toBe(true);
+    cleanup();
+    memoire.clear();
+
+    rendreDansLeCours(<Heute />, avecChapitre(contexteDe({ memoire }), second));
+    const duSecond = new Set(unitesDuChoix(contexte.cours, second, 'mix').map(({ id }) => id));
+    expect(fileDe(memoire).length).toBeGreaterThan(0);
+    expect(fileDe(memoire).every((id) => duSecond.has(id))).toBe(true);
+  });
+
+  it('le_plafond_du_jour_atteint_par_des_cartes_decouvertes_ailleurs_la_seance_n_a_aucune_neuve', () => {
+    const contexte = contexteDe();
+    const decouvertes = contexte.cours.unites
+      .slice(0, 15)
+      .map(({ id }, n) => reponseDeTest(n, id, true, AUJOURDHUI_DE_TEST));
+
+    rendreDansLeCours(<Heute />, contexteDe({ evenements: decouvertes }));
+
+    // Rien n'est dû (réponses justes d'aujourd'hui), et le plafond interdit toute neuve.
+    expect(screen.getByRole('heading', { name: t.heute_rien })).toBeTruthy();
+  });
+
+  it('les_cartes_deja_decouvertes_aujourd_hui_retirent_leur_nombre_du_quota', () => {
+    const contexte = contexteDe();
+    const decouvertes = contexte.cours.unites
+      .slice(0, 5)
+      .map(({ id }, n) => reponseDeTest(n, id, true, AUJOURDHUI_DE_TEST));
+
+    rendreDansLeCours(<Heute />, contexteDe({ evenements: decouvertes }));
+
+    // 15 par jour, 5 découvertes : 10 neuves, prises dans les 10 cartes encore neuves du chapitre.
+    expect(progression()).toContain(formater(t.heute_compte, { dues: 0, neues: 10 }));
+  });
+
+  it('une_carte_deja_vue_un_jour_d_avant_ne_pese_pas_sur_le_plafond_d_aujourd_hui', () => {
+    const contexte = contexteDe();
+    const vues = contexte.cours.unites
+      .slice(0, 3)
+      .map(({ id }, n) => reponseDeTest(n, id, true, IL_Y_A_UNE_SEMAINE));
+    const aujourdhui = reponseDeTest(10, contexte.cours.unites[0].id, true, AUJOURDHUI_DE_TEST);
+
+    rendreDansLeCours(<Heute />, contexteDe({ evenements: [...vues, aujourdhui] }));
+
+    // Le quota reste de 15 : les 12 cartes neuves du chapitre (15 moins les 3 vues) y entrent.
+    expect(progression()).toContain(formater(t.heute_compte, { dues: 2, neues: 12 }));
+  });
+
+  it('une_nachste_runde_apres_un_plafond_atteint_n_a_que_des_dues', () => {
+    const memoire = new Map<string, unknown>();
+    const contexte = contexteDe({
+      cours: coursAvecNouvelles(1),
+      evenements: manquees(HERZ, LEBER),
+      memoire,
+    });
+    // Une carte neuve : sa réponse atteint le plafond de 1 par jour.
+    amorcer(contexte, memoire, ['c1000003']);
+    rendreDansUnCoursVivant(<Heute />, contexte);
+
+    cliquer(t.cartes_retourner);
+    cliquer(t.cartes_su);
+    expect(screen.getByRole('heading', { name: t.heute_fin })).toBeTruthy();
+    cliquer(t.heute_encore);
+
+    expect(fileDe(memoire).sort()).toEqual([HERZ, LEBER]);
+    expect(progression()).toContain(formater(t.heute_compte, { dues: 2, neues: 0 }));
+  });
+
+  it('un_changement_de_chapitre_avant_le_premier_geste_change_les_neuves_pas_apres', () => {
+    const memoire = new Map<string, unknown>();
+    const [premier, second] = contexteDe().cours.chapitres.map(({ id }) => id);
+    const duSecond = new Set(unitesDuChoix(contexteDe().cours, second, 'mix').map(({ id }) => id));
+    rendreDansLeCours(<Heute />, contexteDe({ memoire }));
+    expect(fileDe(memoire).some((id) => duSecond.has(id))).toBe(false);
+    cleanup();
+
+    // Avant tout geste : le chapitre change dans les cartes, la séance se recompose.
+    rendreDansLeCours(<Heute />, avecChapitre(contexteDe({ memoire }), second));
+    expect(fileDe(memoire).every((id) => duSecond.has(id))).toBe(true);
+    cleanup();
+
+    // Après le premier geste, elle ne suit plus le choix.
+    const contexte = avecChapitre(contexteDe({ memoire }), second);
+    amorcer(contexte, memoire, [HERZ, LEBER]);
+    rendreDansLeCours(<Heute />, contexte);
+    cliquer(t.cartes_retourner);
+    cliquer(t.cartes_su);
+    const garde = etatGarde(memoire);
+    cleanup();
+
+    rendreDansLeCours(<Heute />, avecChapitre(contexteDe({ memoire }), premier));
+
+    expect(etatGarde(memoire)).toBe(garde);
+    expect(fileDe(memoire)).toEqual([LEBER]);
   });
 
   it('l_etat_garde_retrouve_la_question_et_la_file_apres_un_detour', () => {

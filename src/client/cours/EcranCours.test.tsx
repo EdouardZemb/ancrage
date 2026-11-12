@@ -118,7 +118,9 @@ async function semerDesDuesSansCarte(): Promise<void> {
   const maintenant = Date.now();
   const aujourdhui = jourDe(horodatage(maintenant, -new Date(maintenant).getTimezoneOffset()));
   const ids = posablesDuCours(preparerCours(servi))
-    .filter((p) => p.genre !== 'carte')
+    // Ni carte ni mot : un mot se bâtit une fois sur deux, au hasard de l'écran, et le geste du
+    // test ne sait pas le bâtir (l'échec ne se voyait qu'un lancement sur quelques-uns).
+    .filter((p) => p.genre !== 'carte' && p.genre !== 'mot')
     .map(({ id }) => id);
   for (const [n, id] of ids.entries()) {
     await ajouterEvenement(

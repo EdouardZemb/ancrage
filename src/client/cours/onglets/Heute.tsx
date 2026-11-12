@@ -1,13 +1,17 @@
 /*
  * « Heute » (M2), la séance du jour : une seule file qui mêle tout ce qui est dû aujourd'hui, quel
- * que soit le type de l'unité, puis quelques cartes neuves (`composerSeance`). Chaque élément se
+ * que soit le type de l'unité, puis quelques cartes neuves (`composerSeance`). Les neuves viennent
+ * du choix fait dans Karteikarten (M2-P10), et `nouvelles_par_seance` est un plafond par jour
+ * (M2-P9) : le quota est ce que laissent les cartes déjà découvertes aujourd'hui, où qu'elles aient
+ * été répondues, et une fois le plafond atteint « Nächste Runde » ne reprend que les dues. Chaque élément se
  * pose avec l'écran de son onglet (`questions/`), et sa réponse entre au journal comme une réponse
  * ordinaire : rien de nouveau n'est écrit. Une faute remet l'élément en fin de file une fois.
  *
  * La séance vit dans l'écran du cours (`useEtatDOnglet`) : un détour par un autre onglet retrouve
  * la même question et la même file, et retient la mise à jour de l'application (`heuteEnCours`).
  * Elle se compose avant tout geste, puisque le cours s'ouvre ici : tant qu'aucune réponse n'y est
- * donnée, elle se recompose quand la liste des dues change (M2-P6) ; après la première réponse,
+ * donnée, elle se recompose quand la liste des dues, les neuves du choix ou le quota changent
+ * (M2-P6) ; après la première réponse,
  * elle ne suit plus le journal, comme une séance de cartes.
  *
  * Un geste, une écriture (M2-P7) : la réponse et le verdict, ou la suite et la question d'après,
@@ -16,11 +20,13 @@
 import { useMemo, useRef } from 'preact/hooks';
 import type { CoursPrepare } from '../../../domaine/cours/prepare.js';
 import type { Hasard } from '../../../domaine/hasard.js';
+import { unitesDuChoix } from '../../../domaine/seances/cartes.js';
 import {
   apresReponseDuJour,
   bilanDuJour,
   cartesNeuves,
   composerSeance,
+  decouvertesLe,
   duesDuJour,
   type Posable,
   posablesDuCours,
@@ -61,16 +67,18 @@ export interface EtatDeHeute {
 }
 
 /**
- * La clé d'une séance : le jour, les identifiants des dues du moment, puis ceux des cartes neuves
- * (M2-P6). Une carte neuve répondue ailleurs change la clé, comme une due.
+ * La clé d'une séance : le jour, les identifiants des dues du moment, ceux des cartes neuves du
+ * choix, puis le quota du jour (M2-P6, M2-P9). Une carte neuve répondue ailleurs, ou un changement
+ * de chapitre dans Karteikarten, change la clé, comme une due.
  */
 export function cleDuJour(
   aujourdhui: string,
   dues: readonly Posable[],
   neuves: readonly Posable[],
+  quota: number,
 ): string {
   const ids = (liste: readonly Posable[]) => liste.map(({ id }) => id).join(',');
-  return `${aujourdhui}|${ids(dues)}|${ids(neuves)}`;
+  return `${aujourdhui}|${ids(dues)}|${ids(neuves)}|${quota}`;
 }
 
 /**
@@ -114,6 +122,7 @@ export function Heute() {
     cours,
     t,
     etats,
+    evenements,
     aujourdhui,
     enregistrer,
     finDeSeance,
@@ -128,15 +137,31 @@ export function Heute() {
     () => duesDuJour(posables, etats, aujourdhui),
     [posables, etats, aujourdhui],
   );
-  const neuvesDuCours = useMemo(() => cartesNeuves(posables, etats), [posables, etats]);
-  const cle = cleDuJour(aujourdhui, dues, neuvesDuCours);
+  // Les candidates sont les cartes du choix de Karteikarten (M2-P10).
+  const candidates = useMemo(() => {
+    const choix = new Set(
+      unitesDuChoix(cours, preferences.cartes.chapitre, preferences.cartes.sens).map(
+        ({ id }) => id,
+      ),
+    );
+    return posables.filter((p) => p.genre === 'carte' && choix.has(p.id));
+  }, [cours, posables, preferences.cartes.chapitre, preferences.cartes.sens]);
+  const neuvesDuChoix = useMemo(() => cartesNeuves(candidates, etats), [candidates, etats]);
+  // Le plafond du jour moins les cartes du cours découvertes aujourd'hui (M2-P9).
+  // Le compte relit le journal : il ne se refait que si le journal, le jour ou le cours changent.
+  const decouvertes = useMemo(
+    () => decouvertesLe(evenements, aujourdhui, new Set(cours.unites.map(({ id }) => id))),
+    [evenements, aujourdhui, cours],
+  );
+  const quota = Math.max(0, nouvelles - decouvertes);
+  const cle = cleDuJour(aujourdhui, dues, neuvesDuChoix, quota);
 
   // Les éléments que la séance en cours a réussis : le journal ne les montre qu'une fois rangés,
   // et l'écran de fin ne les compte plus parmi les dues. Une séance neuve repart d'un ensemble vide.
   const reussis = useRef(new Set<string>());
   const composer = (): EtatDeHeute => {
     reussis.current = new Set();
-    const seance = composerSeance(posables, etats, aujourdhui, nouvelles, hasard);
+    const seance = composerSeance(posables, etats, aujourdhui, { candidates, quota }, hasard);
     return { cle, seance, question: questionDe(seance.file[0], cours, hasard), repondue: null };
   };
   const [courante, setCourante] = useEtatDOnglet<EtatDeHeute>('heute', composer, heuteEnCours);

@@ -12,8 +12,8 @@ feuille de route. On n'y ajoute que ce qui n'a pas encore d'issue.
   mots : mêler les chapitres dans une même séance n'est pas la piste.
 - **Apprendre de ses erreurs** : repérer les confusions récurrentes. Cela suppose de garder la
   réponse donnée, ce que l'on ne fait pas aujourd'hui (ADR-0007). À peser contre la minimisation.
-- **Surcharge** : plafonner les nouvelles cartes par jour, proposer des séances courtes pour les
-  transports.
+- **Surcharge** : le plafond de nouvelles cartes par jour est fait pour la séance du jour (lot M2) ;
+  reste à proposer des séances courtes pour les transports.
 - **Sources d'inspiration** :
   - Anki : FSRS, paquets ;
   - RemNote : passage des notes aux cartes ;

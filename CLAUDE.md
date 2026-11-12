@@ -308,6 +308,14 @@ Sur le poste, `pnpm` s'appelle par `corepack pnpm …` ; en CI, `corepack enable
   comptes confondus et sans rien qui nomme une personne. Écrit le bloc `parametres:` du manifeste, puis la
   qualité de la prédiction avant et après. Codes : 0 ajusté ; 2 moins de 1 000 révisions exploitables ;
   64 usage ; 1 base illisible. `docs/exploitation.md`, « Ajuster les paramètres de FSRS d'un cours ».
+- `corepack pnpm memoire:rapport --base <copie.sqlite> --cours <id> --contenu <dossier> --sortie <fichier.html> [--personne <identifiant> --accord <JJ/MM/AAAA>] [--jusquau <AAAA-MM-JJ>] [--ecraser]` :
+  outil du poste, hors de l'image. Écrit le rapport de suivi d'un cours, une page HTML autonome et
+  privée (charge par jour, réussite selon le délai et le mode, part vue et sûre, projection jusqu'à
+  l'examen par algorithme). Sans `--personne`, rapport d'ensemble : sous trois personnes actives il
+  s'arrête aux totaux, et toute case de moins de 20 réponses est omise. Avec `--personne`, la date de
+  l'accord est obligatoire, et c'est une déclaration que l'outil ne contrôle pas. La sortie est
+  refusée dans un dépôt git. Codes : 0 écrit ; 64 usage ; 1 base, contenu, cours ou personne
+  illisible. `docs/exploitation.md`, « Le rapport de suivi ».
 - `corepack pnpm contenus:reference --references <dossier>` : régénère l'instantané
   `<cours>.reference.json` de chaque cours, et celui de la notice composée, `notice.json`, dans
   `<dossier>`. `--references` est obligatoire, sans défaut : sans lui, code 64. Au dépôt de données, ce

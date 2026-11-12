@@ -25,6 +25,19 @@ interface Ligne {
   v: number;
 }
 
+function versEvenement(ligne: Ligne): Evenement {
+  return {
+    id: ligne.id,
+    cours: ligne.cours,
+    unite: ligne.unite,
+    type: 'reponse',
+    resultat: JSON.parse(ligne.resultat),
+    repondu_a: ligne.repondu_a,
+    appareil: APPAREIL_ANONYME,
+    v: ligne.v,
+  } as Evenement;
+}
+
 /**
  * Un journal par personne qui a répondu dans `cours`, les réponses seules (un examen est écarté :
  * ses questions ont chacune leur réponse). Une base absente ou qui n'en est pas une lève une erreur.
@@ -44,18 +57,31 @@ export function lireJournaux(base: string, cours: string): { journaux: Evenement
     for (const ligne of lignes) {
       const journal = parPersonne.get(ligne.personne) ?? [];
       parPersonne.set(ligne.personne, journal);
-      journal.push({
-        id: ligne.id,
-        cours: ligne.cours,
-        unite: ligne.unite,
-        type: 'reponse',
-        resultat: JSON.parse(ligne.resultat),
-        repondu_a: ligne.repondu_a,
-        appareil: APPAREIL_ANONYME,
-        v: ligne.v,
-      } as Evenement);
+      journal.push(versEvenement(ligne));
     }
     return { journaux: [...parPersonne.values()] };
+  } finally {
+    sqlite.close();
+  }
+}
+
+/**
+ * Le journal d'une seule personne, d'après son identifiant opaque (la colonne `personne` de la table
+ * `evenement`), pour le rapport que son responsable demande. Une liste vide : personne n'a cet
+ * identifiant dans ce cours. L'identifiant n'est ni gardé ni rendu : ce qui sort est le journal seul.
+ */
+export function lireJournalDe(base: string, cours: string, personne: string): Evenement[] {
+  const sqlite = new Database(base, { readonly: true, fileMustExist: true });
+  try {
+    const lignes = sqlite
+      .prepare(
+        `select personne, id, cours, unite, resultat, repondu_a, v
+         from evenement
+         where cours = ? and personne = ? and type = 'reponse'
+         order by numero`,
+      )
+      .all(cours, personne) as Ligne[];
+    return lignes.map(versEvenement);
   } finally {
     sqlite.close();
   }

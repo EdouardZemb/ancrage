@@ -19,7 +19,7 @@ function fichiers(dossier: string): string[] {
 
 test('rien_sous_serveur_ou_domaine_n_importe_les_outils_de_memoire_ni_l_optimiseur', () => {
   const interdits = /outillage\/memoire|open-spaced-repetition/;
-  const trouves = ['serveur', 'domaine']
+  const trouves = ['serveur', 'domaine', 'client']
     .flatMap((dossier) => fichiers(path.join(RACINE, 'src', dossier)))
     .filter((fichier) => interdits.test(fs.readFileSync(fichier, 'utf8')))
     .map((fichier) => path.relative(RACINE, fichier).split(path.sep).join('/'));

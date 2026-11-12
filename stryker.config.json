@@ -24,7 +24,7 @@
   "thresholds": { "high": 95, "low": 90, "break": 90 },
   "reporters": ["clear-text", "progress", "html"],
   "htmlReporter": { "fileName": "reports/mutation/mutation.html" },
-  "vitest": { "configFile": "vitest.config.ts" },
+  "vitest": { "configFile": "vitest.mutation.config.ts" },
   "tsconfigFile": "tsconfig.stryker-sans-reecriture.json",
   "tsconfigFile_comment": "Stryker réécrit le tsconfig avec l'API JavaScript de TypeScript, absente de TypeScript 7 (compilateur natif). Notre tsconfig.json n'a ni extends ni references hors du dépôt : la réécriture ne changerait rien. Ce fichier n'existe pas exprès, pour que Stryker saute la réécriture. Relu au lot 2c avec Stryker 10.0.0 : sans lui, « ts.parseConfigFileTextToJson is not a function »."
 }

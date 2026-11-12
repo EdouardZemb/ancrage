@@ -17,6 +17,7 @@
     "e2e",
     "vite.config.ts",
     "vitest.config.ts",
+    "vitest.mutation.config.ts",
     "scripts/cours-absent.ts",
     "scripts/cours-absent.test.ts",
     "playwright.config.ts",

@@ -10,7 +10,11 @@ import path from 'node:path';
 import { FSRS6_DEFAULT_WEIGHTS, FSRS6Model } from 'ts-fsrs/models/fsrs-6';
 import { afterEach, beforeEach } from 'vitest';
 import { hasardDeterministe } from '../../domaine/hasard.js';
-import { creerIdEvenement, type Evenement } from '../../domaine/journal/evenement.js';
+import {
+  creerIdEvenement,
+  type Evenement,
+  type ModeDeReponse,
+} from '../../domaine/journal/evenement.js';
 import { horodatage } from '../../domaine/journal/temps.js';
 import { appliquerMigrations, fermerBase, ouvrirBase } from '../../serveur/base/base.js';
 import { creerDepotJournal } from '../../serveur/journal/depot-journal.js';
@@ -34,13 +38,14 @@ export interface PersonneInventee {
   nom: string;
 }
 
-/** Un événement de réponse à `instant`, d'identifiant propre à son `rang`. */
+/** Un événement de réponse à `instant`, d'identifiant propre à son `rang`, avec son `mode` s'il en a un. */
 export function reponseInventee(
   instant: number,
   rang: number,
   unite: string,
   juste: boolean,
   cours = COURS_DE_TEST,
+  mode?: ModeDeReponse,
 ): Evenement {
   const aleatoire = new Uint8Array(OCTETS_ALEATOIRES);
   for (let i = DEBUT_DU_RANG; i < FIN_DU_RANG; i++) {
@@ -51,7 +56,7 @@ export function reponseInventee(
     cours,
     unite,
     type: 'reponse',
-    resultat: { juste },
+    resultat: mode === undefined ? { juste } : { juste, mode },
     repondu_a: horodatage(instant, 0),
     appareil: APPAREIL_INVENTE,
     v: 1,

@@ -148,10 +148,12 @@ export function Heute() {
   }, [cours, posables, preferences.cartes.chapitre, preferences.cartes.sens]);
   const neuvesDuChoix = useMemo(() => cartesNeuves(candidates, etats), [candidates, etats]);
   // Le plafond du jour moins les cartes du cours découvertes aujourd'hui (M2-P9).
-  const quota = Math.max(
-    0,
-    nouvelles - decouvertesLe(evenements, aujourdhui, new Set(cours.unites.map(({ id }) => id))),
+  // Le compte relit le journal : il ne se refait que si le journal, le jour ou le cours changent.
+  const decouvertes = useMemo(
+    () => decouvertesLe(evenements, aujourdhui, new Set(cours.unites.map(({ id }) => id))),
+    [evenements, aujourdhui, cours],
   );
+  const quota = Math.max(0, nouvelles - decouvertes);
   const cle = cleDuJour(aujourdhui, dues, neuvesDuChoix, quota);
 
   // Les éléments que la séance en cours a réussis : le journal ne les montre qu'une fois rangés,

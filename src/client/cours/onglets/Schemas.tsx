@@ -11,32 +11,21 @@
 import type { ModuleServiDe } from '../../../domaine/cours/prepare.js';
 import { reussis } from '../../../domaine/progression/statistiques.js';
 import { tacheDeSchema } from '../../../domaine/seances/schemas.js';
-import { useTouches } from '../clavier.js';
-import { enGras, focaliser, Options } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
 import { DessinSchema } from '../DessinSchema.js';
 import type { Preferences } from '../preferences.js';
+import { QuestionDeSchema, type TacheDeSchema } from '../questions/QuestionDeSchema.js';
 import { serieCommencee } from '../seances-en-cours.js';
 import { formater } from '../textes-cours.js';
 
-/** Les touches 1 à 4 choisissent le premier à le quatrième nom (H:2248). */
-const NUMEROS_D_OPTIONS = ['1', '2', '3', '4'];
-
 type Mode = Preferences['schemas']['mode'];
-
-/** Un point à trouver : son indice, les indices des noms proposés, et celui choisi. */
-interface Tache {
-  cible: number;
-  options: number[];
-  choisi: number | null;
-}
 
 /** `tache` est `null` en « Lernansicht », ou quand le schéma n'a aucun point. */
 interface Serie {
   cle: string;
   faites: number;
   justes: number;
-  tache: Tache | null;
+  tache: TacheDeSchema | null;
 }
 
 export function Schemas() {
@@ -55,7 +44,7 @@ function SchemaChoisi(props: { schema: ModuleServiDe<'schema'> }) {
   const { points } = schema;
   const cle = `${schema.id}|${mode}`;
 
-  const tirer = (): Tache | null =>
+  const tirer = (): TacheDeSchema | null =>
     mode === 'lernen' || points.length === 0
       ? null
       : { ...tacheDeSchema(schema, etats, hasard), choisi: null };
@@ -67,7 +56,6 @@ function SchemaChoisi(props: { schema: ModuleServiDe<'schema'> }) {
   if (serie !== courante) setCourante(serie);
 
   const { tache } = serie;
-  const attendue = tache !== null && tache.choisi === null;
 
   const choisir = (suite: Partial<Preferences['schemas']>) =>
     changerPreferences({ ...preferences, schemas: { ...preferences.schemas, ...suite } });
@@ -83,17 +71,6 @@ function SchemaChoisi(props: { schema: ModuleServiDe<'schema'> }) {
     });
     void enregistrer(points[tache.cible].id, juste);
   };
-
-  const touches = Object.fromEntries(
-    NUMEROS_D_OPTIONS.map((numero, i) => [
-      numero,
-      () => {
-        const j = tache?.options[i];
-        if (j !== undefined) repondre(j);
-      },
-    ]),
-  );
-  useTouches(touches, mode === 'benennen' && attendue);
 
   const acquis = formater(t.schemas_gekonnt, {
     n: reussis(
@@ -150,7 +127,7 @@ function SchemaChoisi(props: { schema: ModuleServiDe<'schema'> }) {
       ) : tache === null ? (
         <p class="muted">{t.onglet_vide}</p>
       ) : (
-        <Question
+        <QuestionDeSchema
           schema={schema}
           mode={mode}
           tache={tache}
@@ -159,80 +136,5 @@ function SchemaChoisi(props: { schema: ModuleServiDe<'schema'> }) {
         />
       )}
     </section>
-  );
-}
-
-/** La question en cours : le dessin et, selon l'exercice, quatre noms ou un point à toucher. */
-function Question(props: {
-  schema: ModuleServiDe<'schema'>;
-  mode: Exclude<Mode, 'lernen'>;
-  tache: Tache;
-  repondre(j: number): void;
-  suivante(): void;
-}) {
-  const { schema, mode, tache, repondre, suivante } = props;
-  const { t } = useCours();
-  const point = schema.points[tache.cible];
-  const repondue = tache.choisi !== null;
-  const juste = tache.choisi === tache.cible;
-  // Le bon point en vert ; en « Zeigen », le point touché à tort en rouge.
-  const marques: Record<number, 'ok' | 'ko'> = {};
-  if (repondue) {
-    marques[tache.cible] = 'ok';
-    if (!juste && mode === 'zeigen' && tache.choisi !== null) marques[tache.choisi] = 'ko';
-  }
-
-  const verdict = repondue && (
-    <>
-      <div class={`verdict ${juste ? 'ok' : 'ko'}`} style={{ justifySelf: 'center' }}>
-        <span>{juste ? t.verdict_juste : t.verdict_fausse}</span>
-        <b>
-          {tache.cible + 1} = {point.terme}
-        </b>
-        <span class="muted">{point.sens}</span>
-      </div>
-      <button type="button" class="primary" ref={focaliser} onClick={suivante}>
-        {t.suivante}
-      </button>
-    </>
-  );
-
-  if (mode === 'benennen') {
-    return (
-      <>
-        <div class="card">
-          <DessinSchema
-            schema={schema}
-            cible={repondue ? undefined : tache.cible}
-            marques={marques}
-          />
-          <p>
-            {enGras(t.schemas_wie_heisst, {
-              nummer: formater(t.schemas_nummer, { n: tache.cible + 1 }),
-            })}
-          </p>
-        </div>
-        {repondue ? (
-          verdict
-        ) : (
-          <Options
-            options={tache.options.map((j) => schema.points[j].terme)}
-            choisir={(k) => repondre(tache.options[k])}
-          />
-        )}
-      </>
-    );
-  }
-  return (
-    <>
-      <div class="card">
-        <p>
-          {enGras(t.schemas_tippe_auf, { terme: point.terme })}{' '}
-          <span class="muted">({point.sens})</span>
-        </p>
-        <DessinSchema schema={schema} marques={marques} cliquable={!repondue} choisir={repondre} />
-      </div>
-      {verdict}
-    </>
   );
 }

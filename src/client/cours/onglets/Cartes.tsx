@@ -11,9 +11,6 @@
  * sens, puis vit dans l'écran du cours (`useEtatDOnglet`) : les réponses qui arrivent au journal ne
  * la changent pas, et un détour par un autre onglet la retrouve telle quelle.
  */
-import { reponsesAcceptees } from '../../../domaine/cartes/unites.js';
-import { juger } from '../../../domaine/correction.js';
-import { etatDe } from '../../../domaine/progression/etat.js';
 import {
   apresReponse,
   construireSeance,
@@ -21,19 +18,13 @@ import {
   seanceDeNouvelles,
   unitesDuChoix,
 } from '../../../domaine/seances/cartes.js';
-import { useTouches } from '../clavier.js';
-import { ChoixDeCartes, Enonce, focaliser } from '../composants-cours.js';
+import { ChoixDeCartes } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
 import type { Preferences } from '../preferences.js';
+import type { EtatDeCarte } from '../questions/QuestionCarte.js';
+import { QuestionCarte } from '../questions/QuestionCarte.js';
 import { cartesEnCours } from '../seances-en-cours.js';
 import { formater } from '../textes-cours.js';
-
-/** Le jugement d'une saisie, avec ce que la personne a tapé. */
-interface Verdict {
-  juste: boolean;
-  presque: boolean;
-  donnee: string;
-}
 
 /**
  * Une série en cours. `cle` (chapitre et sens) et `imposee` (la séance imposée reçue alors) disent
@@ -44,7 +35,7 @@ interface Serie {
   imposee: SeanceCartes | undefined;
   seance: SeanceCartes;
   retournee: boolean;
-  verdict: Verdict | null;
+  verdict: EtatDeCarte['verdict'];
 }
 
 export function Cartes(props: {
@@ -97,20 +88,9 @@ export function Cartes(props: {
 
   const { seance } = serie;
   const unite = seance.file[0];
-  // La saisie ne vaut que pour une inverse (H:1767).
-  const saisieAttendue = unite !== undefined && unite.sens === 'inverse' && saisie;
-
   const choisir = (suite: Partial<Preferences['cartes']>) =>
     changerPreferences({ ...preferences, cartes: { ...preferences.cartes, ...suite } });
 
-  const retourner = () => {
-    if (!serie.retournee) setCourante({ ...serie, retournee: true });
-  };
-  const verifier = (donnee: string) => {
-    if (unite === undefined) return;
-    const jugement = juger(donnee, reponsesAcceptees(unite, cours.index));
-    setCourante({ ...serie, verdict: { ...jugement, donnee } });
-  };
   const repondre = (juste: boolean) => {
     if (unite === undefined) return;
     const suivante = apresReponse(seance, juste);
@@ -132,19 +112,6 @@ export function Cartes(props: {
     oublierEtatDOnglet('quiz');
     aller('quiz');
   };
-
-  // Espace ou Enter retourne la carte, 1 et 2 répondent (H:2240-2243). Une saisie a ses touches.
-  const touches: Record<string, () => void> = {
-    ' ': retourner,
-    Enter: retourner,
-    ...(serie.retournee ? { '1': () => repondre(false), '2': () => repondre(true) } : {}),
-  };
-  useTouches(touches, unite !== undefined && !saisieAttendue);
-
-  const boite = unite === undefined ? 0 : etatDe(etats, unite.id).boite;
-  const meta = (
-    <span class="meta">{boite > 0 ? formater(t.cartes_boite, { n: boite }) : t.cartes_neuve}</span>
-  );
 
   return (
     <section>
@@ -184,111 +151,15 @@ export function Cartes(props: {
             </button>
           </div>
         </div>
-      ) : saisieAttendue ? (
-        <>
-          <div class="card">
-            <Enonce unite={unite} avecChapitre />
-            {serie.verdict === null ? (
-              <SaisieDuTerme onVerifier={verifier} />
-            ) : (
-              <>
-                <div
-                  class={`verdict ${serie.verdict.juste ? 'ok' : serie.verdict.presque ? 'near' : 'ko'}`}
-                >
-                  <span>
-                    {serie.verdict.juste
-                      ? t.cartes_juste
-                      : serie.verdict.presque
-                        ? t.cartes_presque
-                        : t.cartes_fausse}
-                  </span>
-                  {serie.verdict.donnee !== '' && !serie.verdict.juste && (
-                    <s>{serie.verdict.donnee}</s>
-                  )}
-                  <b>{unite.reponse}</b>
-                  {!serie.verdict.juste && (
-                    <button type="button" class="linkbtn" onClick={() => repondre(true)}>
-                      {t.cartes_aussi_juste}
-                    </button>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  class="primary"
-                  ref={focaliser}
-                  onClick={() => repondre(serie.verdict?.juste ?? false)}
-                >
-                  {t.cartes_suivante}
-                </button>
-              </>
-            )}
-            {meta}
-          </div>
-          <p class="kbd">{t.cartes_touches_saisie}</p>
-        </>
       ) : (
-        <>
-          {/* biome-ignore lint/a11y/useSemanticElements: le bloc de la carte garde la mise en page du prototype (H:1789). */}
-          {/* biome-ignore lint/a11y/useKeyWithClickEvents: Espace et Enter retournent la carte, pour tout l'onglet (useTouches). */}
-          <div
-            class="card flip"
-            role="button"
-            tabIndex={0}
-            aria-label={t.cartes_retourner}
-            onClick={retourner}
-          >
-            <Enonce unite={unite} avecChapitre />
-            {serie.retournee ? (
-              <span class="back">{unite.reponse}</span>
-            ) : (
-              <span class="hint">{t.cartes_indice}</span>
-            )}
-            {meta}
-          </div>
-          {serie.retournee && (
-            <div class="answer">
-              <button type="button" class="no" onClick={() => repondre(false)}>
-                {t.cartes_pas_su}
-              </button>
-              <button type="button" class="yes" onClick={() => repondre(true)}>
-                {t.cartes_su}
-              </button>
-            </div>
-          )}
-          <p class="kbd">{t.cartes_touches}</p>
-        </>
+        <QuestionCarte
+          unite={unite}
+          saisie={saisie}
+          etat={{ retournee: serie.retournee, verdict: serie.verdict }}
+          onEtat={(etat) => setCourante({ ...serie, ...etat })}
+          onReponse={repondre}
+        />
       )}
     </section>
-  );
-}
-
-/** Le champ où l'on tape le terme, et son bouton (H:1768-1770). */
-function SaisieDuTerme(props: { onVerifier(saisie: string): void }) {
-  const { t } = useCours();
-  return (
-    <>
-      <form
-        class="typed"
-        autocomplete="off"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const champ = e.currentTarget.elements.namedItem('saisie') as HTMLInputElement;
-          props.onVerifier(champ.value);
-        }}
-      >
-        <input
-          name="saisie"
-          ref={focaliser}
-          aria-label={t.cartes_saisie_etiquette}
-          placeholder={t.cartes_saisie_modele}
-          spellcheck={false}
-          autocapitalize="off"
-        />
-        <button type="submit" class="small-btn">
-          {t.cartes_verifier}
-        </button>
-      </form>
-      <span class="hint">{t.cartes_saisie_indice}</span>
-    </>
   );
 }

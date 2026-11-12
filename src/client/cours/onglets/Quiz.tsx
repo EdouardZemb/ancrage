@@ -11,7 +11,6 @@
  * du cours (`useEtatDOnglet`) : un détour par un autre onglet retrouve la même question. Un choix
  * sans carte n'a pas de question : l'onglet le dit, et ne plante pas.
  */
-import type { UniteDeCarte } from '../../../domaine/cartes/unites.js';
 import { unitesDuChoix } from '../../../domaine/seances/cartes.js';
 import {
   elementsTirables,
@@ -21,42 +20,19 @@ import {
   reponseDeLElement,
 } from '../../../domaine/seances/feuilles.js';
 import { questionDeQuiz } from '../../../domaine/seances/quiz.js';
-import { useTouches } from '../clavier.js';
-import {
-  ChoixDeCartes,
-  classeDeLaQuestion,
-  Enonce,
-  focaliser,
-  libelleDOption,
-  Options,
-} from '../composants-cours.js';
+import { ChoixDeCartes } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
 import type { Preferences } from '../preferences.js';
+import { QuestionAChoix, type QuestionDeChoix } from '../questions/QuestionAChoix.js';
 import { serieCommencee } from '../seances-en-cours.js';
 import { formater } from '../textes-cours.js';
-
-/** Les touches 1 à 4 choisissent la première à la quatrième option (H:2245). */
-const NUMEROS_D_OPTIONS = ['1', '2', '3', '4'];
-
-interface Question {
-  /** L'identifiant qui reçoit la réponse au journal : celui de la carte ou de l'élément. */
-  id: string;
-  /** La bonne réponse, parmi `options`. */
-  reponse: string;
-  /** Ce que la question montre : une carte, ou le texte d'un élément de feuille. */
-  enonce: { unite: UniteDeCarte } | { texte: string };
-  /** Les options, en codes pour un vrai/faux (`VRAI`, `FAUX`). */
-  options: string[];
-  /** L'index de l'option choisie, `null` tant que la question attend sa réponse. */
-  choisie: number | null;
-}
 
 /** `question` est `null` quand le choix n'a aucune carte. */
 interface Serie {
   cle: string;
   faites: number;
   justes: number;
-  question: Question | null;
+  question: QuestionDeChoix | null;
 }
 
 export function Quiz() {
@@ -65,7 +41,7 @@ export function Quiz() {
   const { chapitre, sens } = preferences.quiz;
   const cle = `${chapitre}|${sens}`;
 
-  const tirerFeuille = (): Question | null => {
+  const tirerFeuille = (): QuestionDeChoix | null => {
     const elements = elementsTirables(cours.feuilles, GENRES_FERMES);
     if (elements.length === 0) return null;
     const { element, options } = questionFermee(elements, etats, hasard);
@@ -79,7 +55,7 @@ export function Quiz() {
       choisie: null,
     };
   };
-  const tirer = (): Question | null => {
+  const tirer = (): QuestionDeChoix | null => {
     if (chapitre === 'feuilles') return tirerFeuille();
     const pool = unitesDuChoix(cours, chapitre, sens);
     if (pool.length === 0) return null;
@@ -105,11 +81,8 @@ export function Quiz() {
   const choisir = (suite: Partial<Preferences['quiz']>) =>
     changerPreferences({ ...preferences, quiz: { ...preferences.quiz, ...suite } });
 
-  const repondre = (i: number) => {
-    if (question === null || question.choisie !== null || question.options[i] === undefined) {
-      return;
-    }
-    const juste = question.options[i] === question.reponse;
+  const repondre = (i: number, juste: boolean) => {
+    if (question === null) return;
     setCourante({
       ...serie,
       faites: serie.faites + 1,
@@ -118,14 +91,6 @@ export function Quiz() {
     });
     void enregistrer(question.id, juste);
   };
-
-  // Un vrai/faux montre « Richtig » et « Falsch » : le domaine ne parle qu'en codes.
-  const libelle = (option: string): string => libelleDOption(option, t);
-
-  const touches = Object.fromEntries(
-    NUMEROS_D_OPTIONS.map((numero, i) => [numero, () => repondre(i)]),
-  );
-  useTouches(touches, question !== null && question.choisie === null);
 
   return (
     <section>
@@ -144,36 +109,12 @@ export function Quiz() {
       {question === null ? (
         <p class="muted">{t.quiz_vide}</p>
       ) : (
-        <>
-          <div class="card" style={{ minHeight: '160px' }}>
-            {'unite' in question.enonce ? (
-              <Enonce unite={question.enonce.unite} avecChapitre={false} />
-            ) : (
-              <span class={classeDeLaQuestion(question.enonce.texte)}>{question.enonce.texte}</span>
-            )}
-          </div>
-          <Options
-            options={question.options.map(libelle)}
-            choisir={repondre}
-            repondu={
-              question.choisie === null
-                ? undefined
-                : { choisie: question.choisie, reponse: libelle(question.reponse) }
-            }
-          />
-          {question.choisie === null ? (
-            <p class="kbd">{t.quiz_touches}</p>
-          ) : (
-            <button
-              type="button"
-              class="primary"
-              ref={focaliser}
-              onClick={() => setCourante({ ...serie, question: tirer() })}
-            >
-              {t.quiz_suivante}
-            </button>
-          )}
-        </>
+        <QuestionAChoix
+          question={question}
+          libelleSuivante={t.quiz_suivante}
+          onChoix={repondre}
+          onSuivante={() => setCourante({ ...serie, question: tirer() })}
+        />
       )}
     </section>
   );

@@ -255,6 +255,9 @@ Sur le poste, `pnpm` s'appelle par `corepack pnpm …` ; en CI, `corepack enable
 - `corepack pnpm e2e:mise-a-jour` : le test des deux versions (2a-D8), après `build`. Il construit
   deux clients (`dist-e2e/a` et `dist-e2e/b`), puis les sert l'un après l'autre avec le serveur
   construit sur `http://localhost:3100`, hors séance et en séance. `pnpm e2e` ne le lance pas.
+  La suite porte aussi le parcours de la séance du jour (`e2e/mise-a-jour/seance-du-jour.spec.ts`,
+  lot M2), qui a besoin d'un compte neuf sur une base à lui : la suite principale n'a qu'un lien
+  de propriétaire, que le parcours de compte consomme.
 - `corepack pnpm mutation` : tests de mutation (Stryker) de `src/domaine/acces.ts`, de
   `src/domaine/journal/*.ts` (tests exclus), de `src/domaine/progression/etat.ts`, `fsrs.ts` et `ordonnanceur.ts`, de
   `src/domaine/feuilles/deroulement.ts` et `correction.ts`, de `src/domaine/seances/feuilles.ts` et `heute.ts`, de

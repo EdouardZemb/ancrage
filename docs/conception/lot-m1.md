@@ -126,7 +126,8 @@ Edouard a pris les défauts des sept questions du cadrage, puis a validé la spe
   d'intervalle, avant qu'un cours monté passe en FSRS ; le hook ; les remarques mineures des
   revues.
 - **La vérification sur Android** :
-  - 👤 au staging, où le cours de l'instance est resté en Leitner : rien ne doit avoir changé ;
+  - faite par Edouard le 12/11/2026, au staging, où le cours de l'instance est resté en Leitner :
+    rien n'a changé ;
   - FSRS n'est vérifié qu'au poste, sur le cours d'exemple, par les tests et le bout en bout. Le
     staging ne le montre pas. Il se vérifiera sur un téléphone au passage d'un cours monté, qui
     est une PR du dépôt de données, au plus tôt une version après celle de ce lot.

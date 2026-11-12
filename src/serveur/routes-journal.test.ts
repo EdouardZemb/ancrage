@@ -200,6 +200,29 @@ describe('POST puis GET /api/cours/:id/journal', () => {
     ]);
   });
 
+  it('le_mode_d_une_reponse_est_range_puis_relu', async () => {
+    const app = creerAppDeTest();
+    const alice = creerLectrice('Lernende Test');
+    const avecMode = {
+      ...reponseDeTest(ID_SOURCE, 1, false),
+      resultat: { juste: false, mode: 'corrigee' },
+    } as Evenement;
+    const sansMode = reponseDeTest(ID_SOURCE, 2);
+
+    const envoi = await envoyer(app, ID_SOURCE, { evenements: [avecMode, sansMode] }, alice.jeton);
+
+    expect(envoi.statusCode).toBe(200);
+    expect(envoi.json()).toStrictEqual({ acceptes: 2 });
+    const rangees = base.sqlite.prepare('select resultat from evenement order by rang').all();
+    expect(rangees).toStrictEqual([
+      { resultat: '{"juste":false,"mode":"corrigee"}' },
+      { resultat: '{"juste":true}' },
+    ]);
+    const lus = ((await lire(app, ID_SOURCE, alice.jeton)).json() as Page).evenements;
+    expect(lus).toStrictEqual([avecMode, sansMode]);
+    expect(lus[1].resultat).not.toHaveProperty('mode');
+  });
+
   it('lecture_par_head_sans_corps_et_sans_cache', async () => {
     const app = creerAppDeTest();
     const alice = creerLectrice('Lernende Test');
@@ -632,6 +655,26 @@ describe('validation du lot', () => {
       expect(reponse.statusCode).toBe(400);
       expect(reponse.body).toBe(REQUETE);
     }
+    expect(nombreDeLignes()).toBe(0);
+  });
+
+  it('mode_inconnu_400_le_lot_entier_est_refuse', async () => {
+    const app = creerAppDeTest();
+    const alice = creerLectrice('Lernende Test');
+    const inconnu = {
+      ...reponseDeTest(ID_SOURCE, 2),
+      resultat: { juste: true, mode: 'devinee' },
+    } as unknown as Evenement;
+
+    const reponse = await envoyer(
+      app,
+      ID_SOURCE,
+      { evenements: [reponseDeTest(ID_SOURCE, 1), inconnu] },
+      alice.jeton,
+    );
+
+    expect(reponse.statusCode).toBe(400);
+    expect(reponse.body).toBe(REQUETE);
     expect(nombreDeLignes()).toBe(0);
   });
 

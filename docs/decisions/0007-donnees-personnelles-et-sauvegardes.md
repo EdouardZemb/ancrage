@@ -1,7 +1,8 @@
 # ADR-0007 — Données personnelles et sauvegardes : le minimum, et une restauration prouvée
 
 - **Statut** : accepté le 2026-10-15 ; précisé le 2026-10-18 par l'ADR-0009 sur un seul point, la
-  durée des journaux ; complété le 2026-10-22 par M-0005 du modèle, à l'alignement sur la cible
+  durée des journaux ; précisé le 2026-11-12 par l'ADR-0013 sur un seul point, le mode d'une
+  réponse que garde le journal ; complété le 2026-10-22 par M-0005 du modèle, à l'alignement sur la cible
   `serveur` : un instantané est un dossier qui a la forme de `/donnees`, le distant passe par
   l'alias `sauvegardes:`, et le registre des suppressions est rejoué par le crochet `REPORTER` de la
   restauration (`rejouer-suppressions --dossiers`)

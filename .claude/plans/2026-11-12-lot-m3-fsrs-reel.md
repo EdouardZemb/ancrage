@@ -50,7 +50,10 @@ la lit.
 
 - **M3-P1, le mode vit dans `resultat`.** `resultat: { juste, mode? }` : la colonne `resultat` est
   déjà un JSON, que le dépôt, la relecture et l'export recopient tel quel. Ni migration, ni colonne.
-  `v` reste à 1 : un autre `v` serait refusé par le serveur de la version précédente.
+  `v` reste à 1 : un autre `v` serait refusé par le serveur de la version précédente. Une fois
+  qu'un client de la version N+1 a pu émettre, le serveur ne redescend plus sous la version N : un
+  serveur d'avant refuserait le lot, et la file du cours resterait bloquée, sans perte, jusqu'au
+  retour d'un serveur qui accepte. `docs/exploitation.md` le dit.
 - **M3-P2, les modes.** Huit valeurs, qui disent le geste et non l'onglet : `retournee` (carte
   retournée, jugée par la personne), `saisie` (réponse tapée, jugée par l'application), `corrigee`
   (saisie jugée fausse, puis déclarée juste par la personne), `choix` (une proposition parmi
@@ -63,20 +66,39 @@ la lit.
   (les autres cartes, les mots, les points, les exercices, les fiches) reste en Leitner. Un
   appareil resté à la version précédente ne connaît pas cette valeur et retombe sur Leitner pour
   tout le cours : c'est le repli sûr. Garder `fsrs` avec une liste l'aurait fait appliquer FSRS à
-  tout le cours.
+  tout le cours. Le repli ne vaut que pour le client : un serveur d'avant la version N refuse de
+  démarrer sur un manifeste qui porte une clé nouvelle. Après le premier manifeste neuf, on ne
+  redescend donc plus sous la version N (`docs/format-des-contenus.md`, `docs/exploitation.md`).
 - **M3-P4, les paramètres.** `memoire.parametres` porte les 21 poids de FSRS-6, valides au sens de
   `checkFSRS6Parameters`. Sans eux, les poids par défaut. Ils valent pour `fsrs` comme pour
-  `par-chapitre`.
-- **M3-P5, le plafond.** `memoire.examen` porte une date. Une réponse donnée `n` jours avant elle
-  n'obtient pas d'intervalle de plus de `max(1, n / 2)` jours, arrondi vers le bas. Le jour de
-  l'examen passé, plus de plafond. Leitner n'est pas concerné : il plafonne déjà à 16 jours.
+  `par-chapitre`. Avec `fsrs`, un appareil resté à la version précédente retire `parametres` et
+  `examen`, qu'il ne connaît pas, et calcule avec les poids par défaut, sans plafond : ses
+  échéances diffèrent jusqu'à sa mise à jour, au lancement suivant. C'est la limite déjà connue du
+  lot M1 (M1-D6), que tient la règle « une version après ».
+- **M3-P5, le plafond.** `memoire.examen` porte une date. Pour une réponse donnée `n` jours avant
+  elle (`joursEntre(jourDe(repondu_a), examen)`), l'intervalle ne dépasse pas la moitié de `n`,
+  arrondie vers le bas, et vaut un jour au moins. Le plafond porte sur l'échéance rendue, pas sur
+  la stabilité que garde FSRS. Deux précisions de la spec, à déclarer dans la PR de la tâche 3 : à
+  un jour de l'examen, l'intervalle est d'un jour, plus que la moitié ; le jour de l'examen et
+  après, il n'y a plus de plafond. Leitner n'est pas concerné : il plafonne déjà à 16 jours.
+- **M3-P9, le passage d'un chapitre n'a pas de mécanisme à lui.** FSRS rejoue tout le journal :
+  une unité déjà révisée garde son histoire, elle ne repart pas de zéro. Le nombre d'unités dues
+  le jour du passage est donc de l'ordre de celui de Leitner la veille, et « Heute » l'étale par
+  ses séances de 20. Le lot le prouve par un test qui compare les deux comptes sur un journal
+  inventé d'un mois, et le rapport de la tâche 6 mesure le pic réel. S'il dépassait une fois et
+  demie le compte de Leitner, la question reviendrait à Edouard.
+- **M3-P10, l'ajustement lit ce que le rejeu lit.** `etatsFsrs` traite chaque réponse comme une
+  révision, celles d'un même jour à zéro jour d'écart. L'outil donne à l'optimiseur la même suite,
+  tirée de la même fonction, pour que les paramètres ajustés soient ceux du calcul qui s'en sert.
 - **M3-P6, l'accord se dit à la commande.** La base n'a pas de champ d'accord, et n'en gagne pas.
   Le rapport d'une personne demande `--personne <identifiant>` et `--accord <JJ/MM/AAAA>`, la date
   où elle l'a donné, que le rapport imprime. Sans les deux, le rapport ne donne que des chiffres
   d'ensemble.
 - **M3-P7, la mesure sur téléphone.** Un écran de l'application, `/mesure`, fabrique en mémoire un
   journal inventé de la taille voulue et chronomètre son rejeu par chaque algorithme, sur
-  l'appareil qui l'ouvre. Il ne lit ni n'écrit aucune donnée, et n'est lié depuis aucun écran.
+  l'appareil qui l'ouvre. Il ne lit ni n'écrit aucune donnée, et n'est lié depuis aucun écran. Il
+  s'ouvre sans connexion, comme la notice, et ne lance une mesure qu'au bouton, la plus grande
+  après un avertissement : un téléphone ne se fige pas en ouvrant la page.
 - **M3-P8, la notice change avec le client qui émet** (version N+1), pas avant : elle décrit ce que
   l'application fait.
 
@@ -100,6 +122,12 @@ dans la tâche nommée.
 6. **Une base copiée pendant une écriture** (un fichier `-wal` absent) : l'outil lit ce que la
    copie contient, sans créer de fichier à côté. Tâche 5.
 7. **Un rapport demandé pour une personne sans date d'accord** : refus, code d'usage. Tâche 6.
+8. **Un client qui émet face à un serveur qui refuse le mode** (un retour arrière sous la
+   version N) : la file reste entière et repart quand le serveur accepte. Tâche 8.
+9. **Plusieurs réponses le même jour sur une unité** : l'ajustement les compte comme le rejeu.
+   Tâche 5.
+10. **Une sortie d'outil qui nommerait quelqu'un** : ni la sortie, ni les erreurs, ni le rapport
+    d'ensemble ne portent un identifiant ou un nom affiché. Tâches 5 et 6.
 
 ## Mécanismes annoncés
 
@@ -146,6 +174,14 @@ dans la tâche nommée.
   date, pas compter les jours entre deux dates.
 - `src/serveur/base/sauvegarde.ts:79` — `readonly: true` — une base s'ouvre en lecture seule, sans
   migration.
+- `src/client/routeur.ts:43` — `route` — un chemin que le routeur ne connaît pas mène à
+  l'accueil : `/mesure` doit y entrer.
+- `src/client/routeur.ts:112` — `redirection` — un écran se redirige selon que le visiteur est
+  connecté ou non ; la notice s'ouvre sans connexion.
+- `src/client/cours/useProgression.ts:255` — `enregistrerExamen` — un examen remis journalise une
+  réponse par question, d'une unité et d'un verdict.
+- `src/domaine/progression/fsrs.ts:92-103` — `planificateur.review` — chaque réponse est une
+  révision, au jour de la réponse ; celles d'un même jour se suivent à zéro jour d'écart.
 - `src/domaine/notice-gabarit.ts:22` — `NOTICE_VERSION` — la version de la notice est une date,
   celle de la fusion qui change son texte.
 - `stryker.config.json:6` — `mutate` — la liste des fichiers mutés.
@@ -199,7 +235,7 @@ dans la tâche nommée.
 
 - [ ] **Étape 1 : les tests, qui échouent.** Un événement sans mode est accepté ; avec chacun des
   modes de la liste, accepté ; avec un mode inconnu, refusé ; avec une autre clé dans `resultat`,
-  refusé. Côté serveur : un lot avec un mode est rangé, relu et exporté avec ce mode ; un lot sans
+  refusé ; le résultat d'un événement d'examen reste strict et sans mode. Côté serveur : un lot avec un mode est rangé, relu et exporté avec ce mode ; un lot sans
   mode se relit sans la clé.
 - [ ] **Étape 2 : le code, puis les tests verts.** Le client ne change pas : il n'envoie pas de
   mode.
@@ -253,6 +289,9 @@ dans la tâche nommée.
   `src/domaine/progression/ordonnanceur.ts`, et leurs tests
 - Modifier : `src/client/cours/useProgression.ts`, `src/client/cours/contexte-cours.fixture.tsx`,
   et leurs tests
+- Modifier : `exemple-contenu/kueche/cours.yaml` (le cours d'exemple passe en `par-chapitre`, son
+  premier chapitre en FSRS, avec une date d'examen lointaine), et ce que ce passage déplace dans
+  les tests et le bout en bout
 
 **Interfaces :**
 - Consomme : `ReglagesMemoire` (tâche 2).
@@ -277,9 +316,12 @@ dans la tâche nommée.
 - [ ] **Étape 5 : les tests du partage par chapitre, qui échouent.** Un journal qui mêle deux
   chapitres et un mot : le chapitre nommé a les états de FSRS, l'autre et le mot ceux de Leitner,
   chacun égal à ce que rend son algorithme seul sur ses unités. Le passage d'un chapitre avec un
-  mois d'historique : le nombre d'unités dues le jour même est compté et tenu sous une borne écrite
-  dans le test (Point de revue 3).
-- [ ] **Étape 6 : le code du domaine et du client, puis les tests verts.**
+  mois d'historique (M3-P9) : sur un journal inventé d'un mois, le nombre d'unités du chapitre
+  dues le jour du passage en FSRS ne dépasse pas une fois et demie celui de Leitner (Point de
+  revue 3). Si le test ne tient pas sur un journal honnête, la tâche s'arrête et le dit.
+- [ ] **Étape 6 : le code du domaine et du client, puis les tests verts.** Le cours d'exemple
+  passe en `par-chapitre` ; `corepack pnpm build`, `e2e` et `e2e:mise-a-jour` restent verts. Le
+  texte de la PR déclare les deux précisions du plafond (M3-P5).
 - [ ] **Étape 7 : la mutation de `fsrs.ts`, `ordonnanceur.ts` et `temps.ts`, 90 % au moins ; puis
   `test`, `lint`, `types`, `duplication`, le commit et la PR.**
 
@@ -288,8 +330,9 @@ dans la tâche nommée.
 **Fichiers :**
 - Créer : `src/domaine/progression/journal-invente.ts` et son test
 - Créer : `src/client/ecrans/Mesure.tsx` et son test
-- Modifier : `src/client/routeur.ts`, `src/client/App.tsx`, et leurs tests ;
-  `docs/exploitation.md` (comment mesurer)
+- Modifier : `src/client/routeur.ts` (le type `Route`, `route`), `src/client/App.tsx` (l'écran, sa
+  clé de filet, sa `redirection` : ouvert sans connexion), et leurs tests ; `docs/exploitation.md`
+  (comment mesurer)
 
 **Interfaces :**
 - Produit : `journalInvente(taille: number, unites: number, graine: number): Evenement[]`, des
@@ -298,8 +341,9 @@ dans la tâche nommée.
   affiche la médiane en millisecondes pour 1 000, 10 000 et 30 000 réponses.
 
 - [ ] **Étape 1 : les tests, qui échouent** : le journal inventé est le même pour la même graine,
-  valide au sens de `schemaEvenement`, sans unité d'un cours réel ; l'écran affiche neuf durées,
-  n'appelle ni l'API ni le stockage de l'appareil, et n'est lié depuis aucun écran.
+  valide au sens de `schemaEvenement`, sans unité d'un cours réel ; l'écran ne mesure rien à
+  l'ouverture, affiche ses durées au bouton, avertit avant les 30 000 réponses, n'appelle ni l'API
+  ni le stockage de l'appareil, s'ouvre sans connexion et n'est lié depuis aucun écran.
 - [ ] **Étape 2 : le code, puis les tests verts ; `corepack pnpm build`, puis `contenus:client` :
   aucun texte de cours dans le client construit.**
 - [ ] **Étape 3 : `test`, `lint`, `types`, `duplication`, le commit et la PR.**
@@ -315,9 +359,14 @@ dans la tâche nommée.
 - Produit :
   - `lireJournaux(base: string, cours: string): { journaux: Evenement[][] }`, un journal par
     personne, sans identifiant ni nom, la base ouverte en lecture seule
-  - `revuesDe(journal: readonly Evenement[]): { unite: string; jours: number[]; justes: boolean[] }[]`,
-    la suite des révisions de chaque unité, une par jour local (la première réponse du jour fait
-    foi), qui est l'entrée de l'optimiseur
+  - `revuesDuJournal(evenements: readonly Evenement[]): { unite: string; jours: string[]; justes: boolean[] }[]`,
+    dans `src/domaine/progression/fsrs.ts` : la suite des révisions de chaque unité telle que
+    `etatsFsrs` la rejoue (chaque réponse, son jour qui ne recule pas), sortie du rejeu pour que
+    l'outil et lui lisent la même (M3-P10). `etatsFsrs` l'appelle, et ses tests passent sans
+    retouche.
+  - `ecrireJournal(base: string, journaux: readonly Evenement[][]): void`, une aide de test
+    (`*.fixture.ts`) qui range des journaux inventés dans une base temporaire migrée, une personne
+    inventée par journal
   - `ajuster(journaux): { parametres: number[]; revues: number; avant: Qualite; apres: Qualite }`,
     où `Qualite` donne la perte logarithmique et l'écart entre réussite prédite et observée, par
     tranche de prédiction
@@ -327,26 +376,33 @@ dans la tâche nommée.
 
 - [ ] **Étape 1 : l'optimiseur, éprouvé avant tout code.** Installer
   `@open-spaced-repetition/binding` en dépendance de développement, lire son interface dans ses
-  types, vérifier sa licence et qu'il se charge sous Windows et sous Linux (le poste et la CI). S'il
-  ne se charge pas sur l'un des deux, ou s'il demande une clé de `pnpm` que le dépôt ne veut pas,
-  la tâche s'arrête là et le dit : l'ajustement s'écrirait alors à la main, ce qui est une décision
+  types, vérifier sa licence, qu'il se charge sous Windows et sous Linux (le poste et la CI), et
+  qu'il accepte des révisions du même jour, à zéro jour d'écart (M3-P10). S'il ne se charge pas
+  sur l'un des deux, s'il refuse ces révisions, ou s'il demande une clé de `pnpm` que le dépôt ne
+  veut pas, la tâche s'arrête là et le dit : l'ajustement s'écrirait alors à la main, ce qui est une décision
   à reprendre avec Edouard.
 - [ ] **Étape 2 : les tests de `lireJournaux` et de `revuesDe`, qui échouent**, sur une base
   temporaire migrée et un journal inventé (`journalInvente`, tâche 4) : deux personnes donnent deux
   journaux, sans rien qui les nomme ; la base n'est pas modifiée et aucun fichier ne paraît à côté
   d'elle, même dans un dossier en lecture seule (Point de revue 6) ; plusieurs réponses d'un même
-  jour ne font qu'une révision.
+  jour font autant de révisions, comme dans le rejeu (Point de revue 9) ; une base sans ce cours
+  rend une liste vide.
 - [ ] **Étape 3 : le code, puis les tests verts.**
 - [ ] **Étape 4 : les tests d'`ajuster` et de la commande, qui échouent.** Un journal inventé tiré
   d'une mémoire simulée avec des poids connus, loin des poids par défaut : la perte après
   ajustement est plus basse qu'avant. Un journal de 200 révisions : code 2, et aucun paramètre
-  écrit (Point de revue 5). Les 21 poids rendus passent l'analyse de la tâche 2.
+  écrit (Point de revue 5). Les 21 poids rendus passent l'analyse de la tâche 2. Avec deux
+  personnes inventées dans la base, ni la sortie, ni les erreurs ne portent leur identifiant ou
+  leur nom affiché (Point de revue 10).
 - [ ] **Étape 5 : le code, puis les tests verts.** `docs/exploitation.md` dit comment obtenir une
   copie de la base (un instantané des sauvegardes, copié sur le poste par Edouard), où la poser
   (hors des dépôts), et quand l'effacer.
-- [ ] **Étape 6 : `corepack pnpm build` : l'image ne gagne aucune dépendance, et `dist/serveur`
-  n'importe rien de `src/outillage/memoire/` ; puis `test`, `lint`, `types`, `duplication`, le
-  commit et la PR.**
+- [ ] **Étape 6 : l'image.** `corepack pnpm build` : `dist/serveur` n'importe rien de
+  `src/outillage/memoire/`. L'étape de l'image qui n'installe que les dépendances de production ne
+  tire pas l'optimiseur, et le job `image` de la CI se construit. Le garde-fou des données
+  (`src/outillage/garde-fou-donnees.test.ts`) passe : les tests n'ouvrent qu'une base temporaire.
+- [ ] **Étape 7 : `test`, `lint`, `types`, `duplication` (une préparation de base partagée par les
+  tests passe par l'aide `ecrireJournal`, pas par une copie), le commit et la PR.**
 
 ### Tâche 6 : le rapport de suivi (PR 6, version N)
 
@@ -356,7 +412,8 @@ dans la tâche nommée.
 - Modifier : `package.json` (le script `memoire:rapport`), `docs/exploitation.md`, `CLAUDE.md`
 
 **Interfaces :**
-- Consomme : `lireJournaux` (tâche 5), `posablesDuCours`, `ordonnanceurDe`.
+- Consomme : `lireJournaux` et `ecrireJournal` (tâche 5), `posablesDuCours`
+  (`src/domaine/seances/heute.ts`), `ordonnanceurDe` (tâche 3).
 - Produit :
   - `mesures(journal, cours): Mesures` : les réponses et les découvertes par jour, la réussite
     selon le délai depuis la réponse d'avant et selon le mode, la part du cours vue et sûre, les
@@ -372,10 +429,15 @@ dans la tâche nommée.
   dont les comptes sont connus à la main ; la même graine rend la même projection.
 - [ ] **Étape 2 : le code, puis les tests verts.**
 - [ ] **Étape 3 : les tests du rapport et de la commande, qui échouent.** Sans `--personne` : des
-  chiffres d'ensemble, et rien qui distingue une personne, même s'il n'y en a qu'une d'active
-  (moins de trois personnes actives : le rapport d'ensemble le dit et s'arrête aux totaux). Avec
+  chiffres d'ensemble, et rien qui distingue une personne. Une personne est active si elle a
+  20 réponses au moins dans les 28 derniers jours du journal. Avec moins de trois personnes
+  actives, le rapport d'ensemble le dit et s'arrête aux totaux du cours ; avec trois ou plus, une
+  case d'un découpage (par jour, par délai, par mode) qui compte moins de 20 réponses est omise.
+  Ni le rapport d'ensemble, ni les erreurs ne portent un identifiant ou un nom affiché (Point de
+  revue 10). Avec
   `--personne` sans `--accord` : code 64 (Point de revue 7). Avec les deux : le rapport imprime la
-  date de l'accord. Une sortie sous un dépôt git : refus. Le fichier ne charge rien du réseau.
+  date de l'accord, que l'outil ne peut pas contrôler : c'est une déclaration du responsable, et
+  le rapport le dit. Une sortie sous un dépôt git : refus. Le fichier ne charge rien du réseau.
 - [ ] **Étape 4 : le code, puis les tests verts.** Le rapport reprend la forme de l'infographie du
   12/11/2026 : le chiffre de tête, la charge passée et projetée, la répartition par niveau, la
   réussite selon le délai et le mode, puis « comment lire ces chiffres ».
@@ -411,7 +473,9 @@ dans la tâche nommée.
   la saisie déclarée juste, le choix, les tuiles, le point touché, l'appariement, la réponse
   montrée, le bilan d'un texte, et une réponse d'examen de chaque sorte. Chaque composant de
   question dit son mode à son appelant, dans le rappel qui porte déjà le verdict (M2-P7 : un seul
-  rappel par geste).
+  rappel par geste). À l'examen, le mode se déduit de la question : `saisie` pour une réponse
+  tapée, `choix` pour une proposition, question de fiche comprise ; l'événement d'examen lui-même
+  n'en porte pas.
 - [ ] **Étape 2 : le code, puis les tests verts.**
 - [ ] **Étape 3 : la notice**, en français puis en allemand : le journal note aussi la manière de
   répondre ; les réponses servent à des statistiques d'ensemble pour régler l'application ; avec
@@ -419,7 +483,10 @@ dans la tâche nommée.
   la fusion. Les valeurs de l'exemple (`exemple-contenu/notice.yaml`) suivent. Le test du gabarit
   passe.
 - [ ] **Étape 4 : `corepack pnpm build`, `e2e`, `e2e:mise-a-jour`** : le client de la version
-  d'avant, sans mode, continue d'envoyer ses réponses au serveur neuf.
+  d'avant, sans mode, continue d'envoyer ses réponses au serveur neuf. Un test de la
+  synchronisation prouve l'autre sens (Point de revue 8) : face à un serveur qui refuse le mode,
+  la file reste entière, rien n'est perdu, et elle repart dès que le serveur accepte.
+  `docs/exploitation.md` dit le seuil du retour arrière (M3-P1, M3-P3).
 - [ ] **Étape 5 : `test`, `lint`, `types`, `duplication`, le commit et la PR.** Le texte de la PR
   dit ce qui revient au dépôt de données, que cette session n'ouvre pas : régénérer `notice.json`
   (`contenus:reference`), et revoir dans le `notice.yaml` de l'instance la phrase sur qui voit la
@@ -444,6 +511,10 @@ dans la tâche nommée.
 - [ ] **Étape 2 : 👤 Edouard répond, sur un téléphone Android au staging**, à une carte retournée,
   à une saisie, à un choix et à un exercice, puis télécharge ses données depuis « Compte » : le
   fichier porte le mode de ces réponses. Il lit la notice, dans les deux langues.
+- [ ] **Étape 3 : ce que le staging ne montre pas.** Son cours reste en Leitner : `par-chapitre`,
+  les paramètres et le plafond ne sont vérifiés qu'au poste, par les tests et le bout en bout sur
+  le cours d'exemple. Ils se vérifieront sur un téléphone au passage du cours de l'instance, qui
+  est une PR du dépôt de données. La PR de clôture le déclare.
 
 ### Tâche 11 : la clôture du lot (PR 9)
 

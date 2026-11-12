@@ -181,7 +181,8 @@ Le lot S3 a séparé le code et les données (ancrage-donnees#186). C'est le tro
 scission, et rien n'y change pour l'apprenante :
 - ce dépôt, public, naît d'un seul commit, d'après le modèle en v0.8.1, de nature `code`, en mode
   `fusion: session`. Il porte le code, le cours d'exemple, `deploiement/` et les docs en rôles. Il n'a
-  ni cours réel, ni nom d'instance, ni secret chiffré, ni licence : tous droits réservés (S3-D2) ;
+  ni cours réel, ni nom d'instance, ni secret chiffré, ni licence d'usage : tous droits réservés (S3-D2), ce que dit `LICENSE` depuis la mise à jour du
+  modèle en v0.10.0 ;
 - le dépôt de données, `ancrage-donnees`, reste privé, de nature `donnees`. Il garde l'historique, les
   issues, le cours (`contenu/`), ses instantanés (`references/`), la part de l'instance de
   `CLAUDE.md`, le brief, le cadrage, `/feuille`, les secrets chiffrés et l'env de chaque
@@ -210,7 +211,7 @@ du lot M1 est ancrage#11). Une
 PR qui touche un fichier de cette liste regarde sa case, et la coche si elle la règle.
 
 Le déploiement est aligné sur la cible `serveur` de `modele-projet` (l'alignement date du lot 2 du
-modèle, en v0.3.0 ; mis à jour en v0.8.1 le 05/11/2026) : `deploiement/` et `tests/deploiement/`
+modèle, en v0.3.0 ; mis à jour en v0.10.0 le 12/11/2026) : `deploiement/` et `tests/deploiement/`
 sont gérés par le modèle (voir « Exploitation »). Ce dépôt est de nature `code` (M-0006) : la porte
 de confidentialité y refuse tout constat, au hook comme en CI. L'ancien dépôt, devenu le dépôt de
 données, est de nature `donnees` (il reste le dépôt de données), et la scission s'est faite en trois lots (S1, S2, S3). La migration du tunnel s'est faite en trois versions (N, N+1, N+2),

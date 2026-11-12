@@ -23,6 +23,7 @@ describe('route', () => {
       ['/appareils', { ecran: 'appareils' }],
       ['/admin', { ecran: 'admin' }],
       ['/confidentialite', { ecran: 'confidentialite' }],
+      ['/mesure', { ecran: 'mesure' }],
     ];
 
     for (const [chemin, attendu] of cas) {
@@ -138,6 +139,8 @@ describe('route', () => {
       '/cours/abc12345/quiz/1',
       '/confidentialite/de',
       '/Confidentialite',
+      '/mesure/1',
+      '/Mesure',
     ];
 
     for (const chemin of autres) {
@@ -167,6 +170,7 @@ describe('redirection', () => {
     { ecran: 'appareils' },
     { ecran: 'admin' },
     { ecran: 'confidentialite' },
+    { ecran: 'mesure' },
   ];
 
   it('redirection_n_agit_pas_tant_que_la_session_est_inconnue', () => {
@@ -216,6 +220,13 @@ describe('redirection', () => {
     // ouverte à une personne connectée.
     for (const visiteur of ['inconnu', 'anonyme', 'connecte', 'proprietaire'] as Visiteur[]) {
       expect(redirection({ ecran: 'confidentialite' }, visiteur), visiteur).toBeUndefined();
+    }
+  });
+
+  it('mesure_ouverte_sans_session', () => {
+    // L'écran de mesure ne lit rien : il s'ouvre sans connexion, comme la notice.
+    for (const visiteur of ['inconnu', 'anonyme', 'connecte', 'proprietaire'] as Visiteur[]) {
+      expect(redirection({ ecran: 'mesure' }, visiteur), visiteur).toBeUndefined();
     }
   });
 

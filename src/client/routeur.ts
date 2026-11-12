@@ -15,7 +15,8 @@ export type Route =
   | { ecran: 'lien'; jeton: string }
   | { ecran: 'appareils' }
   | { ecran: 'admin' }
-  | { ecran: 'confidentialite' };
+  | { ecran: 'confidentialite' }
+  | { ecran: 'mesure' };
 
 /**
  * Les onglets qui ont leur chemin, `/cours/<id>/<onglet>` ; l'aperçu est `/cours/<id>`. La table
@@ -68,6 +69,8 @@ export function route(chemin: string): Route {
         return { ecran: 'admin' };
       case 'confidentialite':
         return { ecran: 'confidentialite' };
+      case 'mesure':
+        return { ecran: 'mesure' };
     }
   } else if (premier === 'invitation' || premier === 'lien') {
     return { ecran: premier, jeton: second };
@@ -107,7 +110,8 @@ export type Visiteur = 'inconnu' | 'anonyme' | 'connecte' | 'proprietaire';
  * rôle de propriétaire (pour une autre personne, l'API répondrait 404). Une personne connectée n'a
  * rien à faire sur l'écran de connexion. Les écrans d'invitation et de lien restent ouverts à
  * tous : les ouvrir pendant qu'une session existe la remplace, côté serveur. La notice de
- * confidentialité aussi : elle se lit avant de créer un compte (1e-D15).
+ * confidentialité aussi : elle se lit avant de créer un compte (1e-D15). L'écran de mesure aussi :
+ * il ne lit rien (M3-P7).
  */
 export function redirection(ecran: Route, visiteur: Visiteur): string | undefined {
   if (visiteur === 'inconnu') {
@@ -130,6 +134,7 @@ export function redirection(ecran: Route, visiteur: Visiteur): string | undefine
     case 'invitation':
     case 'lien':
     case 'confidentialite':
+    case 'mesure':
       return undefined;
   }
 }

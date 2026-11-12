@@ -1,3 +1,4 @@
+import { FSRS6_DEFAULT_WEIGHTS } from 'ts-fsrs/models/fsrs-6';
 import { describe, expect, it } from 'vitest';
 import { CLES_DE_NOTICE } from '../notice.js';
 import { coursAVerifier } from './acces-cours.js';
@@ -12,6 +13,10 @@ import type { Module } from './modele.js';
 import { FICHIER_NOTICE as NOTICE } from './notice.js';
 
 const COURS = 'essai/cours.yaml';
+const CHAPITRE_1 = 'epas79zz';
+const CHAPITRE_2 = 'f9qmb1xs';
+const POIDS = [...FSRS6_DEFAULT_WEIGHTS];
+const POIDS_YAML = `[${POIDS.join(', ')}]`;
 const CARTES_1 = 'essai/cartes/01-grundbegriffe.yaml';
 const CARTES_2 = 'essai/cartes/02-vorsilben.yaml';
 const MORPHOLOGIE = 'essai/morphologie.yaml';
@@ -431,6 +436,131 @@ describe('analyserContenus', () => {
     expect(erreursAvecDerogation('  algorithme: "fsrs"\n  jours: 3\n', 'memoire')).toEqual([
       erreur(COURS, 'memoire.jours', /Clé inconnue/),
     ]);
+  });
+
+  it('memoire_par_chapitre_avec_parametres_et_examen_acceptee', () => {
+    const bloc = `  algorithme: "par-chapitre"\n  parametres: ${POIDS_YAML}\n  examen: "2028-02-29"\n  chapitres: ["${CHAPITRE_1}", "${CHAPITRE_2}"]\n`;
+    const { cours, erreurs } = analyserContenus(avecDerogation(bloc, 'memoire'));
+
+    expect(erreurs).toEqual([]);
+    expect(cours[0].memoire).toEqual({
+      algorithme: 'par-chapitre',
+      retention: 0.9,
+      parametres: POIDS,
+      examen: '2028-02-29',
+      chapitres: [CHAPITRE_1, CHAPITRE_2],
+    });
+  });
+
+  it('memoire_fsrs_avec_parametres_ou_examen_acceptee', () => {
+    const bloc = `  algorithme: "fsrs"\n  parametres: ${POIDS_YAML}\n  examen: "2027-06-30"\n`;
+    const { cours, erreurs } = analyserContenus(avecDerogation(bloc, 'memoire'));
+
+    expect(erreurs).toEqual([]);
+    expect(cours[0].memoire).toEqual({
+      algorithme: 'fsrs',
+      retention: 0.9,
+      parametres: POIDS,
+      examen: '2027-06-30',
+    });
+    expect(cours[0].memoire).not.toHaveProperty('chapitres');
+  });
+
+  it('memoire_sans_les_cles_nouvelles_ne_les_porte_pas', () => {
+    const bloc = '  algorithme: "fsrs"\n';
+    const memoire = analyserContenus(avecDerogation(bloc, 'memoire')).cours[0].memoire;
+    expect(memoire).not.toHaveProperty('parametres');
+    expect(memoire).not.toHaveProperty('examen');
+    expect(memoire).not.toHaveProperty('chapitres');
+  });
+
+  it('memoire_parametres_invalides_refuses_sans_exception', () => {
+    const poids = (modifie: (p: unknown[]) => unknown[]) => `[${modifie([...POIDS]).join(', ')}]`;
+    const cas: [string, string][] = [
+      ['20 poids', poids((p) => p.slice(0, 20))],
+      ['22 poids', poids((p) => [...p, 1])],
+      ['un poids hors bornes', poids((p) => p.map((v, i) => (i === 4 ? 99 : v)))],
+      ['une liste vide', '[]'],
+    ];
+    for (const [nom, valeur] of cas) {
+      expect(
+        erreursAvecDerogation(`  algorithme: "fsrs"\n  parametres: ${valeur}\n`, 'memoire'),
+        nom,
+      ).toEqual([erreur(COURS, 'memoire.parametres', /21 poids/)]);
+    }
+  });
+
+  it('memoire_parametre_non_numerique_refuse', () => {
+    const poids = POIDS.map((v, i) => (i === 3 ? '"x"' : v)).join(', ');
+    expect(
+      erreursAvecDerogation(
+        `  algorithme: "fsrs"
+  parametres: [${poids}]
+`,
+        'memoire',
+      ),
+    ).toEqual([erreur(COURS, 'memoire.parametres[3]', /Attendu un nombre/)]);
+  });
+
+  it('memoire_examen_mal_forme_refuse', () => {
+    for (const examen of ['"2027-02-30"', '"30/06/2027"', '2027']) {
+      expect(
+        erreursAvecDerogation(`  algorithme: "fsrs"\n  examen: ${examen}\n`, 'memoire'),
+        examen,
+      ).toEqual([erreur(COURS, 'memoire.examen', /./)]);
+    }
+    expect(
+      erreursAvecDerogation('  algorithme: "fsrs"\n  examen: "2027-02-30"\n', 'memoire'),
+    ).toEqual([erreur(COURS, 'memoire.examen', /Date invalide/)]);
+  });
+
+  it('memoire_parametres_et_examen_refuses_avec_leitner', () => {
+    expect(
+      erreursAvecDerogation(`  algorithme: "leitner"\n  parametres: ${POIDS_YAML}\n`, 'memoire'),
+    ).toEqual([erreur(COURS, 'memoire.parametres', /« fsrs » ou « par-chapitre »/)]);
+    expect(
+      erreursAvecDerogation('  algorithme: "leitner"\n  examen: "2027-06-30"\n', 'memoire'),
+    ).toEqual([erreur(COURS, 'memoire.examen', /« fsrs » ou « par-chapitre »/)]);
+  });
+
+  it('memoire_chapitres_exiges_avec_par_chapitre_et_refuses_sans', () => {
+    expect(erreursAvecDerogation('  algorithme: "par-chapitre"\n', 'memoire')).toEqual([
+      erreur(COURS, 'memoire.chapitres', /obligatoire.*par-chapitre/i),
+    ]);
+    expect(
+      erreursAvecDerogation('  algorithme: "par-chapitre"\n  chapitres: []\n', 'memoire'),
+    ).toEqual([erreur(COURS, 'memoire.chapitres', /au moins un chapitre/i)]);
+    for (const algorithme of ['fsrs', 'leitner']) {
+      expect(
+        erreursAvecDerogation(
+          `  algorithme: "${algorithme}"\n  chapitres: ["${CHAPITRE_1}"]\n`,
+          'memoire',
+        ),
+        algorithme,
+      ).toEqual([erreur(COURS, 'memoire.chapitres', /qu'avec l'algorithme « par-chapitre »/)]);
+    }
+  });
+
+  it('memoire_chapitre_inconnu_ou_mal_forme_ou_en_double_refuse', () => {
+    expect(
+      erreursAvecDerogation(
+        `  algorithme: "par-chapitre"\n  chapitres: ["${CHAPITRE_1}", "abcd2345"]\n`,
+        'memoire',
+      ),
+    ).toEqual([erreur(COURS, 'memoire.chapitres[1]', /aucun module de cartes/)]);
+    // Un module qui n'est pas de cartes n'est pas un chapitre.
+    expect(
+      erreursAvecDerogation('  algorithme: "par-chapitre"\n  chapitres: ["j5by5stz"]\n', 'memoire'),
+    ).toEqual([erreur(COURS, 'memoire.chapitres[0]', /aucun module de cartes/)]);
+    expect(
+      erreursAvecDerogation('  algorithme: "par-chapitre"\n  chapitres: ["X"]\n', 'memoire'),
+    ).toEqual([erreur(COURS, 'memoire.chapitres[0]', /Identifiant mal formé/)]);
+    expect(
+      erreursAvecDerogation(
+        `  algorithme: "par-chapitre"\n  chapitres: ["${CHAPITRE_1}", "${CHAPITRE_1}"]\n`,
+        'memoire',
+      ),
+    ).toEqual([erreur(COURS, 'memoire.chapitres[1]', /deux fois/)]);
   });
 
   it('memoire_absente_le_cours_n_a_pas_la_cle', () => {

@@ -210,7 +210,17 @@ export function calculerReference(cours: Cours): Reference {
       ...(cours.memoire === undefined
         ? {}
         : {
-            memoire: { algorithme: cours.memoire.algorithme, retention: cours.memoire.retention },
+            memoire: {
+              algorithme: cours.memoire.algorithme,
+              retention: cours.memoire.retention,
+              ...(cours.memoire.parametres === undefined
+                ? {}
+                : { parametres: [...cours.memoire.parametres] }),
+              ...(cours.memoire.examen === undefined ? {} : { examen: cours.memoire.examen }),
+              ...(cours.memoire.chapitres === undefined
+                ? {}
+                : { chapitres: [...cours.memoire.chapitres] }),
+            },
           }),
     },
     diffusion: {

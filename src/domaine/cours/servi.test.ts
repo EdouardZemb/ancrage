@@ -1,6 +1,7 @@
+import { FSRS6_DEFAULT_WEIGHTS } from 'ts-fsrs/models/fsrs-6';
 import { describe, expect, it } from 'vitest';
 import { analyserContenus } from '../contenu/analyse.js';
-import { exempleDeCours } from '../contenu/exemple.fixture.js';
+import { exempleDeCours, modifier } from '../contenu/exemple.fixture.js';
 import { coursSans, coursServiDeTest, coursServiParLaV030 } from './cours.fixture.js';
 import type { CoursServi } from './servi.js';
 import { coursServiUtilisable, memoireDuCours, versCoursServi } from './servi.js';
@@ -244,6 +245,57 @@ describe('versCoursServi', () => {
     const servi = versCoursServi(avecMemoire);
     expect(servi.memoire).toEqual({ algorithme: 'fsrs', retention: 0.85 });
     expect(coursServiUtilisable(JSON.parse(JSON.stringify(servi)))).toBe(true);
+  });
+
+  // Les trois clés nouvelles, du manifeste à ce que lit le client : une liste blanche qui en oublierait
+  // une la perdrait sans erreur, et le cours resterait en Leitner.
+  it('memoire_par_chapitre_traverse_du_yaml_au_client', () => {
+    const poids = [...FSRS6_DEFAULT_WEIGHTS];
+    const fichiers = modifier(
+      exempleDeCours(),
+      'essai/cours.yaml',
+      'modules:\n',
+      `memoire:\n  algorithme: "par-chapitre"\n  retention: 0.88\n  parametres: [${poids.join(', ')}]\n  examen: "2028-02-29"\n  chapitres: ["epas79zz"]\nmodules:\n`,
+    );
+    const { cours, erreurs } = analyserContenus(fichiers);
+    expect(erreurs).toEqual([]);
+
+    const servi = JSON.parse(JSON.stringify(versCoursServi(cours[0]))) as CoursServi;
+    expect(servi.memoire).toEqual({
+      algorithme: 'par-chapitre',
+      retention: 0.88,
+      parametres: poids,
+      examen: '2028-02-29',
+      chapitres: ['epas79zz'],
+    });
+    expect(coursServiUtilisable(servi)).toBe(true);
+    expect(memoireDuCours(servi)).toEqual(servi.memoire);
+  });
+
+  it('cours_sans_memoire_servi_comme_avant', () => {
+    const [cours] = analyserContenus(exempleDeCours()).cours;
+    expect(Object.keys(versCoursServi(cours))).toEqual([
+      'id',
+      'titre',
+      'langue',
+      'typesDeCarte',
+      'leitner',
+      'modules',
+    ]);
+  });
+
+  it('memoire_aux_cles_nouvelles_invalides_ignoree_sans_refuser_le_cours', () => {
+    const poids = [...FSRS6_DEFAULT_WEIGHTS];
+    for (const memoire of [
+      { algorithme: 'par-chapitre', retention: 0.9 },
+      { algorithme: 'par-chapitre', retention: 0.9, chapitres: [] },
+      { algorithme: 'fsrs', retention: 0.9, parametres: poids.slice(1) },
+      { algorithme: 'fsrs', retention: 0.9, examen: '2027-02-30' },
+    ]) {
+      const cours = { ...coursServiDeTest(), memoire } as unknown as CoursServi;
+      expect(coursServiUtilisable(cours), JSON.stringify(memoire)).toBe(true);
+      expect(memoireDuCours(cours), JSON.stringify(memoire)).toBeUndefined();
+    }
   });
 
   it('liste_blanche_sert_ce_que_servait_la_liste_noire', () => {

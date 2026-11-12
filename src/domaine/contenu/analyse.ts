@@ -301,6 +301,7 @@ function analyserCours(
   controlerModulesUniques(analyse, modules);
   if (toutLu) {
     controlerChapitres(analyse, modules);
+    controlerChapitresDeMemoire(analyse, fichierCours, ecrit.memoire?.chapitres, modules);
     for (const chemin of chemins) {
       if (!references.has(chemin)) {
         signaler(
@@ -326,7 +327,17 @@ function analyserCours(
     ...(ecrit.memoire === undefined
       ? {}
       : {
-          memoire: { algorithme: ecrit.memoire.algorithme, retention: ecrit.memoire.retention },
+          memoire: {
+            algorithme: ecrit.memoire.algorithme,
+            retention: ecrit.memoire.retention,
+            ...(ecrit.memoire.parametres === undefined
+              ? {}
+              : { parametres: [...ecrit.memoire.parametres] }),
+            ...(ecrit.memoire.examen === undefined ? {} : { examen: ecrit.memoire.examen }),
+            ...(ecrit.memoire.chapitres === undefined
+              ? {}
+              : { chapitres: [...ecrit.memoire.chapitres] }),
+          },
         }),
     ...(ecrit.derogation_diffusion === undefined
       ? {}
@@ -796,6 +807,30 @@ function controlerChapitres(analyse: Analyse, modules: readonly Module[]) {
       }
     });
   }
+}
+
+/** Les chapitres que `memoire` met en FSRS sont des modules de cartes du cours, chacun une fois. */
+function controlerChapitresDeMemoire(
+  analyse: Analyse,
+  fichierCours: string,
+  chapitres: readonly string[] | undefined,
+  modules: readonly Module[],
+) {
+  const cartes = new Set(modules.filter((module) => module.type === 'cartes').map((m) => m.id));
+  const vus = new Set<string>();
+  chapitres?.forEach((id, rang) => {
+    const lieu = `memoire.chapitres[${rang}]`;
+    if (vus.has(id)) signaler(analyse, fichierCours, lieu, 'Chapitre cité deux fois.');
+    else if (!cartes.has(id)) {
+      signaler(
+        analyse,
+        fichierCours,
+        lieu,
+        'Ce chapitre ne désigne aucun module de cartes de ce cours.',
+      );
+    }
+    vus.add(id);
+  });
 }
 
 /**

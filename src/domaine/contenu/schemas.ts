@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { estDateIso, poidsFsrsValides } from '../progression/reglages.js';
 import type { ErreurContenu } from './erreurs.js';
 import { estIdentifiant, REGLE_IDENTIFIANT } from './identifiants.js';
 import type { Statut } from './modele.js';
@@ -16,18 +17,8 @@ const identifiant = z.string().refine(estIdentifiant, {
   error: `Identifiant mal formé : attendu ${REGLE_IDENTIFIANT}.`,
 });
 
-function estDate(texte: string): boolean {
-  const morceaux = /^(\d{4})-(\d{2})-(\d{2})$/.exec(texte);
-  if (!morceaux) return false;
-  const [annee, mois, jour] = morceaux.slice(1).map(Number);
-  const date = new Date(Date.UTC(annee, mois - 1, jour));
-  return (
-    date.getUTCFullYear() === annee && date.getUTCMonth() === mois - 1 && date.getUTCDate() === jour
-  );
-}
-
 /** Une date qui existe, `AAAA-MM-JJ`. Celle de `notice.yaml` aussi (`notice.ts`). */
-export const date = z.string().refine(estDate, {
+export const date = z.string().refine(estDateIso, {
   error: 'Date invalide : attendu une date qui existe, au format AAAA-MM-JJ.',
 });
 
@@ -492,17 +483,45 @@ const reglagesLeitner = z.strictObject({
 
 const MESSAGE_DE_RETENTION = 'Attendu un nombre entre 0,80 et 0,95.';
 
-const reglagesMemoire = z.strictObject({
-  // Absent, une énumération signale une valeur non admise : on y rend le message « obligatoire ».
-  algorithme: z.enum(['leitner', 'fsrs'], {
-    error: (issue) => (issue.input === undefined ? 'Champ obligatoire absent.' : undefined),
-  }),
-  retention: z
-    .number()
-    .min(0.8, { error: MESSAGE_DE_RETENTION })
-    .max(0.95, { error: MESSAGE_DE_RETENTION })
-    .default(0.9),
-});
+const MESSAGE_DE_POIDS =
+  'Attendu 21 poids valides pour FSRS-6 (des nombres dans les bornes du modèle).';
+const MESSAGE_FSRS_SEUL = "N'est admis qu'avec l'algorithme « fsrs » ou « par-chapitre ».";
+
+const reglagesMemoire = z
+  .strictObject({
+    // Absent, une énumération signale une valeur non admise : on y rend le message « obligatoire ».
+    algorithme: z.enum(['leitner', 'fsrs', 'par-chapitre'], {
+      error: (issue) => (issue.input === undefined ? 'Champ obligatoire absent.' : undefined),
+    }),
+    retention: z
+      .number()
+      .min(0.8, { error: MESSAGE_DE_RETENTION })
+      .max(0.95, { error: MESSAGE_DE_RETENTION })
+      .default(0.9),
+    parametres: z
+      .array(z.number())
+      .refine(poidsFsrsValides, { error: MESSAGE_DE_POIDS })
+      .optional(),
+    examen: date.optional(),
+    chapitres: z.array(identifiant).optional(),
+  })
+  .superRefine((memoire, ctx) => {
+    const signaler = (cle: string, message: string) =>
+      ctx.addIssue({ code: 'custom', path: [cle], message });
+    if (memoire.algorithme === 'leitner') {
+      if (memoire.parametres !== undefined) signaler('parametres', MESSAGE_FSRS_SEUL);
+      if (memoire.examen !== undefined) signaler('examen', MESSAGE_FSRS_SEUL);
+    }
+    if (memoire.algorithme !== 'par-chapitre') {
+      if (memoire.chapitres !== undefined) {
+        signaler('chapitres', "N'est admis qu'avec l'algorithme « par-chapitre ».");
+      }
+    } else if (memoire.chapitres === undefined) {
+      signaler('chapitres', "Obligatoire avec l'algorithme « par-chapitre ».");
+    } else if (memoire.chapitres.length === 0) {
+      signaler('chapitres', 'Attendu au moins un chapitre : un identifiant de module de cartes.');
+    }
+  });
 
 export const schemaDeCours = z.strictObject({
   format: z.literal(1),

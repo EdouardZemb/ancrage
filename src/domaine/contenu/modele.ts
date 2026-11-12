@@ -304,12 +304,19 @@ export interface ReglagesLeitner {
 }
 
 /** L'algorithme de répétition espacée d'un cours. */
-export type AlgorithmeDeMemoire = 'leitner' | 'fsrs';
+export type AlgorithmeDeMemoire = 'leitner' | 'fsrs' | 'par-chapitre';
 
-/** Le choix de l'algorithme de mémoire, et la rétention visée (de 0,80 à 0,95, 0,90 par défaut). */
+/**
+ * Le choix de l'algorithme de mémoire, et la rétention visée (de 0,80 à 0,95, 0,90 par défaut).
+ * `parametres` (les 21 poids de FSRS-6) et `examen` (une date) valent pour `fsrs` et `par-chapitre` ;
+ * `chapitres` (des identifiants de modules de cartes) n'existe qu'avec `par-chapitre`.
+ */
 export interface ReglagesMemoire {
   algorithme: AlgorithmeDeMemoire;
   retention: number;
+  parametres?: number[];
+  examen?: string;
+  chapitres?: string[];
 }
 
 export interface Cours {

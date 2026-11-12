@@ -9,7 +9,7 @@ import {
   journalSimule,
   reponseInventee,
 } from './ecrire-journal.fixture.js';
-import { lireJournaux } from './lire-journaux.js';
+import { lireJournalDe, lireJournaux } from './lire-journaux.js';
 
 const dossierDuTest = installerDossierTemporaire();
 const base = () => path.join(dossierDuTest(), 'copie.sqlite');
@@ -113,4 +113,24 @@ test.skipIf(process.platform === 'win32')(
 test('une_base_absente_leve_une_erreur_et_n_en_cree_pas', () => {
   expect(() => lireJournaux(path.join(dossierDuTest(), 'absente.sqlite'), COURS_DE_TEST)).toThrow();
   expect(fs.readdirSync(dossierDuTest())).toEqual([]);
+});
+
+test('le_journal_d_une_personne_se_lit_seul_par_son_identifiant_opaque', () => {
+  const a = journalSimule({ unites: 3, passages: 4, graine: 11 });
+  const b = journalSimule({ unites: 2, passages: 5, graine: 12 });
+  const personnes = ecrireJournal(base(), [a, b]);
+  const journal = lireJournalDe(base(), COURS_DE_TEST, personnes[1]?.id ?? '');
+  expect(journal.map((e) => e.id)).toEqual(b.map((e) => e.id));
+  const texte = JSON.stringify(journal);
+  for (const personne of personnes) {
+    expect(texte).not.toContain(personne.id);
+    expect(texte).not.toContain(personne.nom);
+  }
+  expect(texte).not.toContain('4b3f0a52');
+});
+
+test('un_identifiant_inconnu_ou_un_autre_cours_donne_un_journal_vide', () => {
+  const personnes = ecrireJournal(base(), [journalSimule({ unites: 2, passages: 3, graine: 13 })]);
+  expect(lireJournalDe(base(), COURS_DE_TEST, 'personne-inconnue')).toEqual([]);
+  expect(lireJournalDe(base(), 'z9999999', personnes[0]?.id ?? '')).toEqual([]);
 });

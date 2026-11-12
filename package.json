@@ -27,7 +27,8 @@
     "contenus:reference": "tsx src/serveur/contenus/cli.ts reference",
     "contenus:client": "tsx src/serveur/contenus/cli.ts client",
     "contenus:a-verifier": "tsx src/serveur/contenus/cli.ts a-verifier",
-    "memoire:ajuster": "tsx src/outillage/memoire/cli-ajuster.ts"
+    "memoire:ajuster": "tsx src/outillage/memoire/cli-ajuster.ts",
+    "memoire:rapport": "tsx src/outillage/memoire/cli-rapport.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.5",

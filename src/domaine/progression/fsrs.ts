@@ -61,7 +61,7 @@ export interface ReglagesFsrs {
 }
 
 /** Un ordonnanceur FSRS-6 sans dispersion ni étapes courtes, à la rétention et aux poids visés. */
-function ordonnanceur({ retention, parametres }: ReglagesFsrs) {
+export function ordonnanceurFsrs({ retention, parametres }: ReglagesFsrs) {
   return defineScheduler({ model: FSRS6Model, chrono: dateChrono })
     .use(schedulerDesiredRetentionMiddleware)
     .use(schedulerScheduledDaysMiddleware)
@@ -76,7 +76,7 @@ function ordonnanceur({ retention, parametres }: ReglagesFsrs) {
 }
 
 /** Le jour local, porté à midi UTC : l'heure de la réponse ne compte pas. */
-const midiUtc = (jour: string): Date => new Date(`${jour}T12:00:00.000Z`);
+export const midiUtc = (jour: string): Date => new Date(`${jour}T12:00:00.000Z`);
 
 /**
  * La suite des révisions de chaque unité, telle que le rejeu la lit (M3-P10) : une révision par
@@ -108,10 +108,38 @@ export function revuesDuJournal(
  * l'examen, cela fait un jour, plus que la moitié ; le jour de l'examen et après, il n'y a plus de
  * plafond (M3-P5).
  */
-function plafondDe(jour: string, examen: string | undefined): number {
+export function plafondDe(jour: string, examen: string | undefined): number {
   if (examen === undefined) return Number.POSITIVE_INFINITY;
   const restant = joursEntre(jour, examen);
   return restant >= 1 ? Math.max(1, Math.floor(restant / 2)) : Number.POSITIVE_INFINITY;
+}
+
+/** La carte que garde `ts-fsrs` pour une unité. */
+export type CarteFsrs = ReturnType<ReturnType<typeof ordonnanceurFsrs>['newCard']>;
+
+/**
+ * Une révision : la carte d'une unité (neuve si `carte` est absente) après une réponse donnée au
+ * `jour`, et l'intervalle que garde l'échéance d'une réponse juste, en jours entiers, d'au moins un
+ * jour et borné par le plafond d'avant `examen`. Le rejeu et la projection du rapport de suivi
+ * calculent par elle, d'une seule façon.
+ */
+export function reviserFsrs(
+  planificateur: ReturnType<typeof ordonnanceurFsrs>,
+  carte: CarteFsrs | undefined,
+  jour: string,
+  juste: boolean,
+  examen: string | undefined,
+): { carte: CarteFsrs; intervalle: number } {
+  const maintenant = midiUtc(jour);
+  const revue = planificateur.review({
+    card: carte ?? planificateur.newCard({ now: maintenant }),
+    grade: juste ? Rating.Good : Rating.Again,
+    now: maintenant,
+  });
+  return {
+    carte: revue.card,
+    intervalle: Math.min(Math.max(1, revue.card.scheduledDays), plafondDe(jour, examen)),
+  };
 }
 
 /**
@@ -130,27 +158,18 @@ export function etatsFsrs(
   evenements: readonly Evenement[],
   reglages: ReglagesFsrs,
 ): ReadonlyMap<string, EtatUnite> {
-  const planificateur = ordonnanceur(reglages);
+  const planificateur = ordonnanceurFsrs(reglages);
   const etats = new Map<string, EtatUnite>();
   for (const { unite, jours, justes } of revuesDuJournal(evenements)) {
-    let carte: ReturnType<typeof planificateur.newCard> | undefined;
+    let carte: CarteFsrs | undefined;
     let etat = ETAT_NEUF;
     jours.forEach((jour, rang) => {
-      const maintenant = midiUtc(jour);
       const juste = justes[rang] === true;
-      const revue = planificateur.review({
-        card: carte ?? planificateur.newCard({ now: maintenant }),
-        grade: juste ? Rating.Good : Rating.Again,
-        now: maintenant,
-      });
-      carte = revue.card;
-      const intervalle = Math.min(
-        Math.max(1, revue.card.scheduledDays),
-        plafondDe(jour, reglages.examen),
-      );
+      const revue = reviserFsrs(planificateur, carte, jour, juste, reglages.examen);
+      carte = revue.carte;
       etat = {
-        boite: juste ? boiteDeStabilite(revue.card.stability) : 1,
-        echeance: juste ? ajouterJours(jour, intervalle) : jour,
+        boite: juste ? boiteDeStabilite(revue.carte.stability) : 1,
+        echeance: juste ? ajouterJours(jour, revue.intervalle) : jour,
         justes: etat.justes + (juste ? 1 : 0),
         fausses: etat.fausses + (juste ? 0 : 1),
       };

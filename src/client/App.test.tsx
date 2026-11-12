@@ -1717,6 +1717,22 @@ describe('notice de confidentialité (1e-D15)', () => {
     ).toBeTruthy();
   });
 
+  it('mesure_s_ouvre_sans_connexion_ni_reseau', async () => {
+    // L'écran de mesure ne lit rien (M3-P7) : ni session, ni réseau, ne l'empêchent de s'ouvrir.
+    for (const enLigne of [false, true]) {
+      serveur.enLigne = enLigne;
+      history.replaceState(null, '', '/mesure');
+      const { unmount } = render(<App />);
+
+      expect(
+        await screen.findByRole('heading', { level: 2, name: 'Mesure du rejeu du journal' }),
+        String(enLigne),
+      ).toBeTruthy();
+      expect(location.pathname, String(enLigne)).toBe('/mesure');
+      unmount();
+    }
+  });
+
   it('notice_chargee_au_demarrage_et_effacee_a_la_deconnexion', async () => {
     // Le démarrage range la copie, comme il lit la santé, sur n'importe quel écran (S1-D8) ; la
     // déconnexion l'efface avec le reste.

@@ -12,6 +12,7 @@ import { Confidentialite } from './ecrans/Confidentialite.js';
 import { adresseApresSuppression, Connexion } from './ecrans/Connexion.js';
 import { Invitation } from './ecrans/Invitation.js';
 import { Lien } from './ecrans/Lien.js';
+import { Mesure } from './ecrans/Mesure.js';
 import { sessionPerdue } from './erreurs.js';
 import { chargerNotice } from './notice-locale.js';
 import { signalerNom } from './passkeys-signal.js';
@@ -243,6 +244,7 @@ function cleDuFiletDEcran(ecran: Route): string {
     case 'appareils':
     case 'admin':
     case 'confidentialite':
+    case 'mesure':
       return ecran.ecran;
   }
 }
@@ -274,6 +276,8 @@ function Ecran(props: { ecran: Route }) {
       return <Admin />;
     case 'confidentialite':
       return <Confidentialite />;
+    case 'mesure':
+      return <Mesure />;
   }
 }
 
@@ -386,9 +390,10 @@ export function App() {
   const { t } = contexte;
 
   let contenu: ComponentChildren;
-  if (ecran.ecran === 'confidentialite') {
+  if (ecran.ecran === 'confidentialite' || ecran.ecran === 'mesure') {
     // La notice s'ouvre à tous : elle n'attend pas la session, et reste lisible sans réseau ni
-    // personne connue, sur la copie de l'appareil (1e-D15, S1-D8).
+    // personne connue, sur la copie de l'appareil (1e-D15, S1-D8). L'écran de mesure ne lit rien :
+    // il s'ouvre de même (M3-P7).
     contenu = <Ecran ecran={ecran} />;
   } else if (session.etat === 'injoignable') {
     contenu = (

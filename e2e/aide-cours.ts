@@ -3,6 +3,8 @@
  * répondre à des cartes, lire un compteur (les réponses du jour dans « Übersicht », le total dans
  * « Fortschritt ») et l'état de la synchronisation.
  *
+ * Et, dans « Heute », le compte de la séance, la réponse à la question de tête et le résultat final.
+ *
  * Les libellés et les phrases viennent de `textes-cours.ts` : le test suit l'interface, pas une
  * copie de ses mots. Un compteur se lit dans la phrase qui le porte, d'après son modèle.
  */
@@ -99,4 +101,93 @@ export async function repondreGewusst(page: Page, n: number): Promise<void> {
     await page.getByRole('button', { name: de.cartes_su, exact: true }).click();
     await expect.poll(faites, { message: 'cartes répondues dans la série' }).toBe(avant + i);
   }
+}
+
+/** Ce que « Heute » dit de la séance : ses dues, ses cartes neuves, et la file (faites, restantes). */
+export async function compteDeHeute(page: Page): Promise<{
+  dues: number;
+  neues: number;
+  faites: number;
+  restantes: number;
+}> {
+  // biome-ignore lint/performance/useDomNodeTextContent: `innerText` respecte la mise en page, que `lireNombre` lit.
+  const texte = await ongletCourant(page).innerText();
+  const lire = (modele: string, nom: string) => lireNombre(texte, modele, nom) ?? Number.NaN;
+  return {
+    dues: lire(de.heute_compte, 'dues'),
+    neues: lire(de.heute_compte, 'neues'),
+    faites: lire(de.heute_progression, 'faites'),
+    restantes: lire(de.heute_progression, 'restantes'),
+  };
+}
+
+/** Le résultat que dit l'écran de fin de « Heute » (« 5 von 7 richtig. »), ou `undefined` sans lui. */
+export async function resultatDeHeute(
+  page: Page,
+): Promise<{ justes: number; faites: number } | undefined> {
+  // biome-ignore lint/performance/useDomNodeTextContent: `innerText` respecte la mise en page, que `lireNombre` lit.
+  const texte = await ongletCourant(page).innerText();
+  const justes = lireNombre(texte, de.heute_resultat, 'justes');
+  const faites = lireNombre(texte, de.heute_resultat, 'faites');
+  return justes === undefined || faites === undefined ? undefined : { justes, faites };
+}
+
+/** Le genre de la question de tête de « Heute ». */
+export type GenreDeHeute = 'carte' | 'mot' | 'point' | 'exercice' | 'fermee';
+
+/**
+ * Répond à la question de tête de « Heute », quel que soit son genre, puis passe à la suivante :
+ * une carte se retourne et se dit sue (ou, saisie, se vérifie à vide) ; un mot se décompose en
+ * choisissant la première proposition, ou se bâtit d'une tuile ; un point, un exercice et une
+ * question de fiche reçoivent la première proposition, ou une saisie quelconque. Rend le genre.
+ */
+export async function repondreALaTete(page: Page): Promise<GenreDeHeute> {
+  const cours = ongletCourant(page);
+  const visible = (cible: Locator) => cible.isVisible();
+  const bouton = (nom: string) => cours.getByRole('button', { name: nom, exact: true });
+  const premiereProposition = cours.locator('.options button:enabled').first();
+  // La question est posée : une carte, ou l'écran de fin, que l'appelant a déjà écarté.
+  await expect(cours.locator('.card').first()).toBeVisible();
+
+  const retourner = cours.getByRole('button', { name: de.cartes_retourner });
+  if (await visible(retourner)) {
+    await retourner.click();
+    await bouton(de.cartes_su).click();
+    return 'carte';
+  }
+  if (await visible(cours.getByLabel(de.cartes_saisie_etiquette))) {
+    await bouton(de.cartes_verifier).click();
+    await bouton(de.cartes_suivante).click();
+    return 'carte';
+  }
+  if (await visible(cours.locator('.tiles'))) {
+    await cours.locator('.tiles .tile:enabled').first().click();
+    await bouton(de.pruefen).click();
+    await bouton(de.mots_naechstes).click();
+    return 'mot';
+  }
+  if (await visible(cours.locator('.word'))) {
+    // Une partie après l'autre, jusqu'au mot fini (un mot a quelques parties).
+    for (let partie = 0; partie < 8 && !(await visible(bouton(de.mots_naechstes))); partie++) {
+      await premiereProposition.click();
+    }
+    await bouton(de.mots_naechstes).click();
+    return 'mot';
+  }
+  if (await visible(cours.locator('svg.sv'))) {
+    await premiereProposition.click();
+    await bouton(de.suivante).click();
+    return 'point';
+  }
+  if (await visible(cours.getByLabel(de.exercices_antwort))) {
+    await cours.getByLabel(de.exercices_antwort).fill('x');
+    await bouton(de.pruefen).click();
+    await bouton(de.suivante).click();
+    return 'exercice';
+  }
+  // Des propositions : un exercice à options (sa ligne d'aide le dit), sinon une question de fiche.
+  const exercice = await visible(cours.getByText(de.exercices_hinweis, { exact: true }));
+  await premiereProposition.click();
+  await bouton(exercice ? de.suivante : de.quiz_suivante).click();
+  return exercice ? 'exercice' : 'fermee';
 }

@@ -13,11 +13,39 @@ import { horodatage } from './temps.js';
  * Le texte saisi par la personne n'entre jamais dans un événement (ADR-0007).
  */
 
-/** Le format des événements ; il n'évolue que par ajouts, sous un nouveau `v`. */
+/**
+ * Le format des événements ; il n'évolue que par ajouts de champs facultatifs. `v` reste à 1 : un
+ * serveur d'avant refuse tout autre `v`, et un ajout facultatif (le `mode` d'une réponse, ADR-0013)
+ * n'a pas besoin d'un nouveau numéro pour que les événements d'avant restent valides.
+ */
 export const VERSION_EVENEMENT = 1;
+
+/**
+ * Le geste par lequel une réponse a été donnée (ADR-0013), et non l'onglet où elle l'a été :
+ * `retournee` (carte retournée, jugée par la personne), `saisie` (réponse tapée, jugée par
+ * l'application), `corrigee` (saisie jugée fausse, puis déclarée juste par la personne), `choix`
+ * (une proposition parmi plusieurs), `assemblage` (tuiles d'un mot), `pointage` (un point touché
+ * sur un dessin), `association` (appariement, classement), `montree` (réponse montrée puis jugée
+ * par la personne), `lecture` (le bilan d'un texte).
+ */
+export const MODES_DE_REPONSE = [
+  'retournee',
+  'saisie',
+  'corrigee',
+  'choix',
+  'assemblage',
+  'pointage',
+  'association',
+  'montree',
+  'lecture',
+] as const;
+
+export type ModeDeReponse = (typeof MODES_DE_REPONSE)[number];
 
 export interface ResultatReponse {
   juste: boolean;
+  /** Absent des réponses d'avant l'ADR-0013, et de toute réponse que l'appareil n'a pas qualifiée. */
+  mode?: ModeDeReponse;
 }
 
 export interface ResultatExamen {
@@ -96,7 +124,10 @@ const commun = {
   v: z.literal(VERSION_EVENEMENT),
 };
 
-const resultatReponse = z.strictObject({ juste: z.boolean() });
+const resultatReponse = z.strictObject({
+  juste: z.boolean(),
+  mode: z.enum(MODES_DE_REPONSE).optional(),
+});
 
 const resultatExamen = z
   .strictObject({

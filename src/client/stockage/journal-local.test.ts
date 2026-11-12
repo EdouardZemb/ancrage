@@ -45,6 +45,19 @@ describe('journal local', () => {
     expect(await coursEnAttente(base, ALICE)).toEqual([COURS_DE_TEST]);
   });
 
+  it('evenement_avec_mode_va_au_journal_et_a_la_file', async () => {
+    const base = await ouvrirBaseDeTest();
+    const evenement = {
+      ...reponseDeTest(COURS_DE_TEST, 1),
+      resultat: { juste: true, mode: 'choix' },
+    } as Evenement;
+
+    await ajouterEvenement(base, ALICE, evenement);
+
+    expect(await evenementsDuCours(base, ALICE, COURS_DE_TEST)).toEqual([evenement]);
+    expect(await fileDuCours(base, ALICE, COURS_DE_TEST)).toEqual([evenement]);
+  });
+
   it('evenement_invalide_refuse_sans_rien_ecrire', async () => {
     const base = await ouvrirBaseDeTest();
     const valide = reponseDeTest(COURS_DE_TEST, 1);
@@ -61,6 +74,7 @@ describe('journal local', () => {
         'texte saisi en plus dans le résultat',
         { ...valide, resultat: { juste: true, saisie: 'x' } },
       ],
+      ['mode inconnu', { ...valide, resultat: { juste: true, mode: 'devinee' } }],
       ['champ manquant', { ...valide, appareil: undefined }],
     ];
 

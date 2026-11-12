@@ -1,4 +1,5 @@
 import { expect, it, vi } from 'vitest';
+import type { Evenement } from '../../domaine/journal/evenement.js';
 import type { Base } from '../base/base.js';
 import { installerEnvironnement } from '../environnement.fixture.js';
 import { creerDepotJournal } from '../journal/depot-journal.js';
@@ -194,6 +195,22 @@ it('export_contient_profil_appareils_et_journal', () => {
   });
   // Le rang n'est qu'une clé interne : il ne sort jamais du serveur.
   expect(JSON.stringify(donnees)).not.toContain('rang');
+});
+
+it('export_rend_le_mode_d_une_reponse', () => {
+  const lernende = creerLernende();
+  const avecMode = {
+    ...reponseDeTest(COURS_A, 1),
+    resultat: { juste: true, mode: 'saisie' },
+  } as Evenement;
+  creerDepotJournal(base).ajouter(lernende.id, [avecMode, reponseDeTest(COURS_A, 2)], RECU_A);
+
+  const [cours] = exporter(lernende.id, [{ id: COURS_A, titre: TITRE_A }]).cours;
+
+  expect(cours.evenements.map((e) => e.resultat)).toEqual([
+    { juste: true, mode: 'saisie' },
+    { juste: true },
+  ]);
 });
 
 it('export_trie_les_evenements_par_numero', () => {

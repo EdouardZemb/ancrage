@@ -4,6 +4,7 @@ import {
   creerIdEvenement,
   type Evenement,
   fusionnerEvenements,
+  MODES_DE_REPONSE,
   schemaEvenement,
   trierEvenements,
   VERSION_EVENEMENT,
@@ -76,6 +77,43 @@ it('evenement_valide_accepte', () => {
   // Un id fabriqué par `creerIdEvenement`.
   const id = creerIdEvenement(Date.UTC(2026, 9, 17), new Uint8Array(10).fill(0xab));
   expect(accepte(reponse({ id }))).toBe(true);
+});
+
+it('le_mode_d_une_reponse_est_facultatif_et_ferme', () => {
+  // La liste de M3-P2, dans son ordre : un mode ajouté ou retiré change le format du journal.
+  expect(MODES_DE_REPONSE).toEqual([
+    'retournee',
+    'saisie',
+    'corrigee',
+    'choix',
+    'assemblage',
+    'pointage',
+    'association',
+    'montree',
+    'lecture',
+  ]);
+  // Sans mode, accepté, et rendu sans la clé.
+  expect(schemaEvenement.parse(REPONSE)).not.toHaveProperty('mode');
+  // Avec chacun des modes, accepté, et conservé.
+  for (const mode of MODES_DE_REPONSE) {
+    const evenement = reponse({ resultat: { juste: false, mode } });
+    expect(accepte(evenement), mode).toBe(true);
+    expect(schemaEvenement.parse(evenement)).toEqual(evenement);
+  }
+  toutRefuse([
+    ['un mode inconnu', reponse({ resultat: { juste: true, mode: 'devinee' } })],
+    ['un mode vide', reponse({ resultat: { juste: true, mode: '' } })],
+    ["un mode qui n'est pas un texte", reponse({ resultat: { juste: true, mode: 1 } })],
+    ['un mode en majuscules', reponse({ resultat: { juste: true, mode: 'Saisie' } })],
+    [
+      'un mode et une autre clé',
+      reponse({ resultat: { juste: true, mode: 'saisie', saisie: 'x' } }),
+    ],
+    ['un mode seul, sans juste', reponse({ resultat: { mode: 'saisie' } })],
+    ["un mode dans le résultat d'un examen", examen({ mode: 'saisie' })],
+  ]);
+  // Le format n'a pas changé : un serveur d'avant refuserait tout autre `v`.
+  expect(accepte(reponse({ v: 2, resultat: { juste: true, mode: 'saisie' } }))).toBe(false);
 });
 
 it('champ_personne_refuse', () => {

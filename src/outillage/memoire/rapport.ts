@@ -62,6 +62,7 @@ const SCENARIOS_DU_GRAPHIQUE: { rang: number; classe: SerieDeLigne['classe'] }[]
 const GRAINE = 20_261_112;
 const JOURS_PAR_SEMAINE = 7;
 const SECONDES_PAR_MINUTE = 60;
+const POURCENT = 100;
 
 const NOMS_DE_MODE: Record<(typeof CLES_DE_MODE)[number], string> = {
   retournee: 'Carte retournée',
@@ -157,6 +158,7 @@ function lignesDeReussite(
   cases: readonly CaseDeReussite[],
   admise: (comptes: readonly number[]) => boolean,
   nomDesAutres: string,
+  pourcentsEntiers: boolean,
 ): LigneDeCase[] {
   return fondre(
     cases,
@@ -174,7 +176,9 @@ function lignesDeReussite(
   ).map(({ nom, cles, cellule }) => ({
     nom,
     cles,
-    part: partDeJustes(cellule) ?? 0,
+    part: pourcentsEntiers
+      ? Math.round((partDeJustes(cellule) ?? 0) * POURCENT) / POURCENT
+      : (partDeJustes(cellule) ?? 0),
     reponses: cellule.reponses,
   }));
 }
@@ -343,6 +347,27 @@ export function regrouperLesBoites(
   }
 }
 
+/**
+ * Les tuiles « du cours déjà vu » et « du cours sûr » (boîtes 4 et 5) ne s'affichent que si leurs
+ * boîtes sont une réunion exacte de groupes affichés : « vu » demande la boîte 0 seule en groupe, « sûr »
+ * demande qu'aucun groupe ne chevauche les boîtes 4 et 5 et les autres. Sans quoi la part affichée,
+ * rapprochée des groupes, isolerait une boîte que la règle a refusée.
+ */
+export function tuilesAffichables(groupes: readonly GroupeDeBoites[] | null): {
+  vu: boolean;
+  sur: boolean;
+} {
+  if (groupes === null) return { vu: false, sur: false };
+  const dansLesSures = (groupe: GroupeDeBoites): boolean => groupe.rangs.every((rang) => rang >= 4);
+  const horsDesSures = (groupe: GroupeDeBoites): boolean => groupe.rangs.every((rang) => rang <= 3);
+  return {
+    vu: groupes.some((groupe) => groupe.rangs.length === 1 && groupe.rangs[0] === 0),
+    sur:
+      groupes.some(dansLesSures) &&
+      groupes.every((groupe) => dansLesSures(groupe) || horsDesSures(groupe)),
+  };
+}
+
 /** Les éléments, par personne, des boîtes `rangs`. */
 const elementsDesBoites = (parPersonne: readonly Mesures[], rangs: readonly number[]): number[] =>
   parPersonne.map((m) => rangs.reduce((s, rang) => s + (m.boites[rang] ?? 0), 0));
@@ -397,6 +422,7 @@ export function construireRapport(donnees: DonneesDuRapport): string {
     })),
     admise,
     'Autres moments',
+    !personne,
   );
   const lignesDeMode = lignesDeReussite(
     CLES_DE_MODE.map((cle) => ({
@@ -407,6 +433,7 @@ export function construireRapport(donnees: DonneesDuRapport): string {
     })),
     admise,
     'Autres modes',
+    !personne,
   );
   // Les moments affichés seuls : la réussite observée n'en lit pas d'autres, ni la projection.
   const delaisAffiches = new Set(
@@ -421,7 +448,16 @@ export function construireRapport(donnees: DonneesDuRapport): string {
       ]),
     ) as Mesures['delais'],
   };
-  const ecartMedian = admise(parPersonne.map((m) => m.ecarts.length)) ? total.ecartMedian : null;
+  // L'écart médian d'un rapport d'ensemble est celui de la personne médiane (la valeur de l'une
+  // d'elles), jamais un écart mêlé de tous les journaux.
+  const medianesDePersonne = parPersonne
+    .flatMap((m) => (m.ecartMedian === null ? [] : [m.ecartMedian]))
+    .sort((a, b) => a - b);
+  const ecartMedian = personne
+    ? total.ecartMedian
+    : admise(parPersonne.map((m) => m.ecarts.length))
+      ? (medianesDePersonne[Math.floor(medianesDePersonne.length / 2)] ?? null)
+      : null;
 
   const scenarios =
     jusquau === undefined
@@ -435,13 +471,15 @@ export function construireRapport(donnees: DonneesDuRapport): string {
       ? null
       : (tete.projection.chargeMoyenne * ecartMedian) / SECONDES_PAR_MINUTE;
 
-  // Les parts de cours vues et sûres : seulement si les deux cases de chacune passent la règle.
-  const nonVus = elementsDesBoites(parPersonne, [0]);
-  const dejaVus = elementsDesBoites(parPersonne, [1, 2, 3, 4, 5]);
-  const surs = elementsDesBoites(parPersonne, [4, 5]);
-  const pasSurs = elementsDesBoites(parPersonne, [0, 1, 2, 3]);
-  const vusAffiche = admise(nonVus) && admise(dejaVus);
-  const sursAffiche = admise(surs) && admise(pasSurs);
+  // Les boîtes d'abord : les tuiles « vu » et « sûr » ne s'affichent que si leurs boîtes sont une
+  // réunion exacte de groupes affichés, sans quoi la tuile isolerait une boîte refusée.
+  const groupes = regrouperLesBoites(
+    total.boites.map((_, rang) => elementsDesBoites(parPersonne, [rang])),
+    admise,
+  );
+  const tuilesDeBoite = personne ? { vu: true, sur: true } : tuilesAffichables(groupes);
+  const vusAffiche = tuilesDeBoite.vu;
+  const sursAffiche = tuilesDeBoite.sur;
   const vus = elements === 0 ? 0 : 1 - (total.boites[0] ?? 0) / total.elements;
   const sursNombre = (total.boites[4] ?? 0) + (total.boites[5] ?? 0);
   const partSure = total.elements === 0 ? 0 : sursNombre / total.elements;
@@ -467,7 +505,7 @@ export function construireRapport(donnees: DonneesDuRapport): string {
 <p class="meta">${
     personne
       ? `Document privé : il décrit la progression d’une personne, la personne suivie. Accord donné le ${echapper(accord)}, d’après la déclaration du responsable.`
-      : `Document privé : chiffres d’ensemble de ${nombre(journaux.length)} personnes actives. Aucun chiffre n’est tiré d’une case de moins de ${PERSONNES_ACTIVES_MINIMUM} personnes, de moins de ${MINIMUM_D_UNE_CASE} réponses, ou dont une personne fait plus de ${PART_MAXIMALE_D_UNE_PERSONNE} %.`
+      : `Document privé : chiffres d’ensemble de ${nombre(journaux.length)} personnes actives. Une case n’est affichée qu’à ${PERSONNES_ACTIVES_MINIMUM} personnes, ${MINIMUM_D_UNE_CASE} réponses (éléments, pour une boîte) et si aucune personne n’y fait plus de ${PART_MAXIMALE_D_UNE_PERSONNE} %. Ni compte exact ni total : des pourcentages entiers et des moyennes par personne.`
   }</p></header>`;
 
   const tuiles: string[] = [];
@@ -583,9 +621,9 @@ ${p(`Les barres grises sont les réponses de chaque jour ; les lignes, la moyenn
           [
             'Nouveautés par jour',
             'Algorithme',
-            'Tout le cours est vu le',
+            personne ? 'Tout le cours est vu le' : 'Tout le cours est vu le (personne médiane)',
             'Réponses par jour',
-            'Minutes par jour',
+            personne ? 'Minutes par jour' : 'Minutes par jour (personne médiane)',
             'Sûr à l’examen',
           ],
           scenarios.map((s) => [
@@ -607,16 +645,12 @@ ${p(`Les barres grises sont les réponses de chaque jour ; les lignes, la moyenn
           ? 'Tout le cours est déjà vu : la charge ne vient plus que des révisions'
           : tout === null
             ? `À ${tete.nouvelles} nouveautés par jour, le cours n’est pas entièrement vu avant l’examen`
-            : `À ${tete.nouvelles} nouveautés par jour, tout le cours est vu le ${jourFrancais(tout)}`,
+            : `À ${tete.nouvelles} nouveautés par jour, tout le cours est vu le ${jourFrancais(tout)}${personne ? '' : ' pour la personne médiane'}`,
       ),
     );
   }
 
   // 5. Les éléments par boîte : les boîtes que la règle refuse se fondent avec leur voisine.
-  const groupes = regrouperLesBoites(
-    total.boites.map((_, rang) => elementsDesBoites(parPersonne, [rang])),
-    admise,
-  );
   if (groupes === null) {
     sections.push(
       feuille(
@@ -632,6 +666,13 @@ ${p(`Les barres grises sont les réponses de chaque jour ; les lignes, la moyenn
       valeur: groupe.comptes.reduce((s, n) => s + n, 0),
       classe: `b${groupe.rangs[0] ?? 0}`,
     }));
+    // Un rapport d'ensemble ne dessine que des pourcentages entiers : ni compte, ni largeur exacte.
+    const dessines = personne
+      ? segments
+      : segments.map((s) => ({
+          ...s,
+          valeur: Math.round((POURCENT * s.valeur) / Math.max(1, total.elements)),
+        }));
     const partDe = (valeur: number): string =>
       pourcent(total.elements === 0 ? 0 : valeur / total.elements);
     const partsDeBoite = segments.map(
@@ -639,7 +680,7 @@ ${p(`Les barres grises sont les réponses de chaque jour ; les lignes, la moyenn
     );
     sections.push(
       feuille(
-        `${barreEmpilee(segments, 'Les éléments du cours par boîte')}
+        `${barreEmpilee(dessines, 'Les éléments du cours par boîte', !personne)}
 ${legende(segments.map((s, i) => ({ classe: s.classe, texte: partsDeBoite[i] ?? '' })))}
 ${chiffres(
   tableau(
@@ -666,19 +707,24 @@ ${chiffres(
       ? 'Pas assez de réponses pour comparer la réussite'
       : `La réussite va de ${pourcent(bas.part)} (${bas.nom.toLowerCase()}) à ${pourcent(haut.part)} (${haut.nom.toLowerCase()})`;
   const tableauDeLignes = (lignes: readonly Ligne[]): string =>
-    tableau(
-      ['Moment ou mode', 'Réponses justes', 'Réponses'],
-      lignes.map((l) => [echapper(l.nom), pourcent(l.part), nombre(l.reponses)]),
-    );
+    personne
+      ? tableau(
+          ['Moment ou mode', 'Réponses justes', 'Réponses'],
+          lignes.map((l) => [echapper(l.nom), pourcent(l.part), nombre(l.reponses)]),
+        )
+      : tableau(
+          ['Moment ou mode', 'Réponses justes'],
+          lignes.map((l) => [echapper(l.nom), pourcent(l.part)]),
+        );
   sections.push(
     feuille(
       `<h3>Selon le moment où l’élément revient</h3>
-${barresHorizontales(lignesDeDelai, 's1', 'La réussite selon le moment où l’élément revient')}
+${barresHorizontales(lignesDeDelai, 's1', 'La réussite selon le moment où l’élément revient', personne)}
 ${chiffres(tableauDeLignes(lignesDeDelai))}
 <h3>Selon le mode de la réponse</h3>
-${barresHorizontales(lignesDeMode, 's2', 'La réussite selon le mode de la réponse')}
+${barresHorizontales(lignesDeMode, 's2', 'La réussite selon le mode de la réponse', personne)}
 ${chiffres(tableauDeLignes(lignesDeMode))}
-${p(`Le nombre de réponses de chaque ligne suit son pourcentage. Les réponses données avant que le journal note le mode n’en portent pas : elles sont comptées à part, « sans mode ».${personne ? '' : ' Seules les lignes qui passent la règle sont affichées : aucun total n’est donné.'}`)}`,
+${p(`${personne ? 'Le nombre de réponses de chaque ligne suit son pourcentage. ' : 'Seules les lignes qui passent la règle sont affichées, en pourcentages entiers : le rapport d’ensemble ne donne ni nombre de réponses, ni total. '}Les réponses données avant que le journal note le mode n’en portent pas : elles sont comptées à part, « sans mode ».`)}`,
       constat,
     ),
   );
@@ -698,13 +744,13 @@ ${p(`Le nombre de réponses de chaque ligne suit son pourcentage. Les réponses 
       `<ul>
 ${li('<strong>Une réponse</strong> est un élément répondu une fois : une carte retournée, une saisie, un choix, un exercice, une question de fiche ou d’examen. Une faute redonnée le jour même compte pour une réponse de plus.')}
 ${li(`<strong>La projection</strong> part de l’état du jour et simule jour après jour jusqu’à l’examen : les éléments dus sont répondus, puis les nouveautés sont découvertes dans l’ordre du cours. Le verdict de chaque réponse se tire au hasard, d’une graine fixe, et le résultat est la moyenne de ${nombre(TIRAGES)} tirages : la même graine rend la même projection. Avec Leitner, la réussite est celle observée dans le journal pour la boîte d’avant (0,5 sans donnée affichée) et pour les premières réponses. Une faute se redonne une fois le même jour.`)}
-${li(`<strong>La ligne FSRS est une hypothèse.</strong> Elle suppose que chaque révision réussit à la rétention visée du cours (${pourcent(memoire?.retention ?? 0.9)}), ce qu’aucune mesure ne vérifie. À côté, la réussite réellement observée à l’échéance, sur les lignes affichées, est de ${observeeALEcheance.reponses === 0 ? 'inconnue (aucune révision à l’échéance affichée)' : `${pourcent(partDeJustes(observeeALEcheance) ?? 0)} sur ${nombre(observeeALEcheance.reponses)} réponses`}.`)}
+${li(`<strong>La ligne FSRS est une hypothèse.</strong> Elle suppose que chaque révision réussit à la rétention visée du cours (${pourcent(memoire?.retention ?? 0.9)}), ce qu’aucune mesure ne vérifie. À côté, la réussite réellement observée à l’échéance, sur les lignes affichées, est de ${observeeALEcheance.reponses === 0 ? 'inconnue (aucune révision à l’échéance affichée)' : `${pourcent(partDeJustes(observeeALEcheance) ?? 0)}${personne ? ` sur ${nombre(observeeALEcheance.reponses)} réponses` : ''}`}.`)}
 ${li(`<strong>Les limites.</strong> ${jourDuJournal === null ? 'Aucun jour n’est détaillé. ' : `Les jours détaillés couvrent ${nombre(jourDuJournal)} jours : une courte durée dit peu de l’oubli à long terme. `}Les taux mêlent les modes d’avant, dont les réponses sans mode. Le cours grandira : la projection ne compte que les éléments d’aujourd’hui (${nombre(elements)}).`)}
-${li(`<strong>Les minutes</strong> viennent de l’écart médian entre deux réponses qui se suivent à moins de deux minutes${ecartMedian === null ? ' (non communiqué : durée inconnue)' : ` (${nombre(ecartMedian)} secondes)`}.`)}
+${li(`<strong>Les minutes</strong> viennent de l’écart médian entre deux réponses qui se suivent à moins de deux minutes${personne ? '' : ', celui de la personne médiane (la valeur de l’une des personnes actives, sans dire laquelle)'}${ecartMedian === null ? ' (non communiqué : durée inconnue)' : ` (${nombre(ecartMedian)} secondes)`}.`)}
 ${li(
   personne
     ? `Document privé : il décrit la progression d’une personne. Accord donné le ${echapper(accord)}, d’après la déclaration du responsable ; l’outil ne peut pas le contrôler.`
-    : `Document privé : chiffres d’ensemble. Seules les personnes actives y comptent (vingt réponses au moins dans les vingt-huit jours qui finissent au jour du rapport). Toute case (jour, semaine, moment, mode, boîte, minutes) où moins de ${PERSONNES_ACTIVES_MINIMUM} personnes ont répondu, ou de moins de ${MINIMUM_D_UNE_CASE} réponses, ou dont une personne fait plus de ${PART_MAXIMALE_D_UNE_PERSONNE} %, est omise ou fondue dans « autres » ; rien n’est calculé sur une case omise. Les boîtes refusées se fondent avec leur voisine. Les réponses par jour sont des moyennes par personne de la case.`,
+    : `Document privé : chiffres d’ensemble. Seules les personnes actives y comptent (vingt réponses au moins dans les vingt-huit jours qui finissent au jour du rapport). Toute case (jour, semaine, moment, mode, boîte, minutes) où moins de ${PERSONNES_ACTIVES_MINIMUM} personnes ont répondu, ou de moins de ${MINIMUM_D_UNE_CASE} réponses, ou dont une personne fait plus de ${PART_MAXIMALE_D_UNE_PERSONNE} %, est omise ou fondue dans « autres ». Les boîtes refusées se fondent avec leur voisine. Les réponses par jour sont des moyennes par personne de la case ; le rapport ne donne ni compte exact ni total, mais des pourcentages entiers. <strong>Ce que cela ne garantit pas</strong> : un pourcentage entier laisse encore estimer une case fondue à quelques unités près ; à trois personnes, une médiane est la valeur de l’une d’elles, sans dire laquelle ; les moyennes de la projection n’ont pas de contrôle de dominance ; deux rapports de dates voisines peuvent se comparer.`,
 )}
 </ul>`,
       'Comment lire ces chiffres',

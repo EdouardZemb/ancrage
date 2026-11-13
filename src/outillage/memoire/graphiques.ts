@@ -229,7 +229,11 @@ export interface Segment {
 }
 
 /** Une barre empilée : un segment par classe, 2 px entre deux, coins de 4 px. */
-export function barreEmpilee(segments: readonly Segment[], titre: string): string {
+export function barreEmpilee(
+  segments: readonly Segment[],
+  titre: string,
+  enPourcent = false,
+): string {
   const hauteur = 36;
   const total = segments.reduce((somme, s) => somme + s.valeur, 0);
   const presents = segments.filter((s) => s.valeur > 0);
@@ -237,7 +241,7 @@ export function barreEmpilee(segments: readonly Segment[], titre: string): strin
   let position = 0;
   const rects = presents.map((segment) => {
     const largeur = total === 0 ? 0 : (utile * segment.valeur) / total;
-    const rect = `<rect class="${segment.classe}" x="${arrondi(position)}" y="0" width="${arrondi(largeur)}" height="${hauteur}" rx="${arrondi(Math.min(RAYON, largeur / 2))}"><title>${echapper(`${segment.nom} : ${nombre(segment.valeur)}`)}</title></rect>`;
+    const rect = `<rect class="${segment.classe}" x="${arrondi(position)}" y="0" width="${arrondi(largeur)}" height="${hauteur}" rx="${arrondi(Math.min(RAYON, largeur / 2))}"><title>${echapper(`${segment.nom} : ${nombre(segment.valeur)}${enPourcent ? ' %' : ''}`)}</title></rect>`;
     position += largeur + ECART_DE_SEGMENT;
     return rect;
   });
@@ -251,11 +255,15 @@ export interface Ligne {
   reponses: number;
 }
 
-/** Des barres horizontales sur un seul axe, de 0 à 100 %, avec le nombre de réponses de chaque ligne. */
+/**
+ * Des barres horizontales sur un seul axe, de 0 à 100 %, avec le nombre de réponses de chaque ligne
+ * (`avecEffectifs`) : un rapport d'ensemble n'en imprime aucun, ni en texte ni en infobulle.
+ */
 export function barresHorizontales(
   lignes: readonly Ligne[],
   classe: string,
   titre: string,
+  avecEffectifs = true,
 ): string {
   const hauteurDeLigne = 30;
   const etiquette = 200;
@@ -268,8 +276,8 @@ export function barresHorizontales(
     return [
       `<text class="encre" x="0" y="${y0 + 15}">${echapper(ligne.nom)}</text>`,
       `<rect class="piste" x="${etiquette}" y="${y0 + 3}" width="${largeurUtile}" height="14" rx="${RAYON}"/>`,
-      `<rect class="${classe}" x="${etiquette}" y="${y0 + 3}" width="${arrondi(Math.max(largeur, ligne.part > 0 ? 2 : 0))}" height="14" rx="${arrondi(Math.min(RAYON, largeur / 2))}"><title>${echapper(`${ligne.nom} : ${pourcent(ligne.part)} de justes sur ${nombre(ligne.reponses)} réponses`)}</title></rect>`,
-      `<text class="encre" x="${etiquette + largeurUtile + 10}" y="${y0 + 15}">${pourcent(ligne.part)} · ${nombre(ligne.reponses)}</text>`,
+      `<rect class="${classe}" x="${etiquette}" y="${y0 + 3}" width="${arrondi(Math.max(largeur, ligne.part > 0 ? 2 : 0))}" height="14" rx="${arrondi(Math.min(RAYON, largeur / 2))}"><title>${echapper(`${ligne.nom} : ${pourcent(ligne.part)} de justes${avecEffectifs ? ` sur ${nombre(ligne.reponses)} réponses` : ''}`)}</title></rect>`,
+      `<text class="encre" x="${etiquette + largeurUtile + 10}" y="${y0 + 15}">${pourcent(ligne.part)}${avecEffectifs ? ` · ${nombre(ligne.reponses)}` : ''}</text>`,
     ].join('');
   });
   return `<svg viewBox="0 0 ${LARGEUR} ${hauteur}" role="img" aria-label="${echapper(titre)}">${parties.join('')}</svg>`;

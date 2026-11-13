@@ -319,8 +319,8 @@ Sur le poste, `pnpm` s'appelle par `corepack pnpm …` ; en CI, `corepack enable
   l'examen par algorithme). Sans `--personne`, rapport d'ensemble : il ne lit que les personnes actives (20
   réponses dans les 28 jours qui finissent au jour du rapport) ; sous trois il ne garde que le nombre
   d'éléments du cours ; toute case (jour, semaine, délai, mode, boîte, minutes) n'est gardée qu'à 3
-  personnes, 20 réponses et aucune personne au-delà de 70 %, et rien n'est calculé sur une case
-  écartée (`caseAdmise`, `docs/exploitation.md`). Avec `--personne`, la date de
+  personnes, 20 réponses et aucune personne au-delà de 70 % ; ni compte exact ni total (des
+  pourcentages entiers) ; limites déclarées (`caseAdmise`, `docs/exploitation.md`). Avec `--personne`, la date de
   l'accord est obligatoire, et c'est une déclaration que l'outil ne contrôle pas. La sortie est
   refusée dans un dépôt git, et une copie brute en mode WAL aussi (copier par `VACUUM INTO`). Codes :
   0 écrit ; 64 usage ; 1 base, contenu, cours ou personne illisible, ou base en WAL. `docs/exploitation.md`, « Le rapport de suivi ».

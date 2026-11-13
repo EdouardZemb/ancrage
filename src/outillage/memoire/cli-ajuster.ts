@@ -11,9 +11,10 @@ import { lireJournaux, messageDeBaseIllisible } from './lire-journaux.js';
  * base, et écrit le bloc à coller dans le manifeste, puis la qualité de la prédiction avant et
  * après. Un outil du poste, hors de l'image (M3).
  *
- * Il n'apprend que sur les réponses aux cartes que FSRS planifiera : celles des `--chapitre` donnés ;
- * sinon celles de `chapitres` du manifeste s'il est en `par-chapitre` ; sinon celles de tous les
- * modules de cartes du cours. Le seuil de 1 000 révisions et la qualité se calculent sur ce filtre.
+ * Il n'apprend que sur ce que le rejeu lit, c'est-à-dire ce que FSRS planifiera : les cartes des
+ * `--chapitre` donnés ; sinon celles de `chapitres` du manifeste s'il est en `par-chapitre` ; sinon,
+ * en `fsrs`, toutes les unités du cours ; sinon (Leitner) toutes les cartes du cours. Le seuil de 1 000
+ * révisions et la qualité se calculent sur ce filtre.
  *
  * Codes : 0 ajusté ; 2 moins de 1 000 révisions exploitables, aucun paramètre écrit ; 64 usage (dont
  * un `--chapitre` qui n'est pas un module de cartes du cours) ; 1 base ou contenu illisible, ou base
@@ -117,7 +118,9 @@ export async function executer(argv: readonly string[], sortie: Sortie): Promise
   sortie.out('');
   sortie.out(`${ajustement.revues} révisions exploitables, tous comptes confondus.`);
   sortie.out(
-    `Appris sur les cartes de ${choisis.chapitres.size} module(s) ; ${ecartees} réponse(s) écartée(s) (autres modules, mots, points, exercices, fiches).`,
+    choisis.chapitres === null
+      ? `Appris sur tout le cours (FSRS le planifie en entier) ; ${ecartees} réponse(s) écartée(s).`
+      : `Appris sur les cartes de ${choisis.chapitres.size} module(s) ; ${ecartees} réponse(s) écartée(s) (autres modules, mots, points, exercices, fiches).`,
   );
   sortie.out('');
   ecrireQualite('Avant (poids par défaut)', ajustement.avant, sortie);

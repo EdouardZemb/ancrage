@@ -3,6 +3,7 @@ import type { Evenement, ModeDeReponse } from '../../domaine/journal/evenement.j
 import { coursDExemple } from './cours-exemple.fixture.js';
 import { reponseInventee } from './ecrire-journal.fixture.js';
 import {
+  caseAdmise,
   estActive,
   MINIMUM_D_UNE_CASE,
   mesures,
@@ -150,6 +151,21 @@ test('un_compte_ancien_n_est_plus_actif_au_jour_du_rapport', () => {
   expect(estActive(ancien, '2026-01-05')).toBe(true);
   // Les réponses d'après le jour du rapport ne comptent pas.
   expect(estActive(ancien, '2026-01-04')).toBe(false);
+});
+
+test('une_case_demande_trois_personnes_vingt_reponses_et_aucune_au_dela_de_70_pour_cent', () => {
+  expect(caseAdmise([10, 5, 5])).toBe(true);
+  // Deux personnes, cent réponses : trop peu de personnes.
+  expect(caseAdmise([50, 50])).toBe(false);
+  // Trois personnes, mais une seule répond vraiment : un zéro n'est pas une personne.
+  expect(caseAdmise([30, 0, 0, 0])).toBe(false);
+  expect(caseAdmise([30, 1, 0])).toBe(false);
+  // Dix-neuf réponses : trop peu.
+  expect(caseAdmise([7, 6, 6])).toBe(false);
+  // Une personne à 98 % de la case : écartée. À 70 % pile : admise ; au-delà : écartée.
+  expect(caseAdmise([98, 1, 1])).toBe(false);
+  expect(caseAdmise([70, 15, 15])).toBe(true);
+  expect(caseAdmise([71, 15, 14])).toBe(false);
 });
 
 test('le_minimum_d_une_case_est_de_vingt_reponses', () => {

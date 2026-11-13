@@ -1,8 +1,10 @@
 import { expect, test } from 'vitest';
-import type { Evenement } from '../../domaine/journal/evenement.js';
-import { coursDExemple, journalDeCours } from './cours-exemple.fixture.js';
+import type { Evenement, ModeDeReponse } from '../../domaine/journal/evenement.js';
+import { coursDExemple, idsDesPosables, journalDeCours } from './cours-exemple.fixture.js';
 import { reponseInventee } from './ecrire-journal.fixture.js';
-import { construireRapport } from './rapport.js';
+import { nombre } from './graphiques.js';
+import { mesures } from './mesures.js';
+import { construireRapport, regrouperLesBoites } from './rapport.js';
 
 const cours = coursDExemple();
 const AUJOURDHUI = '2026-03-02';
@@ -227,4 +229,144 @@ test('le_texte_du_cours_est_echappe', () => {
   });
   expect(html).not.toContain('<b>Titre</b>');
   expect(html).toContain('&lt;b&gt;Titre&lt;/b&gt; &amp; cie');
+});
+
+// Les scénarios de la relecture : rien ne s'affiche qui ne vienne de cases que la règle admet.
+
+let rangDeTest = 5_000_000;
+function reponseAu(
+  jour: string,
+  minute: number,
+  unite: string,
+  juste: boolean,
+  mode?: ModeDeReponse,
+): Evenement {
+  rangDeTest += 1;
+  const [a = 0, m = 1, j = 1] = jour.split('-').map(Number);
+  return reponseInventee(
+    Date.UTC(a, m - 1, j, 8, minute),
+    rangDeTest,
+    unite,
+    juste,
+    cours.cours.id,
+    mode,
+  );
+}
+
+/** `n` réponses d'une même personne le même jour, sur les `n` premières unités du cours. */
+function uneParUnite(jour: string, n: number, mode?: ModeDeReponse): Evenement[] {
+  return idsDesPosables(cours)
+    .slice(0, n)
+    .map((unite, i) => reponseAu(jour, i, unite, true, mode));
+}
+
+test('un_compte_ancien_ne_change_aucun_chiffre_du_rapport_d_ensemble', () => {
+  const sans = rapport(troisActives());
+  const ancien = [reponseAu('2025-12-01', 0, 'xyv4pn7g', true)];
+  const avec = rapport([...troisActives(), ancien]);
+  expect(avec).toBe(sans);
+  expect(avec).not.toContain('01/12/2025');
+});
+
+test('une_boite_refusee_se_fond_avec_sa_voisine_et_ne_donne_ni_tuile_ni_complement', () => {
+  // Une quatrième personne active, 25 éléments vus seulement : elle est seule dans la boîte « jamais
+  // vus » (55 éléments), que trois autres personnes n'ont pas.
+  const quatrieme = uneParUnite('2026-02-20', 25);
+  const html = rapport([...troisActives(), quatrieme]);
+  expect(html).not.toContain('Jamais vus :');
+  expect(html).toContain('Jamais vus + Boîte 1');
+  expect(html).not.toContain('du cours déjà vu');
+  expect(html).not.toContain('n’est pas encore vu');
+});
+
+test('regrouper_les_boites_fond_une_boite_refusee_avec_sa_voisine', () => {
+  const admise = (comptes: readonly number[]) =>
+    comptes.filter((c) => c > 0).length >= 3 && comptes.reduce((s, c) => s + c, 0) >= 20;
+  const trois = [10, 10, 10, 0];
+  // La boîte 5 d'une seule personne se fond avec la 4 (voisine de gauche, car dernière).
+  const groupes = regrouperLesBoites(
+    [[0, 0, 0, 0], trois, trois, trois, trois, [0, 0, 0, 30]],
+    admise,
+  );
+  expect(groupes?.map((g) => g.rangs)).toEqual([[1], [2], [3], [4, 5]]);
+  // Même le tout refusé : rien.
+  expect(regrouperLesBoites([[30, 0, 0, 0]], admise)).toBeNull();
+  expect(regrouperLesBoites([[0, 0, 0, 0]], admise)).toBeNull();
+  // Une boîte refusée au milieu se fond avec sa voisine de droite.
+  expect(regrouperLesBoites([trois, [30, 0, 0, 0], trois], admise)?.map((g) => g.rangs)).toEqual([
+    [0],
+    [1, 2],
+  ]);
+});
+
+test('une_semaine_ne_compte_que_ses_jours_affiches_et_se_divise_par_ses_personnes', () => {
+  // Trois personnes à 10 par jour, sauf le 10/02 ; ce jour-là, une quatrième seule répond 25 fois.
+  const duree = (debut: string, jours: number, personne: number) =>
+    journalDeCours(cours, { debut, jours, parJour: 10, graine: personne, personne });
+  const journaux = [1, 2, 3].map((n) => [
+    ...duree('2026-02-01', 9, n),
+    ...duree('2026-02-11', 18, n + 10),
+  ]);
+  journaux.push(uneParUnite('2026-02-10', 25));
+  const html = rapport(journaux);
+  // La semaine du 09/02 : six jours affichés, trois personnes, 10 par jour. Ni 25 ni N = 4.
+  expect(html).toMatch(/09\/02\/2026<\/th><td>10<\/td>/);
+  expect(html).not.toMatch(/10 févr\. : 25/);
+});
+
+test('une_personne_seule_un_jour_ne_fixe_ni_la_periode_ni_une_semaine', () => {
+  const journaux = troisActives();
+  journaux.push([...uneParUnite('2026-01-20', 25), ...uneParUnite('2026-02-20', 25)]);
+  const html = rapport(journaux);
+  expect(html).not.toContain('20/01/2026');
+  expect(html).not.toContain('19/01/2026');
+});
+
+test('un_moment_ou_un_mode_d_une_seule_personne_n_est_ni_affiche_ni_additionne', () => {
+  // La quatrième personne redonne vingt-quatre fois la même unité le même jour, en « pointage » :
+  // « redonnée le jour même » et « point touché » sont à elle seule.
+  const quatrieme = Array.from({ length: 25 }, (_, i) =>
+    reponseAu('2026-02-20', i, 'xyv4pn7g', true, 'pointage'),
+  );
+  const html = rapport([...troisActives(), quatrieme]);
+  expect(html).not.toContain('Redonnée le jour même');
+  expect(html).not.toContain('Point touché');
+  expect(html).not.toContain('Autres moments');
+  // Aucun total de réponses n'est imprimé à côté de lignes dont certaines sont écartées.
+  expect(html).not.toMatch(/réponses · objectif/);
+});
+
+test('la_reussite_observee_a_l_echeance_ne_lit_que_les_lignes_affichees', () => {
+  // La quatrième personne est seule aux moments « boîte 3 » et « boîte 4 », qui ne s'affichent pas.
+  const jours = ['2026-02-01', '2026-02-02', '2026-02-04', '2026-02-08', '2026-02-16'];
+  const quatrieme = [
+    ...jours.map((jour, i) => reponseAu(jour, i, 'xyv4pn7g', true)),
+    ...uneParUnite('2026-02-20', 21).slice(1),
+  ];
+  const quatre = [...troisActives(), quatrieme];
+  const m = quatre.map((journal) => mesures(journal, cours, AUJOURDHUI));
+  expect(m[3]?.delais['boite-3'].reponses).toBeGreaterThan(0);
+  expect(m[3]?.delais['boite-4'].reponses).toBeGreaterThan(0);
+  const affichees = m.reduce(
+    (s, x) => s + x.delais['boite-1'].reponses + x.delais['boite-2'].reponses,
+    0,
+  );
+  const html = rapport(quatre);
+  expect(html).toContain(`sur ${nombre(affichees)} réponses`);
+  expect(html).not.toContain('depuis la boîte 3');
+  expect(html).not.toContain('depuis la boîte 4');
+});
+
+test('une_case_dont_une_personne_fait_98_pour_cent_est_ecartee', () => {
+  const unites = idsDesPosables(cours);
+  const pointage = (n: number) =>
+    Array.from({ length: n }, (_, i) =>
+      reponseAu('2026-02-27', i, unites[i % 5] ?? 'xyv4pn7g', true, 'pointage'),
+    );
+  const avec = (parts: number[]) =>
+    troisActives().map((journal, rang) => [...journal, ...pointage(parts[rang] ?? 0)]);
+  // 98, 1 et 1 réponses : une personne à 98 % de la case.
+  expect(rapport(avec([98, 1, 1]))).not.toContain('Point touché');
+  // 35, 8 et 7 : 70 % pile, la même case passe.
+  expect(rapport(avec([35, 8, 7]))).toContain('Point touché');
 });

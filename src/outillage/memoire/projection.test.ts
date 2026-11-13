@@ -167,9 +167,20 @@ test('la_moyenne_de_deux_projections_est_la_charge_par_personne', () => {
   expect(moyenne.chargeParJour[0]).toBe(15);
   expect(moyenne.chargeMoyenne).toBe((un.chargeMoyenne + autre.chargeMoyenne) / 2);
   expect(moyenne.parSemaine).toHaveLength(un.parSemaine.length);
-  // 10 par jour voient tout le cours le 08/03, 20 par jour le 04/03 : la dernière personne fait foi.
+  // 10 par jour voient tout le cours le 08/03, 20 par jour le 04/03 : à deux, la médiane est la plus lente.
   expect(moyenne.jourToutVu).toBe('2026-03-08');
   expect(moyenneDeProjections([un])).toEqual(un);
   const jamais = projeter([], leitner, options({ nouvellesParJour: 0 }));
   expect(moyenneDeProjections([un, jamais]).jourToutVu).toBeNull();
+});
+
+test('le_jour_ou_tout_est_vu_est_celui_de_la_personne_mediane', () => {
+  // Trois personnes : 20 par jour (04/03), 10 par jour (08/03), jamais. La médiane est la
+  // deuxième : ni la plus lente (jamais), ni la plus rapide.
+  const vite = projeter([], leitner, options({ nouvellesParJour: 20 }));
+  const moyen = projeter([], leitner, options({ nouvellesParJour: 10 }));
+  const jamais = projeter([], leitner, options({ nouvellesParJour: 0 }));
+  expect(moyenneDeProjections([jamais, vite, moyen]).jourToutVu).toBe('2026-03-08');
+  // Si plus de la moitié ne le voient jamais, la date est inconnue.
+  expect(moyenneDeProjections([vite, jamais, jamais]).jourToutVu).toBeNull();
 });

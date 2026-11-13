@@ -117,7 +117,8 @@ cartes (un par chapitre), de schémas et les feuilles (une par Unit) sont aussi 
 
 La clé `leitner` règle la méthode des boîtes : le code ne fixe plus ces valeurs. Pour un cours en
 `fsrs` (voir « Réglage de la mémoire »), `leitner.intervalles` n'est pas lu, mais reste obligatoire :
-c'est ce qui permet le retour à Leitner. `nouvelles_par_seance` vaut pour les deux algorithmes. Elle est obligatoire, ses deux clés aussi, et toute autre clé est
+c'est ce qui permet le retour à Leitner. Pour un cours en `par-chapitre`, il est lu pour tout ce qui
+n'est pas un chapitre de `chapitres` (mots, points, exercices, fiches, autres modules de cartes). `nouvelles_par_seance` vaut pour les deux algorithmes. Elle est obligatoire, ses deux clés aussi, et toute autre clé est
 refusée.
 
 - `intervalles` : exactement 6 entiers, un par boîte de 0 à 5. Ce sont des nombres de jours : une

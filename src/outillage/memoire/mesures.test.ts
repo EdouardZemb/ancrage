@@ -128,19 +128,28 @@ test('la_reussite_observee_a_un_defaut_la_ou_la_mesure_manque', () => {
   expect(observee.parBoite[5]).toBe(0.5);
 });
 
-test('une_personne_est_active_a_vingt_reponses_dans_les_vingt_huit_derniers_jours_de_son_journal', () => {
+test('une_personne_est_active_a_vingt_reponses_dans_les_vingt_huit_jours_qui_finissent_au_jour_du_rapport', () => {
+  const AUJOURDHUI = '2026-01-30';
   const duJour = (jour: number, n: number) =>
     Array.from({ length: n }, (_, i) => reponse(jour, 10, i, 0, A, true));
   // 19 réponses dans la fenêtre, 3 avant : pas encore active.
-  expect(estActive([...duJour(2, 3), ...duJour(30, 19)])).toBe(false);
+  expect(estActive([...duJour(2, 3), ...duJour(30, 19)], AUJOURDHUI)).toBe(false);
   // 20 réponses : active.
-  expect(estActive(duJour(30, 20))).toBe(true);
+  expect(estActive(duJour(30, 20), AUJOURDHUI)).toBe(true);
   // 20 réponses, dont 5 il y a 28 jours (hors fenêtre) : inactive ; il y a 27 jours : active.
   const ancien = Array.from({ length: 5 }, (_, i) => reponse(2, 10, i, 0, A, true));
   const recent = Array.from({ length: 15 }, (_, i) => reponse(30, 10, i, 0, A, true));
-  expect(estActive([...ancien, ...recent])).toBe(false);
+  expect(estActive([...ancien, ...recent], AUJOURDHUI)).toBe(false);
   const limite = Array.from({ length: 5 }, (_, i) => reponse(3, 10, i, 0, A, true));
-  expect(estActive([...limite, ...recent])).toBe(true);
+  expect(estActive([...limite, ...recent], AUJOURDHUI)).toBe(true);
+});
+
+test('un_compte_ancien_n_est_plus_actif_au_jour_du_rapport', () => {
+  const ancien = Array.from({ length: 50 }, (_, i) => reponse(5, 10, i, 0, A, true));
+  expect(estActive(ancien, '2026-02-20')).toBe(false);
+  expect(estActive(ancien, '2026-01-05')).toBe(true);
+  // Les réponses d'après le jour du rapport ne comptent pas.
+  expect(estActive(ancien, '2026-01-04')).toBe(false);
 });
 
 test('le_minimum_d_une_case_est_de_vingt_reponses', () => {

@@ -814,6 +814,22 @@ describe('Feuilles', () => {
     expect(seance()).toBe('journalisee');
   });
 
+  it('l_onglet_transmet_le_mode_de_la_tache_a_l_enregistrement', () => {
+    // Des trous à taper, sans liste de mots : chaque réponse est une saisie, pas un choix.
+    const contexte = contexteDeTest({ cours: coursAvecUneTache(TROUS) });
+    rendreDansUnCoursVivant(<Feuilles />, contexte);
+    ouvrirLaUnit2();
+    const cases = document.querySelectorAll<HTMLInputElement>('input.trou');
+    fireEvent.input(cases[0], { target: { value: 'Herz' } });
+    fireEvent.input(cases[1], { target: { value: 'Leber' } });
+    fireEvent.click(screen.getByRole('button', { name: t.pruefen }));
+
+    expect(vi.mocked(contexte.enregistrer).mock.calls).toEqual([
+      ['fb000041', true, 'saisie'],
+      ['fb000042', false, 'saisie'],
+    ]);
+  });
+
   it('tache_revenue_a_l_initial_n_en_est_plus_une', () => {
     const base = contexteDeTest({ cours: coursAvecUneTache(APPARIEMENT) });
     const hasard = vi.fn(base.hasard);

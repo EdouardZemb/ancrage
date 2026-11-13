@@ -128,6 +128,7 @@ describe('notice', () => {
         'jamais ce que tu as répondu',
         'statistiques d’ensemble',
         'Si tu es d’accord, le responsable suit aussi ta progression',
+        'sans ton accord, il n’en voit que les chiffres d’ensemble',
       ],
       de: [
         'die Zahl der Fragen',
@@ -139,6 +140,7 @@ describe('notice', () => {
         'nie, was du geantwortet hast',
         'Gesamtstatistiken',
         'Wenn du einverstanden bist, verfolgt der Verantwortliche auch deinen Lernfortschritt',
+        'ohne dein Einverständnis sieht er nur die Gesamtzahlen',
       ],
     };
     for (const langue of LANGUES) {
@@ -149,6 +151,11 @@ describe('notice', () => {
     // L'ancienne formule laissait croire qu'aucun identifiant ne venait de l'appareil.
     expect(texteEntier('fr')).not.toContain('l’identifiant de ton navigateur');
     expect(texteEntier('de')).not.toContain('Kennung deines Browsers');
+  });
+
+  it('notice_porte_la_version_de_son_dernier_changement', () => {
+    // Le texte change avec ADR-0013 (le suivi avec accord) : la version est celle de ce changement.
+    expect(NOTICE_VERSION).toBe('2026-11-13');
   });
 
   it('notice_dit_les_limites_de_ce_qu_elle_promet', () => {

@@ -302,20 +302,27 @@ Sur le poste, `pnpm` s'appelle par `corepack pnpm …` ; en CI, `corepack enable
   vérifier » de chaque cours, en HTML et en PDF (Chromium de Playwright), dans `dossier`
   (`dist/a-verifier` par défaut). Elle est en allemand, pour la relecture sur papier : les cartes et
   la morphologie en tableau, les autres éléments en cadres.
-- `corepack pnpm memoire:ajuster --base <copie.sqlite> --cours <id>` : outil du poste, hors de l'image
+- `corepack pnpm memoire:ajuster --base <copie.sqlite> --cours <id> --contenu <dossier> [--chapitre <module de cartes>]…` :
+  outil du poste, hors de l'image
   (`src/outillage/memoire/`, dépendance de développement `@open-spaced-repetition/binding`). Ajuste les 21
   poids de FSRS-6 sur les journaux du cours dans une copie de la base, ouverte en lecture seule, tous
-  comptes confondus et sans rien qui nomme une personne. Écrit le bloc `parametres:` du manifeste, puis la
-  qualité de la prédiction avant et après. Codes : 0 ajusté ; 2 moins de 1 000 révisions exploitables ;
-  64 usage ; 1 base illisible. `docs/exploitation.md`, « Ajuster les paramètres de FSRS d'un cours ».
+  comptes confondus et sans rien qui nomme une personne. N'apprend que sur les réponses aux cartes
+  que FSRS planifiera : celles des `--chapitre` donnés ; sinon celles de `chapitres` du manifeste en
+  `par-chapitre` ; sinon celles de tous les modules de cartes. Dit combien de réponses il écarte. Écrit le bloc
+  `parametres:` du manifeste, puis la qualité de la prédiction avant et après, sur ce filtre. Refuse une
+  copie brute en mode WAL (copier par `VACUUM INTO`). Codes : 0 ajusté ; 2 moins de 1 000 révisions
+  exploitables ; 64 usage (sans `--contenu`, ou `--chapitre` qui n'est pas un module de cartes) ; 1 base
+  ou contenu illisible, ou base en WAL. `docs/exploitation.md`, « Ajuster les paramètres de FSRS d'un cours ».
 - `corepack pnpm memoire:rapport --base <copie.sqlite> --cours <id> --contenu <dossier> --sortie <fichier.html> [--personne <identifiant> --accord <JJ/MM/AAAA>] [--jusquau <AAAA-MM-JJ>] [--ecraser]` :
   outil du poste, hors de l'image. Écrit le rapport de suivi d'un cours, une page HTML autonome et
   privée (charge par jour, réussite selon le délai et le mode, part vue et sûre, projection jusqu'à
-  l'examen par algorithme). Sans `--personne`, rapport d'ensemble : sous trois personnes actives il
-  s'arrête aux totaux, et toute case de moins de 20 réponses est omise. Avec `--personne`, la date de
+  l'examen par algorithme). Sans `--personne`, rapport d'ensemble : une personne est active à 20
+  réponses dans les 28 jours qui finissent au jour du rapport ; sous trois personnes actives il ne
+  garde que le nombre d'éléments du cours ; toute case (jour, semaine, délai, mode, boîte) où moins de
+  trois personnes ont répondu, ou de moins de 20 réponses, est omise. Avec `--personne`, la date de
   l'accord est obligatoire, et c'est une déclaration que l'outil ne contrôle pas. La sortie est
-  refusée dans un dépôt git. Codes : 0 écrit ; 64 usage ; 1 base, contenu, cours ou personne
-  illisible. `docs/exploitation.md`, « Le rapport de suivi ».
+  refusée dans un dépôt git, et une copie brute en mode WAL aussi (copier par `VACUUM INTO`). Codes :
+  0 écrit ; 64 usage ; 1 base, contenu, cours ou personne illisible, ou base en WAL. `docs/exploitation.md`, « Le rapport de suivi ».
 - `corepack pnpm contenus:reference --references <dossier>` : régénère l'instantané
   `<cours>.reference.json` de chaque cours, et celui de la notice composée, `notice.json`, dans
   `<dossier>`. `--references` est obligatoire, sans défaut : sans lui, code 64. Au dépôt de données, ce

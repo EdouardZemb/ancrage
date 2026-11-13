@@ -209,6 +209,25 @@ describe('Heute', () => {
     expect(contexte.enregistrer).toHaveBeenCalledWith('e2000001', true, 'saisie');
   });
 
+  it('une_carte_inverse_tapee_est_enregistree_avec_le_mode_saisie', () => {
+    const memoire = new Map<string, unknown>();
+    const contexte = contexteDe({ memoire });
+    contexte.preferences = {
+      ...contexte.preferences,
+      cartes: { ...contexte.preferences.cartes, saisie: true },
+    };
+    amorcer(contexte, memoire, [`${HERZ}:inverse`]);
+    rendreDansLeCours(<Heute />, contexte);
+
+    fireEvent.input(screen.getByLabelText(t.cartes_saisie_etiquette), {
+      target: { value: 'Herz' },
+    });
+    cliquer(t.cartes_verifier);
+    cliquer(t.cartes_suivante);
+
+    expect(contexte.enregistrer).toHaveBeenCalledExactlyOnceWith(`${HERZ}:inverse`, true, 'saisie');
+  });
+
   it('la_premiere_reponse_jugee_fait_deja_une_seance_en_cours', () => {
     const memoire = new Map<string, unknown>();
     const contexte = contexteDe({ memoire });

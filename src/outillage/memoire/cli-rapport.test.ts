@@ -4,7 +4,11 @@ import { expect, test } from 'vitest';
 import type { Evenement } from '../../domaine/journal/evenement.js';
 import { executer } from './cli-rapport.js';
 import { coursDExemple, DOSSIER_EXEMPLE, journalDeCours } from './cours-exemple.fixture.js';
-import { ecrireJournal, installerDossierTemporaire } from './ecrire-journal.fixture.js';
+import {
+  ecrireJournal,
+  installerDossierTemporaire,
+  passerEnWal,
+} from './ecrire-journal.fixture.js';
 
 const dossierDuTest = installerDossierTemporaire();
 const base = () => path.join(dossierDuTest(), 'copie.sqlite');
@@ -40,9 +44,9 @@ const arguments_ = (...en: string[]) => [
   ...en,
 ];
 
-function actif(personne: number): Evenement[] {
+function actif(personne: number, debut = '2026-02-01'): Evenement[] {
   return journalDeCours(cours, {
-    debut: '2026-02-01',
+    debut,
     jours: 28,
     parJour: 30,
     graine: personne,
@@ -216,13 +220,28 @@ test('un_rapport_de_personne_dit_l_accord_et_ne_nomme_personne', async () => {
 });
 
 test('la_date_d_examen_du_manifeste_sert_a_defaut_de_jusquau', async () => {
-  preparer();
+  // Trois personnes actives au jour du rapport : leurs journaux finissent le 28/03/2030, dans les 28 jours.
+  ecrireJournal(
+    base(),
+    [1, 2, 3].map((personne) => actif(personne, '2030-03-01')),
+  );
   const sansOption = arguments_().filter(
     (a, i, tous) => a !== '--jusquau' && tous[i - 1] !== '--jusquau',
   );
-  // Le rapport est daté de deux mois avant l'examen de l'exemple : la projection reste courte.
-  const resultat = await lancerLe('2030-05-01', ...sansOption);
+  // Le rapport est daté de trois mois avant l'examen de l'exemple : la projection reste courte.
+  const resultat = await lancerLe('2030-04-05', ...sansOption);
   expect(resultat.code).toBe(0);
   // Le manifeste de l'exemple fixe l'examen au 30/06/2030.
   expect(fs.readFileSync(sortie(), 'utf8')).toContain('examen le 30/06/2030');
+});
+
+test('une_copie_brute_en_wal_rend_1_et_dit_vacuum_into_sans_rien_creer', async () => {
+  preparer();
+  passerEnWal(base());
+  const avant = fs.readdirSync(dossierDuTest()).sort();
+  const resultat = await lancer(...arguments_());
+  expect(resultat.code).toBe(1);
+  expect(resultat.texte).toContain('VACUUM INTO');
+  rienEcrit();
+  expect(fs.readdirSync(dossierDuTest()).sort()).toEqual(avant);
 });

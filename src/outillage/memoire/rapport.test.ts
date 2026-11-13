@@ -52,7 +52,7 @@ test('un_rapport_ne_charge_rien_du_reseau_et_n_a_aucun_script', () => {
   }
 });
 
-test('moins_de_trois_personnes_actives_le_rapport_s_arrete_aux_totaux', () => {
+test('moins_de_trois_personnes_actives_le_rapport_ne_garde_que_le_nombre_d_elements', () => {
   const html = rapport([
     actif(1),
     actif(2),
@@ -62,10 +62,65 @@ test('moins_de_trois_personnes_actives_le_rapport_s_arrete_aux_totaux', () => {
   expect(html).not.toContain('<svg');
   expect(html).not.toContain('de justes');
   expect(html).not.toContain('Leitner');
-  // Les totaux : 2 × 28 × 30 + 10 réponses sur 80 éléments.
-  expect(html).toContain('1 690');
+  // Le nombre d'éléments du cours, et rien qui décrive une personne : ni total de réponses
+  // (2 × 28 × 30 + 10 = 1 690), ni premier ou dernier jour du journal.
+  expect(html).toContain('Éléments à savoir');
   expect(html).toContain('80');
-  expect(html).toContain('01/02/2026');
+  expect(html).not.toContain('1 690');
+  expect(html).not.toContain('01/02/2026');
+  expect(html).not.toContain('28/02/2026');
+  expect(html).toContain('ne garde donc que ce qui ne distingue personne');
+});
+
+test('une_personne_active_et_deux_comptes_anciens_ne_font_pas_un_rapport_complet', () => {
+  // A répond 30 fois par jour pendant deux mois ; B et C, 25 fois un seul jour, bien avant.
+  const ancien = (personne: number) =>
+    journalDeCours(cours, {
+      debut: '2025-11-01',
+      jours: 1,
+      parJour: 25,
+      graine: personne,
+      personne,
+    });
+  const html = rapport([
+    journalDeCours(cours, {
+      debut: '2026-01-06',
+      jours: 56,
+      parJour: 30,
+      graine: 1,
+      personne: 1,
+    }),
+    ancien(2),
+    ancien(3),
+  ]);
+  expect(html).toContain('moins de trois personnes actives');
+  expect(html).not.toContain('<svg');
+  expect(html).not.toContain('Semaine du');
+  expect(html).not.toContain('06/01/2026');
+});
+
+test('une_case_de_deux_personnes_et_cent_reponses_est_omise_d_un_rapport_d_ensemble', () => {
+  const journaux = troisActives();
+  // Deux personnes, 50 réponses « pointage » chacune, le 1er mars : 100 réponses de 2 personnes.
+  for (const rang of [0, 1]) {
+    const rares = Array.from({ length: 50 }, (_, n) =>
+      reponseInventee(
+        Date.UTC(2026, 2, 1, 9, 0, n),
+        700_000 + rang * 100 + n,
+        'xyv4pn7g',
+        true,
+        cours.cours.id,
+        'pointage',
+      ),
+    );
+    journaux[rang] = [...(journaux[rang] ?? []), ...rares];
+  }
+  const html = rapport(journaux);
+  expect(html).not.toContain('Point touché');
+  expect(html).not.toContain('Autres modes');
+  expect(html).not.toMatch(/1 mars : /);
+  // Le jour d'avant, trois personnes et 90 réponses : dessiné.
+  expect(html).toMatch(/28 févr\. : 30 réponses/);
 });
 
 test('un_seul_journal_sans_accord_est_un_rapport_limite', () => {

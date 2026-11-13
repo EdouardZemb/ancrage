@@ -1,6 +1,8 @@
 # ADR-0012 — L'ordonnancement des révisions : FSRS-6, par `ts-fsrs`, choisi cours par cours
 
-- **Statut** : accepté le 2026-11-11
+- **Statut** : accepté le 2026-11-11 ; précisé le 2026-11-12 par l'ADR-0013 sur deux points, les poids
+  de FSRS (ajustés sur le journal d'un cours, puis inscrits au manifeste) et la signature de
+  l'ordonnanceur
 - **Contexte amont** : issue 5 du dépôt (lot M1) ; ADR-0004 (le journal et les règles de Leitner) ;
   décisions M1-D1 à M1-D4 de la spec du lot. Il remplace, pour un cours qui choisit FSRS, les
   règles de Leitner de l'ADR-0004 (« Règles reprises du prototype »), sans réécrire cet ADR.

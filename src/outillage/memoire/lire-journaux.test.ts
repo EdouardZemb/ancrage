@@ -4,12 +4,14 @@ import { expect, test } from 'vitest';
 import { ouvrirBase } from '../../serveur/base/base.js';
 import {
   COURS_DE_TEST,
+  copierParVacuum,
   ecrireJournal,
   installerDossierTemporaire,
   journalSimule,
+  passerEnWal,
   reponseInventee,
 } from './ecrire-journal.fixture.js';
-import { lireJournalDe, lireJournaux } from './lire-journaux.js';
+import { BaseEnWal, lireJournalDe, lireJournaux } from './lire-journaux.js';
 
 const dossierDuTest = installerDossierTemporaire();
 const base = () => path.join(dossierDuTest(), 'copie.sqlite');
@@ -133,4 +135,29 @@ test('un_identifiant_inconnu_ou_un_autre_cours_donne_un_journal_vide', () => {
   const personnes = ecrireJournal(base(), [journalSimule({ unites: 2, passages: 3, graine: 13 })]);
   expect(lireJournalDe(base(), COURS_DE_TEST, 'personne-inconnue')).toEqual([]);
   expect(lireJournalDe(base(), 'z9999999', personnes[0]?.id ?? '')).toEqual([]);
+});
+
+test('une_copie_brute_d_une_base_en_wal_est_refusee_sans_rien_creer_a_cote', () => {
+  ecrireJournal(base(), [journalSimule({ unites: 2, passages: 3, graine: 6 })]);
+  passerEnWal(base());
+  // L'en-tête dit le mode : octets 18 et 19 à 2. Rien de plus que le fichier ne doit rester à côté.
+  const entete = fs.readFileSync(base()).subarray(18, 20);
+  expect([...entete]).toEqual([2, 2]);
+  const avant = fs.readdirSync(dossierDuTest()).sort();
+
+  expect(() => lireJournaux(base(), COURS_DE_TEST)).toThrow(BaseEnWal);
+  expect(() => lireJournalDe(base(), COURS_DE_TEST, 'personne-inventee-1')).toThrow(BaseEnWal);
+
+  expect(fs.readdirSync(dossierDuTest()).sort()).toEqual(avant);
+  expect(avant.some((nom) => nom.endsWith('-shm') || nom.endsWith('-wal'))).toBe(false);
+});
+
+test('une_copie_par_vacuum_into_d_une_base_en_wal_se_lit', () => {
+  const source = path.join(dossierDuTest(), 'source.sqlite');
+  const copie = path.join(dossierDuTest(), 'copie-vacuum.sqlite');
+  ecrireJournal(source, [journalSimule({ unites: 2, passages: 3, graine: 7 })]);
+  passerEnWal(source);
+  copierParVacuum(source, copie);
+  expect([...fs.readFileSync(copie).subarray(18, 20)]).toEqual([1, 1]);
+  expect(lireJournaux(copie, COURS_DE_TEST).journaux).toHaveLength(1);
 });

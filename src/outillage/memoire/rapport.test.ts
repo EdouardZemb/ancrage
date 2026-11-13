@@ -465,7 +465,8 @@ test('un_rapport_d_ensemble_n_imprime_aucun_nombre_de_reponses_par_ligne', () =>
 test('la_mediane_se_dit_sur_la_page', () => {
   const html = rapport(troisActives());
   expect(html).toContain('Tout le cours est vu le (personne médiane)');
-  expect(html).toContain('Minutes par jour (personne médiane)');
+  expect(html).toContain('Minutes par jour (au rythme de la personne médiane)');
+  expect(html).toContain('min par jour, au rythme de la personne médiane');
   expect(html).toContain('celui de la personne médiane');
   expect(html).toContain('Ce que cela ne garantit pas');
 });
@@ -529,4 +530,63 @@ test('la_projection_ne_lit_que_les_moments_affiches', () => {
   const fausse = lignesDeLeitner(rapport([...troisActives(), quatrieme(false)]));
   expect(juste).toHaveLength(4);
   expect(juste).toEqual(fausse);
+});
+
+// Quatrième tour : les largeurs et la médiane d'un rapport d'ensemble.
+
+test('les_boites_d_un_rapport_d_ensemble_sont_des_pourcentages_entiers_qui_font_cent', () => {
+  const html = rapport(troisActives());
+  const boites = html.slice(html.indexOf('aria-label="Les éléments du cours par boîte"'));
+  const pourcents = [...boites.matchAll(/<title>Boîte[^<]*: (\d+) %<\/title>/g)].map((m) =>
+    Number(m[1]),
+  );
+  expect(pourcents.length).toBeGreaterThan(1);
+  const somme = pourcents.reduce((s, n) => s + n, 0);
+  // Des pourcentages entiers, qui font cent à l'arrondi près : jamais des comptes d'éléments.
+  expect(somme).toBeGreaterThanOrEqual(98);
+  expect(somme).toBeLessThanOrEqual(102);
+  // Chaque largeur suit son pourcentage : (720 - 2 par écart) × part.
+  const largeurs = [...boites.matchAll(/<rect class="b\d" x="[\d.]+" y="0" width="([\d.]+)"/g)].map(
+    (m) => Number(m[1]),
+  );
+  const utile = 720 - 2 * (pourcents.length - 1);
+  expect(largeurs).toHaveLength(pourcents.length);
+  pourcents.forEach((pourcent, i) => {
+    expect(largeurs[i]).toBeCloseTo((utile * pourcent) / somme, 1);
+  });
+});
+
+test('les_barres_de_reussite_d_un_rapport_d_ensemble_ont_la_largeur_d_un_pourcentage_entier', () => {
+  const html = rapport(troisActives());
+  const barres = [
+    ...html.matchAll(
+      /<rect class="s[12]" x="200" y="[\d.]+" width="([\d.]+)" height="14"[^>]*><title>[^<]*: (\d+) % de justes<\/title>/g,
+    ),
+  ];
+  expect(barres.length).toBeGreaterThan(3);
+  for (const [, largeur, pourcent] of barres) {
+    // 400 de large pour 100 % : 4 par point, sans décimale d'un pourcentage plus précis.
+    expect(Number(largeur)).toBe(4 * Number(pourcent));
+  }
+});
+
+test('l_ecart_median_est_celui_de_la_personne_mediane_et_non_celui_de_toutes_les_reponses', () => {
+  // Une personne répond à 60 secondes d'écart (60 écarts), les deux autres à 100 secondes (20
+  // écarts chacune). Mêlés, la moitié des écarts valent 60 : la médiane mêlée est 60. Les écarts
+  // médians de chaque personne sont 60, 100 et 100 : celui de la personne médiane est 100.
+  const unites = idsDesPosables(cours);
+  const suite = (reponses: number, ecart: number) =>
+    Array.from({ length: reponses }, (_, i) => {
+      rangDeTest += 1;
+      return reponseInventee(
+        Date.UTC(2026, 1, 20, 8, 0, i * ecart),
+        rangDeTest,
+        unites[i % unites.length] ?? 'xyv4pn7g',
+        true,
+        cours.cours.id,
+      );
+    });
+  const html = rapport([suite(61, 60), suite(21, 100), suite(21, 100)]);
+  expect(html).toContain('(100 secondes)');
+  expect(html).not.toContain('(60 secondes)');
 });

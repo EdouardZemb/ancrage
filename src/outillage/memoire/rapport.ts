@@ -518,7 +518,7 @@ export function construireRapport(donnees: DonneesDuRapport): string {
     tuile(
       nombre(environ(tete.projection.chargeMoyenne)),
       `réponses par jour à tenir${personne ? '' : ', par personne'}`,
-      `${minutes === null ? 'durée inconnue' : `environ ${nombre(Math.round(minutes))} min par jour`} · ${echapper(tete.nom)}`,
+      `${minutes === null ? 'durée inconnue' : `environ ${nombre(Math.round(minutes))} min par jour${personne ? '' : ', au rythme de la personne médiane'}`} · ${echapper(tete.nom)}`,
     );
     tuile(nombre(joursRestants), 'jours avant l’examen');
   }
@@ -623,7 +623,7 @@ ${p(`Les barres grises sont les réponses de chaque jour ; les lignes, la moyenn
             'Algorithme',
             personne ? 'Tout le cours est vu le' : 'Tout le cours est vu le (personne médiane)',
             'Réponses par jour',
-            personne ? 'Minutes par jour' : 'Minutes par jour (personne médiane)',
+            personne ? 'Minutes par jour' : 'Minutes par jour (au rythme de la personne médiane)',
             'Sûr à l’examen',
           ],
           scenarios.map((s) => [
@@ -746,7 +746,7 @@ ${li('<strong>Une réponse</strong> est un élément répondu une fois : une car
 ${li(`<strong>La projection</strong> part de l’état du jour et simule jour après jour jusqu’à l’examen : les éléments dus sont répondus, puis les nouveautés sont découvertes dans l’ordre du cours. Le verdict de chaque réponse se tire au hasard, d’une graine fixe, et le résultat est la moyenne de ${nombre(TIRAGES)} tirages : la même graine rend la même projection. Avec Leitner, la réussite est celle observée dans le journal pour la boîte d’avant (0,5 sans donnée affichée) et pour les premières réponses. Une faute se redonne une fois le même jour.`)}
 ${li(`<strong>La ligne FSRS est une hypothèse.</strong> Elle suppose que chaque révision réussit à la rétention visée du cours (${pourcent(memoire?.retention ?? 0.9)}), ce qu’aucune mesure ne vérifie. À côté, la réussite réellement observée à l’échéance, sur les lignes affichées, est de ${observeeALEcheance.reponses === 0 ? 'inconnue (aucune révision à l’échéance affichée)' : `${pourcent(partDeJustes(observeeALEcheance) ?? 0)}${personne ? ` sur ${nombre(observeeALEcheance.reponses)} réponses` : ''}`}.`)}
 ${li(`<strong>Les limites.</strong> ${jourDuJournal === null ? 'Aucun jour n’est détaillé. ' : `Les jours détaillés couvrent ${nombre(jourDuJournal)} jours : une courte durée dit peu de l’oubli à long terme. `}Les taux mêlent les modes d’avant, dont les réponses sans mode. Le cours grandira : la projection ne compte que les éléments d’aujourd’hui (${nombre(elements)}).`)}
-${li(`<strong>Les minutes</strong> viennent de l’écart médian entre deux réponses qui se suivent à moins de deux minutes${personne ? '' : ', celui de la personne médiane (la valeur de l’une des personnes actives, sans dire laquelle)'}${ecartMedian === null ? ' (non communiqué : durée inconnue)' : ` (${nombre(ecartMedian)} secondes)`}.`)}
+${li(`<strong>Les minutes</strong> viennent de l’écart médian entre deux réponses qui se suivent à moins de deux minutes${personne ? '' : ', celui de la personne médiane (la valeur de l’une des personnes actives, sans dire laquelle) ; les minutes par jour sont la charge moyenne multipliée par cet écart'}${ecartMedian === null ? ' (non communiqué : durée inconnue)' : ` (${nombre(ecartMedian)} secondes)`}.`)}
 ${li(
   personne
     ? `Document privé : il décrit la progression d’une personne. Accord donné le ${echapper(accord)}, d’après la déclaration du responsable ; l’outil ne peut pas le contrôler.`

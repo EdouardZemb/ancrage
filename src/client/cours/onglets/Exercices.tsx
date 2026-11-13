@@ -13,8 +13,10 @@
  * détour par un autre onglet les retrouve. Elle recommence au changement de famille. Un choix sans
  * exercice n'a rien à poser : l'onglet le dit, et ne plante pas.
  */
+
 import type { Exercice, FamilleExercices } from '../../../domaine/contenu/modele.js';
 import type { ModuleServiDe } from '../../../domaine/cours/prepare.js';
+import type { ModeDeReponse } from '../../../domaine/journal/evenement.js';
 import { reussis } from '../../../domaine/progression/statistiques.js';
 import { choisirExercice } from '../../../domaine/seances/exercices.js';
 import { ChoixDeMode } from '../composants-cours.js';
@@ -71,7 +73,7 @@ function ExercicesDuModule(props: { module: ModuleServiDe<'exercices'> }) {
 
   const { tirage, reponse } = serie;
 
-  const repondre = (jugee: ReponseDExercice) => {
+  const repondre = (jugee: ReponseDExercice, mode: ModeDeReponse) => {
     if (tirage === null || reponse !== null) return;
     setCourante({
       ...serie,
@@ -79,7 +81,7 @@ function ExercicesDuModule(props: { module: ModuleServiDe<'exercices'> }) {
       justes: serie.justes + (jugee.juste ? 1 : 0),
       reponse: jugee,
     });
-    void enregistrer(tirage.exercice.id, jugee.juste);
+    void enregistrer(tirage.exercice.id, jugee.juste, mode);
   };
 
   const exercices = module.familles.flatMap((famille) => famille.exercices);

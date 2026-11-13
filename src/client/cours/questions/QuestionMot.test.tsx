@@ -1,10 +1,12 @@
 // @vitest-environment happy-dom
+
 import { cleanup, fireEvent, screen } from '@testing-library/preact';
 import { useState } from 'preact/hooks';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Mot } from '../../../domaine/contenu/modele.js';
 import type { ModuleServiDe } from '../../../domaine/cours/prepare.js';
 import { hasardDeterministe } from '../../../domaine/hasard.js';
+import type { ModeDeReponse } from '../../../domaine/journal/evenement.js';
 import { contexteDeTest, rendreDansLeCours } from '../contexte-cours.fixture.js';
 import { boutons, texteDe, touche } from '../onglets/onglets.fixture.js';
 import { TEXTES_COURS } from '../textes-cours.js';
@@ -19,7 +21,10 @@ if (trouve === undefined) throw new Error('cours de test changé');
 const gastritis: Mot = trouve;
 
 /** La question avec la tâche qu'un appelant en garderait ; `onTache` reçoit chaque appel. */
-function Posee(props: { depart: TacheDeMot; onTache(t: TacheDeMot, juste?: boolean): void }) {
+function Posee(props: {
+  depart: TacheDeMot;
+  onTache(t: TacheDeMot, jugement?: { juste: boolean; mode: ModeDeReponse }): void;
+}) {
   const [tache, setTache] = useState(props.depart);
   return (
     <QuestionMot
@@ -97,7 +102,7 @@ describe('QuestionMot', () => {
     choisir(sens('x0000001'));
     // La dernière partie : un seul rappel de plus, avec la tâche finie et le verdict.
     expect(onTache).toHaveBeenCalledTimes(2);
-    expect(onTache.mock.calls[1][1]).toBe(true);
+    expect(onTache.mock.calls[1][1]).toEqual({ juste: true, mode: 'choix' });
     expect(onTache.mock.calls[1][0]).toMatchObject({
       etape: 2,
       resultats: [true, true],
@@ -120,7 +125,7 @@ describe('QuestionMot', () => {
       .findIndex((o) => o === sens('x0000001'));
     touche(String(bon + 1));
     expect(onTache).toHaveBeenCalledTimes(2);
-    expect(onTache.mock.calls[1][1]).toBe(false);
+    expect(onTache.mock.calls[1][1]).toEqual({ juste: false, mode: 'choix' });
     expect(onTache.mock.calls[1][0]).toMatchObject({ resultats: [false, true], fini: true });
   });
 
@@ -133,7 +138,7 @@ describe('QuestionMot', () => {
     expect(onTache).toHaveBeenCalledTimes(2);
     fireEvent.click(screen.getByRole('button', { name: t.pruefen }));
     expect(onTache).toHaveBeenCalledTimes(3);
-    expect(onTache.mock.calls[2][1]).toBe(true);
+    expect(onTache.mock.calls[2][1]).toEqual({ juste: true, mode: 'assemblage' });
     expect(onTache.mock.calls[2][0]).toMatchObject({ verifie: { juste: true } });
     expect(screen.getByRole('button', { name: t.mots_naechstes })).toBeTruthy();
   });
@@ -143,7 +148,7 @@ describe('QuestionMot', () => {
     fireEvent.click(tuile('-itis'));
     fireEvent.click(screen.getByRole('button', { name: t.pruefen }));
     expect(onTache).toHaveBeenCalledTimes(2);
-    expect(onTache.mock.calls[1][1]).toBe(false);
+    expect(onTache.mock.calls[1][1]).toEqual({ juste: false, mode: 'assemblage' });
     expect(onTache.mock.calls[1][0]).toMatchObject({ verifie: { juste: false } });
   });
 

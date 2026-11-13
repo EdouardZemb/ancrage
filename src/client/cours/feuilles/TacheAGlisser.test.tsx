@@ -152,9 +152,9 @@ describe('TacheAGlisser', () => {
 
     // Une réponse par paire, sur l'identifiant de la paire, dans l'ordre du papier.
     expect(vi.mocked(contexte.enregistrer).mock.calls).toEqual([
-      ['fb000001', false],
-      ['fb000002', false],
-      ['fb000003', true],
+      ['fb000001', false, 'association'],
+      ['fb000002', false, 'association'],
+      ['fb000003', true, 'association'],
     ]);
     // Chaque case dit juste ou faux ; sous une case fausse, le bon terme.
     expect(zoneDe('Organ im Brustkorb').classList.contains('ko')).toBe(true);
@@ -186,9 +186,9 @@ describe('TacheAGlisser', () => {
     expect(posesDans('Tempo')).toEqual(['tachy-']);
     fireEvent.click(pruefen());
     expect(vi.mocked(contexte.enregistrer).mock.calls).toEqual([
-      ['fb000004', true],
-      ['fb000005', false],
-      ['fb000006', true],
+      ['fb000004', true, 'association'],
+      ['fb000005', false, 'association'],
+      ['fb000006', true, 'association'],
     ]);
     // Chaque zone fausse donne ses bons termes ; chaque terme dit s'il est juste.
     expect(zoneDe('Tempo').classList.contains('ko')).toBe(true);

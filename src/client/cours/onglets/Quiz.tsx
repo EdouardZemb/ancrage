@@ -11,6 +11,7 @@
  * du cours (`useEtatDOnglet`) : un détour par un autre onglet retrouve la même question. Un choix
  * sans carte n'a pas de question : l'onglet le dit, et ne plante pas.
  */
+import type { ModeDeReponse } from '../../../domaine/journal/evenement.js';
 import { unitesDuChoix } from '../../../domaine/seances/cartes.js';
 import {
   elementsTirables,
@@ -81,7 +82,7 @@ export function Quiz() {
   const choisir = (suite: Partial<Preferences['quiz']>) =>
     changerPreferences({ ...preferences, quiz: { ...preferences.quiz, ...suite } });
 
-  const repondre = (i: number, juste: boolean) => {
+  const repondre = (i: number, juste: boolean, mode: ModeDeReponse) => {
     if (question === null) return;
     setCourante({
       ...serie,
@@ -89,7 +90,7 @@ export function Quiz() {
       justes: serie.justes + (juste ? 1 : 0),
       question: { ...question, choisie: i },
     });
-    void enregistrer(question.id, juste);
+    void enregistrer(question.id, juste, mode);
   };
 
   return (

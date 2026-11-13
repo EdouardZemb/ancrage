@@ -10,6 +10,7 @@ import type {
 import { egalStrict, juger } from '../correction.js';
 import type { CoursPrepare, ModuleServiDe } from '../cours/prepare.js';
 import { entier, type Hasard, melanger, tirerPondere, uniquesPar } from '../hasard.js';
+import type { ModeDeReponse } from '../journal/evenement.js';
 import { type EtatUnite, etatDe } from '../progression/etat.js';
 import { choisirExercice } from './exercices.js';
 import {
@@ -137,7 +138,7 @@ export interface CorrectionExamen {
    * Les réponses à journaliser (décision 8), dans l'ordre des questions, une par unité : les
    * questions sur les jetons n'en produisent aucune, et une question sans réponse est fausse.
    */
-  reponses: { unite: string; juste: boolean }[];
+  reponses: { unite: string; juste: boolean; mode: ModeDeReponse }[];
 }
 
 /** `swissGrade` (H:1694) : de 1 à 6 par demi-points ; 6 pour toutes les réponses justes. */
@@ -468,7 +469,7 @@ export function corrigerExamen(
   let points = 0;
   const comptes = new Map<string, { justes: number; total: number }>();
   const fautes: CorrectionExamen['fautes'] = [];
-  const journal = new Map<string, boolean>();
+  const journal = new Map<string, { juste: boolean; mode: ModeDeReponse }>();
 
   examen.questions.forEach((question, rang) => {
     const reponse = reponses[rang];
@@ -484,7 +485,10 @@ export function corrigerExamen(
     if (!juste) fautes.push({ question, donnee: donneeDe(question, reponse) });
 
     const unite = uniteDeQuestion(question);
-    if (unite !== undefined && !journal.has(unite)) journal.set(unite, juste);
+    if (unite !== undefined && !journal.has(unite)) {
+      // Une question à choix se répond par une proposition, les autres par une saisie.
+      journal.set(unite, { juste, mode: question.options === undefined ? 'saisie' : 'choix' });
+    }
   });
 
   const ordre = [
@@ -508,6 +512,6 @@ export function corrigerExamen(
     chapitres: examen.chapitres.length,
     parGroupe,
     fautes,
-    reponses: [...journal].map(([unite, juste]) => ({ unite, juste })),
+    reponses: [...journal].map(([unite, { juste, mode }]) => ({ unite, juste, mode })),
   };
 }

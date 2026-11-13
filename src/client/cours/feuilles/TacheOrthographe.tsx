@@ -24,7 +24,7 @@ export function TacheOrthographe(props: PropsDeTache<'orthographe'>) {
   const verifier = (mot: MotACorriger, saisie: string) => {
     if (saisies[mot.id] !== null || saisie.trim() === '') return;
     changer(mot.id, saisie);
-    onRepondu([{ id: mot.id, juste: egalOrthographe(saisie, mot.reponse) }]);
+    onRepondu([{ id: mot.id, juste: egalOrthographe(saisie, mot.reponse), mode: 'saisie' }]);
   };
 
   return (

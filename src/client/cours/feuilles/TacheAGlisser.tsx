@@ -152,10 +152,15 @@ export function TacheAGlisser(props: PropsDeTache<'appariement' | 'classement'>)
     if (choix !== null && !jugee) deposer(choix, cible, e.detail === 0);
   };
   const verifier = () => {
-    const resultats = resultatsDeTache(termes, etats, ({ id, bonne }) => {
-      const place = placements.get(id);
-      return place === undefined ? undefined : place === bonne;
-    });
+    const resultats = resultatsDeTache(
+      termes,
+      etats,
+      ({ id, bonne }) => {
+        const place = placements.get(id);
+        return place === undefined ? undefined : place === bonne;
+      },
+      'association',
+    );
     if (resultats === undefined) return;
     juger(true);
     onRepondu(resultats);

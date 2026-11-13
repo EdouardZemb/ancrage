@@ -10,7 +10,9 @@
  * détour par un autre onglet les retrouve. Elle recommence au changement d'exercice. Un module sans
  * mot n'a rien à tirer : l'onglet le dit, et ne plante pas.
  */
+
 import type { ModuleServiDe } from '../../../domaine/cours/prepare.js';
+import type { ModeDeReponse } from '../../../domaine/journal/evenement.js';
 import { reussis } from '../../../domaine/progression/statistiques.js';
 import { choisirMot } from '../../../domaine/seances/mots.js';
 import { ChoixDeMode } from '../composants-cours.js';
@@ -65,13 +67,13 @@ function MotsDuModule(props: { module: ModuleServiDe<'morphologie'> }) {
   });
 
   // Un seul rappel par geste (M2-P7) : la tâche, et au geste qui juge le mot, son compte.
-  const surTache = (suivante: TacheDeMot, juste?: boolean) => {
-    if (juste === undefined) {
+  const surTache = (suivante: TacheDeMot, jugement?: { juste: boolean; mode: ModeDeReponse }) => {
+    if (jugement === undefined) {
       setCourante({ ...serie, tache: suivante });
       return;
     }
-    setCourante({ ...comptee(juste), tache: suivante });
-    void enregistrer(suivante.mot.id, juste);
+    setCourante({ ...comptee(jugement.juste), tache: suivante });
+    void enregistrer(suivante.mot.id, jugement.juste, jugement.mode);
   };
 
   const motsReussis = reussis(

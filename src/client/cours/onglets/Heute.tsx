@@ -20,6 +20,7 @@
 import { useMemo, useRef } from 'preact/hooks';
 import type { CoursPrepare } from '../../../domaine/cours/prepare.js';
 import type { Hasard } from '../../../domaine/hasard.js';
+import type { ModeDeReponse } from '../../../domaine/journal/evenement.js';
 import { unitesDuChoix } from '../../../domaine/seances/cartes.js';
 import {
   apresReponseDuJour,
@@ -181,8 +182,8 @@ export function Heute() {
 
   // La dernière réponse enregistrée : la synchronisation attend qu'elle soit rangée.
   const rangement = useRef<Promise<boolean>>(Promise.resolve(true));
-  const ranger = (id: string, juste: boolean) => {
-    rangement.current = enregistrer(id, juste);
+  const ranger = (id: string, juste: boolean, mode: ModeDeReponse) => {
+    rangement.current = enregistrer(id, juste, mode);
     // Le journal ne la montre qu'une fois rangée : l'écran de fin ne compte plus cet élément dû.
     if (juste) reussis.current.add(id);
   };
@@ -204,10 +205,10 @@ export function Heute() {
   // Un geste de plus sur la question de tête, sans la juger.
   const poser = (suivante: QuestionDeTete) => setCourante({ ...etat, question: suivante });
   // Le geste qui juge la question de tête : elle, son verdict et l'enregistrement d'un bloc.
-  const juger = (suivante: QuestionDeTete, juste: boolean) => {
+  const juger = (suivante: QuestionDeTete, juste: boolean, mode: ModeDeReponse) => {
     if (tete === undefined || repondue !== null) return;
     setCourante({ ...etat, question: suivante, repondue: juste });
-    ranger(tete.id, juste);
+    ranger(tete.id, juste, mode);
   };
   // La suite, une fois la question jugée.
   const suivante = () => {
@@ -278,9 +279,9 @@ export function Heute() {
           saisie={preferences.cartes.saisie}
           etat={question.etat}
           onEtat={(suite) => poser({ genre: 'carte', etat: suite })}
-          onReponse={(juste) => {
+          onReponse={(juste, mode) => {
             // Réponse et suite ne font qu'un geste : la file avance dans la même écriture.
-            ranger(tete.id, juste);
+            ranger(tete.id, juste, mode);
             setCourante(avancer(juste));
           }}
         />
@@ -289,10 +290,10 @@ export function Heute() {
         <QuestionMot
           module={cours.morphologie}
           tache={question.tache}
-          onTache={(suite, juste) =>
-            juste === undefined
+          onTache={(suite, jugement) =>
+            jugement === undefined
               ? poser({ genre: 'mot', tache: suite })
-              : juger({ genre: 'mot', tache: suite }, juste)
+              : juger({ genre: 'mot', tache: suite }, jugement.juste, jugement.mode)
           }
           onSuivante={suivante}
           libelleSuivante={t.suivante}
@@ -303,10 +304,11 @@ export function Heute() {
           schema={tete.schema}
           mode="benennen"
           tache={question.tache}
-          repondre={(j) =>
+          repondre={(j, mode) =>
             juger(
               { genre: 'point', tache: { ...question.tache, choisi: j } },
               j === question.tache.cible,
+              mode,
             )
           }
           suivante={suivante}
@@ -317,7 +319,7 @@ export function Heute() {
           famille={tete.famille}
           exercice={tete.exercice}
           reponse={question.reponse}
-          onReponse={(reponse) => juger({ genre: 'exercice', reponse }, reponse.juste)}
+          onReponse={(reponse, mode) => juger({ genre: 'exercice', reponse }, reponse.juste, mode)}
           onSuivante={suivante}
         />
       )}
@@ -325,8 +327,8 @@ export function Heute() {
         <QuestionAChoix
           question={question.question}
           libelleSuivante={t.suivante}
-          onChoix={(i, juste) =>
-            juger({ genre: 'fermee', question: { ...question.question, choisie: i } }, juste)
+          onChoix={(i, juste, mode) =>
+            juger({ genre: 'fermee', question: { ...question.question, choisie: i } }, juste, mode)
           }
           onSuivante={suivante}
         />

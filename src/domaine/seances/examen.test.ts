@@ -967,6 +967,7 @@ it('non_repondue_comptee_fausse_et_journalisee', () => {
     examen.questions.map((q) => ({
       unite: q.genre === 'carte' ? q.unite.id : 'inattendu',
       juste: false,
+      mode: q.options === undefined ? 'saisie' : 'choix',
     })),
   );
   expect(correction.fautes.map((f) => f.question)).toEqual(examen.questions);
@@ -986,9 +987,9 @@ it('reponse_manquante_au_milieu_est_fausse_les_autres_comptent', () => {
 
   expect(correction.points).toBe(1);
   expect(correction.reponses).toEqual([
-    { unite: 'c1000001', juste: true },
-    { unite: 'c1000002', juste: false },
-    { unite: 'c1000003', juste: false },
+    { unite: 'c1000001', juste: true, mode: 'choix' },
+    { unite: 'c1000002', juste: false, mode: 'choix' },
+    { unite: 'c1000003', juste: false, mode: 'choix' },
   ]);
 });
 
@@ -1003,7 +1004,7 @@ it('jetons_sans_reponse_journalisee', () => {
   // Les jetons comptent dans la note (2 justes sur 4) mais ne produisent aucune réponse.
   expect(correction.points).toBe(2);
   expect(correction.questions).toBe(4);
-  expect(correction.reponses).toEqual([{ unite: 'c1000001', juste: true }]);
+  expect(correction.reponses).toEqual([{ unite: 'c1000001', juste: true, mode: 'choix' }]);
   expect(correction.fautes.map((f) => f.question)).toEqual([faux, sautee]);
   expect(correction.fautes.map((f) => f.donnee)).toEqual(['y', undefined]);
 });
@@ -1048,8 +1049,8 @@ it('une_reponse_par_unite_la_premiere_fait_foi', () => {
   // Les trois questions comptent dans la note, mais l'unité `c1000001` n'a qu'une réponse.
   expect(correction.points).toBe(2);
   expect(correction.reponses).toEqual([
-    { unite: 'c1000001', juste: false },
-    { unite: 'c1000001:inverse', juste: true },
+    { unite: 'c1000001', juste: false, mode: 'choix' },
+    { unite: 'c1000001:inverse', juste: true, mode: 'saisie' },
   ]);
 });
 
@@ -1257,13 +1258,13 @@ it('correction_groupe_feuilles', () => {
   expect(correction.points).toBe(4);
   // Chaque élément reçoit sa réponse sous son propre identifiant, et compte pour sa fiche (F1-D3).
   expect(correction.reponses).toEqual([
-    { unite: 'fb000007', juste: true },
-    { unite: 'c1000001', juste: false },
-    { unite: 'fb000008', juste: true },
-    { unite: 'fb000009', juste: false },
-    { unite: 'e2000001', juste: true },
-    { unite: 'fb000011', juste: true },
-    { unite: 'fb000012', juste: false },
+    { unite: 'fb000007', juste: true, mode: 'choix' },
+    { unite: 'c1000001', juste: false, mode: 'choix' },
+    { unite: 'fb000008', juste: true, mode: 'choix' },
+    { unite: 'fb000009', juste: false, mode: 'choix' },
+    { unite: 'e2000001', juste: true, mode: 'saisie' },
+    { unite: 'fb000011', juste: true, mode: 'saisie' },
+    { unite: 'fb000012', juste: false, mode: 'saisie' },
   ]);
   for (const { unite } of correction.reponses) {
     expect(cours.unitesConnues.has(unite), unite).toBe(true);

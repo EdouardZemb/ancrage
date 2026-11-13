@@ -19,6 +19,7 @@ import {
   creerIdEvenement,
   type Evenement,
   fusionnerEvenements,
+  type ModeDeReponse,
   type ResultatExamen,
   VERSION_EVENEMENT,
 } from '../../domaine/journal/evenement.js';
@@ -68,7 +69,7 @@ export type Progression = Pick<
 const OCTETS_ALEATOIRES = 10;
 
 type Corps =
-  | { type: 'reponse'; unite: string; resultat: { juste: boolean } }
+  | { type: 'reponse'; unite: string; resultat: { juste: boolean; mode: ModeDeReponse } }
   | { type: 'examen'; unite: string; resultat: ResultatExamen };
 
 /** L'horodatage de `instant` à l'heure locale de l'appareil, avec son décalage. */
@@ -240,14 +241,17 @@ export function useProgression(personne: string, cours: CoursPrepare): Progressi
   );
 
   const enregistrer = useCallback(
-    (unite: string, juste: boolean) =>
-      ranger([evenementA(id, Date.now(), { type: 'reponse', unite, resultat: { juste } })]),
+    (unite: string, juste: boolean, mode: ModeDeReponse) =>
+      ranger([evenementA(id, Date.now(), { type: 'reponse', unite, resultat: { juste, mode } })]),
     [id, ranger],
   );
 
   const examen = cours.examen;
   const enregistrerExamen = useCallback(
-    async (resultat: ResultatExamen, reponses: readonly { unite: string; juste: boolean }[]) => {
+    async (
+      resultat: ResultatExamen,
+      reponses: readonly { unite: string; juste: boolean; mode: ModeDeReponse }[],
+    ) => {
       if (examen === undefined) {
         throw new Error("Ce cours n'a pas de module d'examen.");
       }
@@ -255,8 +259,8 @@ export function useProgression(personne: string, cours: CoursPrepare): Progressi
       // les réponses d'abord, l'examen ensuite, quels que soient les `id` tirés.
       const debut = Date.now();
       return ranger([
-        ...reponses.map(({ unite, juste }, i) =>
-          evenementA(id, debut + i, { type: 'reponse', unite, resultat: { juste } }),
+        ...reponses.map(({ unite, juste, mode }, i) =>
+          evenementA(id, debut + i, { type: 'reponse', unite, resultat: { juste, mode } }),
         ),
         evenementA(id, debut + reponses.length, { type: 'examen', unite: examen.id, resultat }),
       ]);

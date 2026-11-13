@@ -37,7 +37,7 @@ describe('Mots, un seul rappel par geste (M2-P7)', () => {
     expect(document.querySelectorAll('.word .seg.ok')).toHaveLength(mot.segments.length);
     expect(progression()).toContain('1 / 1 richtig');
     expect(contexte.enregistrer).toHaveBeenCalledTimes(1);
-    expect(contexte.enregistrer).toHaveBeenCalledWith(mot.id, true);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(mot.id, true, 'choix');
     fireEvent.click(screen.getByRole('button', { name: t.mots_naechstes }));
     expect(progression()).toContain('1 / 1 richtig');
   });

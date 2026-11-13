@@ -49,15 +49,15 @@ describe('QuestionDExercice', () => {
     expect(screen.getByText(t.exercices_hinweis)).toBeTruthy();
     fireEvent.click(boutons().find((b) => texteDe(b) === 'der') as HTMLButtonElement);
     expect(onReponse).toHaveBeenCalledTimes(1);
-    expect(onReponse).toHaveBeenCalledWith({ juste: true, donnee: 'der' });
+    expect(onReponse).toHaveBeenCalledWith({ juste: true, donnee: 'der' }, 'choix');
     fireEvent.click(boutons().find((b) => texteDe(b) === 'das') as HTMLButtonElement);
-    expect(onReponse).toHaveBeenLastCalledWith({ juste: false, donnee: 'das' });
+    expect(onReponse).toHaveBeenLastCalledWith({ juste: false, donnee: 'das' }, 'choix');
   });
 
   it('les_touches_choisissent_l_option_de_meme_rang', () => {
     const { onReponse } = poser(ARTICLES, A_OPTIONS);
     touche('2');
-    expect(onReponse).toHaveBeenCalledWith({ juste: false, donnee: 'die' });
+    expect(onReponse).toHaveBeenCalledWith({ juste: false, donnee: 'die' }, 'choix');
   });
 
   it('un_exercice_a_saisie_juge_a_la_graphie_exacte', () => {
@@ -65,13 +65,13 @@ describe('QuestionDExercice', () => {
     expect(boutons()).toHaveLength(0);
     repondreParSaisie('Musteris');
     expect(onReponse).toHaveBeenCalledTimes(1);
-    expect(onReponse).toHaveBeenCalledWith({ juste: false, donnee: 'Musteris' });
+    expect(onReponse).toHaveBeenCalledWith({ juste: false, donnee: 'Musteris' }, 'saisie');
   });
 
   it('un_exercice_a_saisie_juste_appelle_onReponse_juste', () => {
     const { onReponse } = poser(PLURAL, A_SAISIE);
     repondreParSaisie('Musteri');
-    expect(onReponse).toHaveBeenCalledWith({ juste: true, donnee: 'Musteri' });
+    expect(onReponse).toHaveBeenCalledWith({ juste: true, donnee: 'Musteri' }, 'saisie');
   });
 
   it('repondu_montre_le_verdict_complete_l_article_et_ne_repond_plus', () => {

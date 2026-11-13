@@ -153,7 +153,7 @@ describe('useProgression', () => {
     const base = await afficher();
 
     await act(async () => {
-      await progression().enregistrer('c1000001:inverse', true);
+      await progression().enregistrer('c1000001:inverse', true, 'retournee');
     });
 
     const [evenement] = progression().evenements;
@@ -163,7 +163,7 @@ describe('useProgression', () => {
       cours: ID,
       unite: 'c1000001:inverse',
       type: 'reponse',
-      resultat: { juste: true },
+      resultat: { juste: true, mode: 'retournee' },
       appareil: identifiantAppareil(),
       v: 1,
     });
@@ -179,6 +179,35 @@ describe('useProgression', () => {
     expect(synchroniserCours).toHaveBeenCalledTimes(1);
   });
 
+  it('enregistrer_range_le_mode_dans_le_resultat_et_l_examen_celui_de_chaque_reponse', async () => {
+    const base = await afficher();
+
+    await act(async () => {
+      await progression().enregistrer('c1000001', false, 'corrigee');
+      await progression().enregistrerExamen(
+        { points: 1, questions: 2, note: 3.5, minutes: 5, chapitres: 2 },
+        [
+          { unite: 'c2000001', juste: true, mode: 'choix' },
+          { unite: 'w0000001', juste: false, mode: 'saisie' },
+        ],
+      );
+    });
+
+    const evenements = await evenementsDuCours(base, ALICE, ID);
+    expect(evenements.every((e) => schemaEvenement.safeParse(e).success)).toBe(true);
+    expect(
+      evenements
+        .filter(({ type }) => type === 'reponse')
+        .map(({ unite, resultat }) => [unite, resultat]),
+    ).toEqual([
+      ['c1000001', { juste: false, mode: 'corrigee' }],
+      ['c2000001', { juste: true, mode: 'choix' }],
+      ['w0000001', { juste: false, mode: 'saisie' }],
+    ]);
+    // L'événement d'examen ne porte pas de mode.
+    expect(evenements.find(({ type }) => type === 'examen')?.resultat).not.toHaveProperty('mode');
+  });
+
   it('rangement_echoue_rend_faux_et_signale_l_erreur', async () => {
     const base = await afficher();
     expect(progression().erreurEnregistrement).toBe(false);
@@ -188,7 +217,7 @@ describe('useProgression', () => {
     // Le stockage refuse (la base de la page est indisponible) : ni rejet, ni trace dans le journal.
     page.base = undefined;
     await act(async () => {
-      rangee = await progression().enregistrer('c1000001', true);
+      rangee = await progression().enregistrer('c1000001', true, 'retournee');
     });
     expect(rangee).toBe(false);
     expect(progression().erreurEnregistrement).toBe(true);
@@ -198,7 +227,7 @@ describe('useProgression', () => {
     // L'examen remis de même.
     await act(async () => {
       rangee = await progression().enregistrerExamen(resultat, [
-        { unite: 'c2000001', juste: true },
+        { unite: 'c2000001', juste: true, mode: 'choix' },
       ]);
     });
     expect(rangee).toBe(false);
@@ -208,7 +237,7 @@ describe('useProgression', () => {
     // Le stockage revient : la réponse suivante est rangée, et l'erreur s'efface.
     page.base = base;
     await act(async () => {
-      rangee = await progression().enregistrer('c1000001', true);
+      rangee = await progression().enregistrer('c1000001', true, 'retournee');
     });
     expect(rangee).toBe(true);
     expect(progression().erreurEnregistrement).toBe(false);
@@ -221,13 +250,13 @@ describe('useProgression', () => {
     let rangee: boolean | undefined;
 
     await act(async () => {
-      rangee = await progression().enregistrer('c1000001', false);
+      rangee = await progression().enregistrer('c1000001', false, 'retournee');
     });
     expect(rangee).toBe(true);
     await act(async () => {
       rangee = await progression().enregistrerExamen(
         { points: 1, questions: 1, note: 4, minutes: 5, chapitres: 1 },
-        [{ unite: 'c1000001', juste: true }],
+        [{ unite: 'c1000001', juste: true, mode: 'choix' }],
       );
     });
     expect(rangee).toBe(true);
@@ -240,8 +269,8 @@ describe('useProgression', () => {
 
     await act(async () => {
       await progression().enregistrerExamen(resultat, [
-        { unite: 'c2000001', juste: true },
-        { unite: 'w0000001', juste: false },
+        { unite: 'c2000001', juste: true, mode: 'choix' },
+        { unite: 'w0000001', juste: false, mode: 'saisie' },
       ]);
     });
 
@@ -268,11 +297,11 @@ describe('useProgression', () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
 
     await act(async () => {
-      await progression().enregistrer('c1000001', true);
+      await progression().enregistrer('c1000001', true, 'retournee');
     });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2000);
-      await progression().enregistrer('c1000002', false);
+      await progression().enregistrer('c1000002', false, 'retournee');
       await vi.advanceTimersByTimeAsync(2999);
     });
     // Une seule synchronisation, celle du montage, tant que les réponses se suivent.
@@ -291,7 +320,7 @@ describe('useProgression', () => {
     await waitFor(() => expect(progression().enCours).toBe(false));
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     await act(async () => {
-      await progression().enregistrer('c1000001', true);
+      await progression().enregistrer('c1000001', true, 'retournee');
     });
 
     // L'écran est quitté avant les 3 s : la synchronisation programmée part tout de suite, pour
@@ -308,7 +337,7 @@ describe('useProgression', () => {
     const { unmount } = render(<Sonde personne={ALICE} cours={cours} />);
     await waitFor(() => expect(progression().enCours).toBe(false));
     await act(async () => {
-      await progression().enregistrer('c1000001', true);
+      await progression().enregistrer('c1000001', true, 'retournee');
     });
     vi.mocked(synchroniserCours).mockResolvedValue({ etat: 'hors_ligne', enAttente: 1 });
 

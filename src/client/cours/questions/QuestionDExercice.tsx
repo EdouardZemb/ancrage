@@ -7,6 +7,7 @@
  */
 import type { Exercice, FamilleExercices } from '../../../domaine/contenu/modele.js';
 import { egalStrict } from '../../../domaine/correction.js';
+import type { ModeDeReponse } from '../../../domaine/journal/evenement.js';
 import { useTouches } from '../clavier.js';
 import { classeDeLaQuestion, focaliser, Options, SaisieDeLaReponse } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
@@ -35,7 +36,7 @@ export function QuestionDExercice(props: {
   /** `null` tant que l'exercice attend sa réponse. */
   reponse: ReponseDExercice | null;
   /** La réponse jugée : appelée une fois, tant que l'exercice n'est pas répondu. */
-  onReponse(reponse: ReponseDExercice): void;
+  onReponse(reponse: ReponseDExercice, mode: ModeDeReponse): void;
   onSuivante(): void;
 }) {
   const { famille, exercice, reponse, onReponse, onSuivante } = props;
@@ -44,7 +45,11 @@ export function QuestionDExercice(props: {
 
   const repondre = (donnee: string) => {
     if (reponse !== null) return;
-    onReponse({ juste: egalStrict(donnee, exercice.reponse), donnee });
+    onReponse(
+      { juste: egalStrict(donnee, exercice.reponse), donnee },
+      // Des options : une proposition choisie ; sinon, la réponse est tapée.
+      options === undefined ? 'saisie' : 'choix',
+    );
   };
 
   const touches = Object.fromEntries(

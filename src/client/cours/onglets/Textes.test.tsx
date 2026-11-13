@@ -193,7 +193,7 @@ describe('Textes', () => {
     expect(lignes[0].querySelector('b')?.textContent).toBe('Butter');
     expect(contexte.enregistrer).toHaveBeenCalledTimes(1);
     // 2 réponses justes sur 3, soit moins de 80 % : le texte n'est pas réussi.
-    expect(contexte.enregistrer).toHaveBeenCalledWith(BERICHT_1, false);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(BERICHT_1, false, 'lecture');
     expect(progression()).toBe('0 von 2 Berichten geschafft');
     expect(document.activeElement).toBe(screen.getByRole('button', { name: t.textes_naechster }));
     expect(screen.getByRole('button', { name: t.textes_nochmals })).toBeTruthy();
@@ -211,7 +211,7 @@ describe('Textes', () => {
     expect(document.querySelector('.done > p')?.textContent).toBe(
       '2 von 2 Begriffen richtig übersetzt · 1 von 1 Inhaltsfragen richtig.',
     );
-    expect(contexte.enregistrer).toHaveBeenCalledWith(BERICHT_1, true);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(BERICHT_1, true, 'lecture');
     // Le sélecteur marque d'un ✓ les textes réussis, et le compte les suit.
     const choix = screen.getByLabelText(t.textes_choix) as HTMLSelectElement;
     expect(Array.from(choix.options).map((x) => x.textContent)).toEqual([
@@ -245,7 +245,7 @@ describe('Textes', () => {
     for (let i = 0; i < 4; i++) traduire(juste, true);
     repondre('Gut', false);
     expect(juste.enregistrer).toHaveBeenCalledTimes(1);
-    expect(juste.enregistrer).toHaveBeenCalledWith('t2000001', true);
+    expect(juste.enregistrer).toHaveBeenCalledWith('t2000001', true, 'lecture');
     cleanup();
 
     // Une réponse juste de moins : 3 sur 5, sous le seuil.
@@ -255,7 +255,7 @@ describe('Textes', () => {
     traduire(faux, false);
     repondre('Gut', false);
     expect(faux.enregistrer).toHaveBeenCalledTimes(1);
-    expect(faux.enregistrer).toHaveBeenCalledWith('t2000001', false);
+    expect(faux.enregistrer).toHaveBeenCalledWith('t2000001', false, 'lecture');
   });
 
   it('le_seuil_de_reussite_vient_du_contenu', () => {
@@ -269,7 +269,7 @@ describe('Textes', () => {
       for (let i = 0; i < 3; i++) traduire(contexte, true);
       traduire(contexte, false);
       repondre('Gut', false);
-      expect(contexte.enregistrer).toHaveBeenCalledWith('t2000001', attendu);
+      expect(contexte.enregistrer).toHaveBeenCalledWith('t2000001', attendu, 'lecture');
       cleanup();
     }
 
@@ -278,7 +278,7 @@ describe('Textes', () => {
     rendreDansUnCoursVivant(<Textes />, exigeant);
     for (let i = 0; i < 4; i++) traduire(exigeant, true);
     repondre('Gut', true);
-    expect(exigeant.enregistrer).toHaveBeenCalledWith('t2000001', true);
+    expect(exigeant.enregistrer).toHaveBeenCalledWith('t2000001', true, 'lecture');
   });
 
   it('nochmals_et_naechster_bericht', () => {
@@ -304,7 +304,7 @@ describe('Textes', () => {
     traduire(contexte, false);
     repondre(QUESTION_1.reponse, true);
     expect(contexte.enregistrer).toHaveBeenCalledTimes(2);
-    expect(contexte.enregistrer).toHaveBeenLastCalledWith(BERICHT_1, false);
+    expect(contexte.enregistrer).toHaveBeenLastCalledWith(BERICHT_1, false, 'lecture');
 
     // « Nächster Bericht » : le texte suivant, retenu dans les préférences.
     fireEvent.click(screen.getByRole('button', { name: t.textes_naechster }));
@@ -361,7 +361,7 @@ describe('Textes', () => {
       '2 von 2 Begriffen richtig übersetzt · 0 von 0 Inhaltsfragen richtig.',
     );
     expect(contexte.enregistrer).toHaveBeenCalledTimes(1);
-    expect(contexte.enregistrer).toHaveBeenCalledWith(BERICHT_2, true);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(BERICHT_2, true, 'lecture');
   });
 
   it('texte_sans_terme_commence_par_ses_questions', () => {
@@ -386,7 +386,7 @@ describe('Textes', () => {
     expect(document.querySelector('.done > p')?.textContent).toBe(
       '0 von 0 Begriffen richtig übersetzt · 1 von 1 Inhaltsfragen richtig.',
     );
-    expect(contexte.enregistrer).toHaveBeenCalledWith(BERICHT_1, true);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(BERICHT_1, true, 'lecture');
   });
 
   it('texte_sans_terme_ni_question_n_est_pas_journalise', () => {

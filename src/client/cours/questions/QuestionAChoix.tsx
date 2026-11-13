@@ -5,6 +5,7 @@
  */
 import type { UniteDeCarte } from '../../../domaine/cartes/unites.js';
 import type { Hasard } from '../../../domaine/hasard.js';
+import type { ModeDeReponse } from '../../../domaine/journal/evenement.js';
 import {
   type ElementFerme,
   idDeLElement,
@@ -56,7 +57,7 @@ export function QuestionAChoix(props: {
   /** Le texte du bouton de suite. */
   libelleSuivante: string;
   /** Le choix de l'option `i`, jugé : appelé une fois, tant que la question n'est pas répondue. */
-  onChoix(i: number, juste: boolean): void;
+  onChoix(i: number, juste: boolean, mode: ModeDeReponse): void;
   onSuivante(): void;
 }) {
   const { question, libelleSuivante, onChoix, onSuivante } = props;
@@ -64,7 +65,7 @@ export function QuestionAChoix(props: {
 
   const repondre = (i: number) => {
     if (question.choisie !== null || question.options[i] === undefined) return;
-    onChoix(i, question.options[i] === question.reponse);
+    onChoix(i, question.options[i] === question.reponse, 'choix');
   };
 
   // Un vrai/faux montre « Richtig » et « Falsch » : le domaine ne parle qu'en codes.

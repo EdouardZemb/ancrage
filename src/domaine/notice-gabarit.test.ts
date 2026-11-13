@@ -123,6 +123,11 @@ describe('notice', () => {
         'User-Agent',
         'le code tiré au hasard sur ton appareil, qui ne dit rien de toi',
         'nécessaires au service',
+        // ADR-0013 : le mode de chaque réponse, les statistiques d'ensemble, le suivi avec accord.
+        'la manière dont tu as répondu',
+        'jamais ce que tu as répondu',
+        'statistiques d’ensemble',
+        'Si tu es d’accord, le responsable suit aussi ta progression',
       ],
       de: [
         'die Zahl der Fragen',
@@ -130,6 +135,10 @@ describe('notice', () => {
         'User-Agent',
         'dem zufällig erzeugten Code deines Geräts, der nichts über dich verrät',
         'für den Dienst nötig',
+        'die Art, wie du geantwortet hast',
+        'nie, was du geantwortet hast',
+        'Gesamtstatistiken',
+        'Wenn du einverstanden bist, verfolgt der Verantwortliche auch deinen Lernfortschritt',
       ],
     };
     for (const langue of LANGUES) {

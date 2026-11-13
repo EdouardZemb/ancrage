@@ -75,8 +75,12 @@ export function TacheATrous(props: PropsDeTache<'trous'>) {
   );
   const verifier = () => {
     if (!remplie) return;
-    const resultats = resultatsDeTache(tache.phrases, saisies, (phrase, saisie) =>
-      phraseJuste(saisie, phrase, avecListe),
+    const resultats = resultatsDeTache(
+      tache.phrases,
+      saisies,
+      (phrase, saisie) => phraseJuste(saisie, phrase, avecListe),
+      // Une liste de mots à placer : des propositions ; sans liste, la personne tape.
+      avecListe ? 'choix' : 'saisie',
     );
     juger(true);
     if (resultats !== undefined) onRepondu(resultats);

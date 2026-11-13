@@ -78,8 +78,8 @@ describe('TacheATrous', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Prüfen' }));
 
     expect(onRepondu).toHaveBeenCalledExactlyOnceWith([
-      { id: 'fb000041', juste: false },
-      { id: 'fb000042', juste: true },
+      { id: 'fb000041', juste: false, mode: 'choix' },
+      { id: 'fb000042', juste: true, mode: 'choix' },
     ]);
   });
 
@@ -125,9 +125,9 @@ describe('TacheATrous', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Prüfen' }));
     expect(onRepondu).toHaveBeenCalledExactlyOnceWith([
-      { id: 'fb000061', juste: true },
-      { id: 'fb000062', juste: true },
-      { id: 'fb000063', juste: false },
+      { id: 'fb000061', juste: true, mode: 'choix' },
+      { id: 'fb000062', juste: true, mode: 'choix' },
+      { id: 'fb000063', juste: false, mode: 'choix' },
     ]);
   });
 
@@ -189,8 +189,8 @@ describe('TacheATrous', () => {
     fireEvent.input(champs[1], { target: { value: 'Blut' } });
     fireEvent.click(pruefen());
     expect(onRepondu).toHaveBeenCalledExactlyOnceWith([
-      { id: 'fb000041', juste: true },
-      { id: 'fb000042', juste: true },
+      { id: 'fb000041', juste: true, mode: 'saisie' },
+      { id: 'fb000042', juste: true, mode: 'saisie' },
     ]);
   });
 
@@ -211,8 +211,8 @@ describe('TacheATrous', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Prüfen' }));
 
     expect(onRepondu).toHaveBeenCalledExactlyOnceWith([
-      { id: 'fb000041', juste: false },
-      { id: 'fb000042', juste: true },
+      { id: 'fb000041', juste: false, mode: 'saisie' },
+      { id: 'fb000042', juste: true, mode: 'saisie' },
     ]);
   });
 });

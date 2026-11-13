@@ -120,7 +120,7 @@ describe('Cartes', () => {
     repondre(t.cartes_su);
 
     expect(contexte.enregistrer).toHaveBeenCalledTimes(1);
-    expect(contexte.enregistrer).toHaveBeenCalledWith(HERZ, true);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(HERZ, true, 'retournee');
     expect(progression()).toBe('1 beantwortet · 0 übrig');
     expect(screen.getByRole('heading', { name: t.cartes_serie_finie })).toBeTruthy();
   });
@@ -135,7 +135,11 @@ describe('Cartes', () => {
     retourner();
     repondre(t.cartes_pas_su);
 
-    expect(contexte.enregistrer).toHaveBeenLastCalledWith(IDS_PAR_RECTO[premiere], false);
+    expect(contexte.enregistrer).toHaveBeenLastCalledWith(
+      IDS_PAR_RECTO[premiere],
+      false,
+      'retournee',
+    );
     // Elle reste dans la file, derrière l'autre.
     expect(progression()).toBe('1 beantwortet · 2 übrig');
     expect(enonce()).toBe(autre);
@@ -145,7 +149,7 @@ describe('Cartes', () => {
     retourner();
     repondre(t.cartes_su);
 
-    expect(contexte.enregistrer).toHaveBeenLastCalledWith(IDS_PAR_RECTO[autre], true);
+    expect(contexte.enregistrer).toHaveBeenLastCalledWith(IDS_PAR_RECTO[autre], true, 'retournee');
     expect(progression()).toBe('2 beantwortet · 1 übrig');
     expect(enonce()).toBe(premiere);
 
@@ -181,7 +185,7 @@ describe('Cartes', () => {
     // « Weiter » a le focus : Enter continue.
     expect(document.activeElement).toBe(screen.getByRole('button', { name: t.cartes_suivante }));
     repondre(t.cartes_suivante);
-    expect(contexte.enregistrer).toHaveBeenLastCalledWith(`${HERZ}:inverse`, false);
+    expect(contexte.enregistrer).toHaveBeenLastCalledWith(`${HERZ}:inverse`, false, 'saisie');
 
     // La carte revient, avec un champ vide.
     expect(progression()).toBe('1 beantwortet · 1 übrig');
@@ -195,7 +199,7 @@ describe('Cartes', () => {
     expect(verdict.querySelector('s')?.textContent).toBe('Hertz');
     expect(screen.getByRole('button', { name: t.cartes_aussi_juste })).toBeTruthy();
     repondre(t.cartes_suivante);
-    expect(contexte.enregistrer).toHaveBeenLastCalledWith(`${HERZ}:inverse`, false);
+    expect(contexte.enregistrer).toHaveBeenLastCalledWith(`${HERZ}:inverse`, false, 'saisie');
 
     // Juste : la casse ne compte pas ; ni saisie barrée, ni recours.
     taper('herz');
@@ -206,7 +210,7 @@ describe('Cartes', () => {
     expect(verdict.querySelector('b')?.textContent).toBe('Herz');
     expect(screen.queryByRole('button', { name: t.cartes_aussi_juste })).toBeNull();
     repondre(t.cartes_suivante);
-    expect(contexte.enregistrer).toHaveBeenLastCalledWith(`${HERZ}:inverse`, true);
+    expect(contexte.enregistrer).toHaveBeenLastCalledWith(`${HERZ}:inverse`, true, 'saisie');
 
     expect(contexte.enregistrer).toHaveBeenCalledTimes(3);
     expect(screen.getByText(`1 von 3 richtig. ${t.cartes_retour_des_dues}`)).toBeTruthy();
@@ -231,7 +235,7 @@ describe('Cartes', () => {
 
     // Une seule réponse, juste, sans passer par « Weiter ».
     expect(contexte.enregistrer).toHaveBeenCalledTimes(1);
-    expect(contexte.enregistrer).toHaveBeenCalledWith(`${HERZ}:inverse`, true);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(`${HERZ}:inverse`, true, 'corrigee');
     expect(progression()).toBe('1 beantwortet · 0 übrig');
     expect(screen.getByText(`1 von 1 richtig. ${t.cartes_retour_des_dues}`)).toBeTruthy();
   });
@@ -249,7 +253,7 @@ describe('Cartes', () => {
     expect(verdict.querySelector('s')).toBeNull();
     expect(verdict.querySelector('b')?.textContent).toBe('Herz');
     repondre(t.cartes_suivante);
-    expect(contexte.enregistrer).toHaveBeenCalledWith(`${HERZ}:inverse`, false);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(`${HERZ}:inverse`, false, 'saisie');
   });
 
   it('saisie_seulement_pour_une_inverse_et_si_cochee', () => {
@@ -490,14 +494,22 @@ describe('Cartes', () => {
     expect(screen.getByRole('button', { name: t.cartes_su })).toBeTruthy();
 
     touche('1');
-    expect(contexte.enregistrer).toHaveBeenLastCalledWith(IDS_PAR_RECTO[premiere], false);
+    expect(contexte.enregistrer).toHaveBeenLastCalledWith(
+      IDS_PAR_RECTO[premiere],
+      false,
+      'retournee',
+    );
     expect(progression()).toBe('1 beantwortet · 2 übrig');
     const deuxieme = enonce();
     // Retournée par Enter, comme par l'espace.
     expect(screen.queryByRole('button', { name: t.cartes_su })).toBeNull();
     touche('Enter');
     touche('2');
-    expect(contexte.enregistrer).toHaveBeenLastCalledWith(IDS_PAR_RECTO[deuxieme], true);
+    expect(contexte.enregistrer).toHaveBeenLastCalledWith(
+      IDS_PAR_RECTO[deuxieme],
+      true,
+      'retournee',
+    );
     expect(contexte.enregistrer).toHaveBeenCalledTimes(2);
     expect(progression()).toBe('2 beantwortet · 1 übrig');
   });

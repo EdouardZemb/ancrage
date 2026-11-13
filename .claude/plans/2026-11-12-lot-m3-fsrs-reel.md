@@ -469,20 +469,20 @@ dans la tâche nommée.
   le mode obligatoire à l'appel : `corepack pnpm types` nomme tout appelant oublié.
   `enregistrerExamen` reçoit le mode de chaque réponse.
 
-- [ ] **Étape 1 : les tests, qui échouent**, un par geste de M3-P2 : la carte retournée, la saisie,
+- [x] **Étape 1 : les tests, qui échouent**, un par geste de M3-P2 : la carte retournée, la saisie,
   la saisie déclarée juste, le choix, les tuiles, le point touché, l'appariement, la réponse
   montrée, le bilan d'un texte, et une réponse d'examen de chaque sorte. Chaque composant de
   question dit son mode à son appelant, dans le rappel qui porte déjà le verdict (M2-P7 : un seul
   rappel par geste). À l'examen, le mode se déduit de la question : `saisie` pour une réponse
   tapée, `choix` pour une proposition, question de fiche comprise ; l'événement d'examen lui-même
   n'en porte pas.
-- [ ] **Étape 2 : le code, puis les tests verts.**
-- [ ] **Étape 3 : la notice**, en français puis en allemand : le journal note aussi la manière de
+- [x] **Étape 2 : le code, puis les tests verts.**
+- [x] **Étape 3 : la notice**, en français puis en allemand : le journal note aussi la manière de
   répondre ; les réponses servent à des statistiques d'ensemble pour régler l'application ; avec
   l'accord de la personne, le responsable suit sa progression. `NOTICE_VERSION` prend la date de
   la fusion. Les valeurs de l'exemple (`exemple-contenu/notice.yaml`) suivent. Le test du gabarit
   passe.
-- [ ] **Étape 4 : `corepack pnpm build`, `e2e`, `e2e:mise-a-jour`** : le client de la version
+- [x] **Étape 4 : `corepack pnpm build`, `e2e`, `e2e:mise-a-jour`** : le client de la version
   d'avant, sans mode, continue d'envoyer ses réponses au serveur neuf. Un test de la
   synchronisation prouve l'autre sens (Point de revue 8) : face à un serveur qui refuse le mode,
   la file reste entière, rien n'est perdu, et elle repart dès que le serveur accepte.

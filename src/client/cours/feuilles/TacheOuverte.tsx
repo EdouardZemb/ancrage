@@ -27,7 +27,7 @@ export function TacheOuverte(props: PropsDeTache<'ouverte'>) {
 
   const juger = (question: QuestionOuverte, juste: boolean) => {
     changer(question.id, { montree: true, juste });
-    onRepondu([{ id: question.id, juste }]);
+    onRepondu([{ id: question.id, juste, mode: 'montree' }]);
   };
 
   return (

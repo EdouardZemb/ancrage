@@ -35,7 +35,7 @@ export function TacheAChoix(props: PropsDeTache<'qcm'>) {
     const avant = choix[question.id];
     if (avant.choisie !== null) return;
     changer(question.id, { ...avant, choisie: i });
-    onRepondu([{ id: question.id, juste: avant.options[i] === question.reponse }]);
+    onRepondu([{ id: question.id, juste: avant.options[i] === question.reponse, mode: 'choix' }]);
   };
 
   return (
@@ -78,7 +78,9 @@ export function TacheVraiFaux(props: PropsDeTache<'vrai-faux'>) {
   const choisir = (affirmation: Affirmation, i: number) => {
     if (choix[affirmation.id] !== null) return;
     changer(affirmation.id, CODES[i]);
-    onRepondu([{ id: affirmation.id, juste: (CODES[i] === VRAI) === affirmation.vrai }]);
+    onRepondu([
+      { id: affirmation.id, juste: (CODES[i] === VRAI) === affirmation.vrai, mode: 'choix' },
+    ]);
   };
 
   return (

@@ -51,7 +51,7 @@ describe('QuestionCarte', () => {
     fireEvent.click(screen.getByRole('button', { name: t.cartes_retourner }));
     fireEvent.click(screen.getByRole('button', { name: t.cartes_su }));
     expect(onReponse).toHaveBeenCalledTimes(1);
-    expect(onReponse).toHaveBeenCalledWith(true);
+    expect(onReponse).toHaveBeenCalledWith(true, 'retournee');
   });
 
   it('pas_su_repond_faux_et_les_touches_repondent', () => {
@@ -61,9 +61,9 @@ describe('QuestionCarte', () => {
     expect(onReponse).not.toHaveBeenCalled();
     touche(' ');
     touche('1');
-    expect(onReponse).toHaveBeenLastCalledWith(false);
+    expect(onReponse).toHaveBeenLastCalledWith(false, 'retournee');
     touche('2');
-    expect(onReponse).toHaveBeenLastCalledWith(true);
+    expect(onReponse).toHaveBeenLastCalledWith(true, 'retournee');
   });
 
   it('une_saisie_fausse_montre_le_verdict_et_aussi_juste_repond_juste', () => {
@@ -82,7 +82,7 @@ describe('QuestionCarte', () => {
     expect(screen.getByText('Xyz')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: t.cartes_aussi_juste }));
     expect(onReponse).toHaveBeenCalledTimes(1);
-    expect(onReponse).toHaveBeenCalledWith(true);
+    expect(onReponse).toHaveBeenCalledWith(true, 'corrigee');
   });
 
   it('une_saisie_fausse_puis_suivante_repond_faux', () => {
@@ -97,7 +97,7 @@ describe('QuestionCarte', () => {
     fireEvent.click(screen.getByRole('button', { name: t.cartes_verifier }));
     fireEvent.click(screen.getByRole('button', { name: t.cartes_suivante }));
     expect(onReponse).toHaveBeenCalledTimes(1);
-    expect(onReponse).toHaveBeenCalledWith(false);
+    expect(onReponse).toHaveBeenCalledWith(false, 'saisie');
   });
 
   it('la_saisie_ne_vaut_que_pour_une_inverse', () => {

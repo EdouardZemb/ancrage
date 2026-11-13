@@ -8,7 +8,7 @@ import { createContext } from 'preact';
 import { useCallback, useContext, useState } from 'preact/hooks';
 import type { CoursPrepare, Onglet } from '../../domaine/cours/prepare.js';
 import type { Hasard } from '../../domaine/hasard.js';
-import type { Evenement, ResultatExamen } from '../../domaine/journal/evenement.js';
+import type { Evenement, ModeDeReponse, ResultatExamen } from '../../domaine/journal/evenement.js';
 import type { EtatUnite } from '../../domaine/progression/etat.js';
 import type { Seance } from '../seance.js';
 import type { Preferences } from './preferences.js';
@@ -28,14 +28,14 @@ export interface ContexteCours {
    * l'appareil n'a pas pu la ranger (l'écran le signale), et l'onglet continue comme si de rien
    * n'était.
    */
-  enregistrer(unite: string, juste: boolean): Promise<boolean>;
+  enregistrer(unite: string, juste: boolean, mode: ModeDeReponse): Promise<boolean>;
   /**
    * Journalise un examen remis : une réponse par question, puis l'examen (décision 8). Comme
    * `enregistrer`, `false` si le rangement a échoué.
    */
   enregistrerExamen(
     resultat: ResultatExamen,
-    reponses: readonly { unite: string; juste: boolean }[],
+    reponses: readonly { unite: string; juste: boolean; mode: ModeDeReponse }[],
   ): Promise<boolean>;
   /** La fin d'une série de cartes, la remise d'un examen : déclenche une synchronisation (décision 15). */
   finDeSeance(): void;

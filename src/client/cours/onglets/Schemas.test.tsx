@@ -152,7 +152,7 @@ describe('Schemas', () => {
     fireEvent.click(faux);
 
     expect(contexte.enregistrer).toHaveBeenCalledTimes(1);
-    expect(contexte.enregistrer).toHaveBeenCalledWith(POINTS[cible].id, false);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(POINTS[cible].id, false, 'choix');
     const verdict = document.querySelector('.verdict') as HTMLElement;
     expect(verdict.className).toBe('verdict ko');
     expect(verdict.querySelector('span')?.textContent).toBe(t.verdict_fausse);
@@ -180,7 +180,7 @@ describe('Schemas', () => {
 
     fireEvent.click(boutons().find((x) => texteDe(x) === POINTS[cible].terme) as HTMLButtonElement);
 
-    expect(contexte.enregistrer).toHaveBeenCalledWith(POINTS[cible].id, true);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(POINTS[cible].id, true, 'choix');
     expect(document.querySelector('.verdict')?.className).toBe('verdict ok');
     expect(document.querySelector('.verdict span')?.textContent).toBe(t.verdict_juste);
     expect(progression()).toBe('1 / 1 richtig · 1 von 5 Strukturen gekonnt');
@@ -203,6 +203,7 @@ describe('Schemas', () => {
     expect(contexte.enregistrer).toHaveBeenCalledWith(
       POINTS[cible].id,
       noms[2] === POINTS[cible].terme,
+      'choix',
     );
     // Répondue : les chiffres ne comptent plus, avant « Weiter ».
     touche('1');
@@ -239,7 +240,7 @@ describe('Schemas', () => {
     fireEvent.click(marqueur(cible + 1));
 
     expect(contexte.enregistrer).toHaveBeenCalledTimes(1);
-    expect(contexte.enregistrer).toHaveBeenCalledWith(POINTS[cible].id, true);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(POINTS[cible].id, true, 'pointage');
     expect(marqueurs().map((x) => classe(x))).toEqual(
       POINTS.map((_, rang) => (rang === cible ? 'mk ok' : 'mk')),
     );
@@ -266,7 +267,7 @@ describe('Schemas', () => {
 
     fireEvent.click(marqueur(autre + 1));
 
-    expect(contexte.enregistrer).toHaveBeenCalledWith(POINTS[cible].id, false);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(POINTS[cible].id, false, 'pointage');
     expect(marqueurs().map((x) => classe(x))).toEqual(
       POINTS.map((_, rang) => (rang === cible ? 'mk ok' : rang === autre ? 'mk ko' : 'mk')),
     );
@@ -295,7 +296,7 @@ describe('Schemas', () => {
       expect(fireEvent.keyDown(marqueur(cible + 1), { key: touchePressee })).toBe(false);
 
       expect(contexte.enregistrer).toHaveBeenCalledTimes(1);
-      expect(contexte.enregistrer).toHaveBeenCalledWith(POINTS[cible].id, true);
+      expect(contexte.enregistrer).toHaveBeenCalledWith(POINTS[cible].id, true, 'pointage');
       expect(classe(marqueurs()[cible])).toBe('mk ok');
       cleanup();
     }

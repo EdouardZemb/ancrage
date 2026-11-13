@@ -6,6 +6,7 @@
  */
 import { reponsesAcceptees, type UniteDeCarte } from '../../../domaine/cartes/unites.js';
 import { juger } from '../../../domaine/correction.js';
+import type { ModeDeReponse } from '../../../domaine/journal/evenement.js';
 import { etatDe } from '../../../domaine/progression/etat.js';
 import { useTouches } from '../clavier.js';
 import { Enonce, focaliser } from '../composants-cours.js';
@@ -31,7 +32,11 @@ export function QuestionCarte(props: {
   saisie: boolean;
   etat: EtatDeCarte;
   onEtat(etat: EtatDeCarte): void;
-  onReponse(juste: boolean): void;
+  /**
+   * Le verdict et le geste qui l'a donné : `retournee` (la personne juge), `saisie` (l'application
+   * juge le terme tapé), `corrigee` (une saisie jugée fausse, déclarée juste par la personne).
+   */
+  onReponse(juste: boolean, mode: ModeDeReponse): void;
 }) {
   const { unite, saisie, etat, onEtat, onReponse } = props;
   const { cours, t, etats } = useCours();
@@ -50,7 +55,9 @@ export function QuestionCarte(props: {
   const touches: Record<string, () => void> = {
     ' ': retourner,
     Enter: retourner,
-    ...(etat.retournee ? { '1': () => onReponse(false), '2': () => onReponse(true) } : {}),
+    ...(etat.retournee
+      ? { '1': () => onReponse(false, 'retournee'), '2': () => onReponse(true, 'retournee') }
+      : {}),
   };
   useTouches(touches, !saisieAttendue);
 
@@ -81,7 +88,7 @@ export function QuestionCarte(props: {
                 {etat.verdict.donnee !== '' && !etat.verdict.juste && <s>{etat.verdict.donnee}</s>}
                 <b>{unite.reponse}</b>
                 {!etat.verdict.juste && (
-                  <button type="button" class="linkbtn" onClick={() => onReponse(true)}>
+                  <button type="button" class="linkbtn" onClick={() => onReponse(true, 'corrigee')}>
                     {t.cartes_aussi_juste}
                   </button>
                 )}
@@ -90,7 +97,7 @@ export function QuestionCarte(props: {
                 type="button"
                 class="primary"
                 ref={focaliser}
-                onClick={() => onReponse(etat.verdict?.juste ?? false)}
+                onClick={() => onReponse(etat.verdict?.juste ?? false, 'saisie')}
               >
                 {t.cartes_suivante}
               </button>
@@ -124,10 +131,10 @@ export function QuestionCarte(props: {
       </div>
       {etat.retournee && (
         <div class="answer">
-          <button type="button" class="no" onClick={() => onReponse(false)}>
+          <button type="button" class="no" onClick={() => onReponse(false, 'retournee')}>
             {t.cartes_pas_su}
           </button>
-          <button type="button" class="yes" onClick={() => onReponse(true)}>
+          <button type="button" class="yes" onClick={() => onReponse(true, 'retournee')}>
             {t.cartes_su}
           </button>
         </div>

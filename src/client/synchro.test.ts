@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { coursServiDeTest } from '../domaine/cours/cours.fixture.js';
+import type { Evenement } from '../domaine/journal/evenement.js';
 import { ErreurApi } from './api.js';
 import { fermerLesBasesDeTest, ouvrirBaseDeTest } from './stockage/base-locale.fixture.js';
 import {
@@ -378,6 +379,55 @@ describe('synchroniserCours', () => {
       expect(serveur.listages, code).toBe(0);
       expect(await fileDuCours(base, ALICE, COURS_DE_TEST), code).toHaveLength(3);
     }
+  });
+
+  it('un_serveur_qui_refuse_le_mode_garde_la_file_entiere_puis_la_recoit_quand_il_l_accepte', async () => {
+    // Un retour arrière sous la version qui connaît le mode (ADR-0013) : son schéma strict refuse
+    // tout lot dont une réponse porte `resultat.mode`.
+    const base = await ouvrirBaseDeTest();
+    const serveur = new ServeurFactice();
+    for (const [n, mode] of [
+      [1, 'retournee'],
+      [2, 'saisie'],
+      [3, 'choix'],
+    ] as const) {
+      const reponse = reponseDeTest(COURS_DE_TEST, n);
+      await ajouterEvenement(base, ALICE, {
+        ...reponse,
+        resultat: { juste: n !== 2, mode },
+      } as Evenement);
+    }
+    const ancien = apiDe(serveur, {
+      envoyer: async (cours, evenements) => {
+        if (evenements.some((e) => e.type === 'reponse' && e.resultat.mode !== undefined)) {
+          serveur.envois.push({ cours, evenements });
+          throw new ErreurApi(400, 'requete');
+        }
+        await serveur.envoyer(cours, evenements);
+      },
+    });
+
+    for (let essai = 0; essai < 2; essai += 1) {
+      expect(await synchroniserCours(base, ALICE, COURS_DE_TEST, ancien)).toEqual({
+        etat: 'en_attente',
+        enAttente: 3,
+      });
+      // Rien n'est perdu, ni modifié : le mode part avec la réponse, tel qu'il a été noté.
+      expect(ids(await fileDuCours(base, ALICE, COURS_DE_TEST))).toEqual(idsDe(1, 3));
+      expect(serveur.evenements(COURS_DE_TEST)).toEqual([]);
+    }
+
+    // Un serveur qui accepte le mode revient : la file repart d'un coup, modes compris.
+    expect(await synchroniserCours(base, ALICE, COURS_DE_TEST, serveur)).toEqual({
+      etat: 'a_jour',
+      enAttente: 0,
+    });
+    expect(serveur.evenements(COURS_DE_TEST).map((e) => e.resultat)).toEqual([
+      { juste: true, mode: 'retournee' },
+      { juste: false, mode: 'saisie' },
+      { juste: true, mode: 'choix' },
+    ]);
+    expect(await fileDuCours(base, ALICE, COURS_DE_TEST)).toEqual([]);
   });
 
   it('un_400_a_la_lecture_est_aussi_une_erreur_de_requete', async () => {

@@ -11,6 +11,7 @@
  * sens, puis vit dans l'écran du cours (`useEtatDOnglet`) : les réponses qui arrivent au journal ne
  * la changent pas, et un détour par un autre onglet la retrouve telle quelle.
  */
+import type { ModeDeReponse } from '../../../domaine/journal/evenement.js';
 import {
   apresReponse,
   construireSeance,
@@ -91,11 +92,11 @@ export function Cartes(props: {
   const choisir = (suite: Partial<Preferences['cartes']>) =>
     changerPreferences({ ...preferences, cartes: { ...preferences.cartes, ...suite } });
 
-  const repondre = (juste: boolean) => {
+  const repondre = (juste: boolean, mode: ModeDeReponse) => {
     if (unite === undefined) return;
     const suivante = apresReponse(seance, juste);
     setCourante({ ...serie, seance: suivante, retournee: false, verdict: null });
-    const rangee = enregistrer(unite.id, juste);
+    const rangee = enregistrer(unite.id, juste, mode);
     // La synchronisation lit la file : elle attend que cette dernière réponse y soit.
     if (suivante.file.length === 0) void rangee.then(() => finDeSeance());
   };

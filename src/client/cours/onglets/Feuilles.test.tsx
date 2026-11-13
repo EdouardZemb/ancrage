@@ -147,7 +147,7 @@ function ouvrirLaUnit2(libelle: string = t.feuilles_bearbeiten): void {
 function Ailleurs(props: { reponses: [string, boolean][] }) {
   const { enregistrer } = useCours();
   const repondre = () => {
-    for (const [unite, juste] of props.reponses) void enregistrer(unite, juste);
+    for (const [unite, juste] of props.reponses) void enregistrer(unite, juste, 'choix');
   };
   return (
     <button type="button" data-testid="ailleurs" onClick={repondre}>
@@ -309,7 +309,7 @@ describe('Feuilles', () => {
     expect(tachy.every((x) => x.disabled)).toBe(true);
     expect(enAttente(BRADY)).toBe(true);
     // La question jugée entre aussitôt au journal, avant la fin de la tâche (R17).
-    expect(contexte.enregistrer).toHaveBeenCalledExactlyOnceWith('fb000021', true);
+    expect(contexte.enregistrer).toHaveBeenCalledExactlyOnceWith('fb000021', true, 'choix');
     expect(screen.queryByRole('button', { name: t.suivante })).toBeNull();
 
     choisir(BRADY, 'innen');
@@ -320,8 +320,8 @@ describe('Feuilles', () => {
     expect(brady.find((x) => texteDe(x) === 'langsam')?.className).toBe('right');
     // Une réponse par question, sur l'identifiant de la question.
     expect(contexte.enregistrer).toHaveBeenCalledTimes(2);
-    expect(contexte.enregistrer).toHaveBeenCalledWith('fb000021', true);
-    expect(contexte.enregistrer).toHaveBeenCalledWith('fb000022', false);
+    expect(contexte.enregistrer).toHaveBeenCalledWith('fb000021', true, 'choix');
+    expect(contexte.enregistrer).toHaveBeenCalledWith('fb000022', false, 'choix');
     // Un clic de plus ne change rien.
     fireEvent.click(brady[0]);
     expect(contexte.enregistrer).toHaveBeenCalledTimes(2);
@@ -378,7 +378,7 @@ describe('Feuilles', () => {
     expect(progression()).toBe('Unit 2 – Übungsblatt · Schritt 1 von 2');
     expect(screen.queryByRole('group', { name: TACHY })).toBeNull();
     choisir(BRADY, 'langsam');
-    expect(contexte.enregistrer).toHaveBeenCalledExactlyOnceWith('fb000022', true);
+    expect(contexte.enregistrer).toHaveBeenCalledExactlyOnceWith('fb000022', true, 'choix');
     // L'erreur corrigée ne raccourcit pas le déroulé en cours.
     expect(progression()).toBe('Unit 2 – Übungsblatt · Schritt 1 von 2');
     expect(optionsDe(BRADY).find((x) => texteDe(x) === 'langsam')?.className).toBe('right');
@@ -426,10 +426,10 @@ describe('Feuilles', () => {
     // le déroulé va à son terme.
     choisir(TACHY, 'schnell');
     expect(vi.mocked(contexte.enregistrer).mock.calls).toEqual([
-      ['fb000022', true],
-      ['fb000021', true],
-      ['fb000023', false],
-      ['fb000021', true],
+      ['fb000022', true, 'choix'],
+      ['fb000021', true, 'choix'],
+      ['fb000023', false, 'choix'],
+      ['fb000021', true, 'choix'],
     ]);
     fireEvent.click(suivant());
     expect(document.querySelector('.done')?.textContent).toContain('2 von 2 richtig');
@@ -455,7 +455,7 @@ describe('Feuilles', () => {
     expect(optionsDe(TACHY).every((x) => x.disabled)).toBe(true);
     expect(optionsDe(BRADY).map(texteDe)).toEqual(options);
     // La question répondue est déjà au journal (R17), une seule fois malgré le détour.
-    expect(contexte.enregistrer).toHaveBeenCalledExactlyOnceWith('fb000021', true);
+    expect(contexte.enregistrer).toHaveBeenCalledExactlyOnceWith('fb000021', true, 'choix');
 
     // La tâche finie : au retour, « Weiter » attend, et rien n'est enregistré deux fois.
     choisir(BRADY, 'langsam');
@@ -482,7 +482,7 @@ describe('Feuilles', () => {
 
     fireEvent.click(screen.getByRole('button', { name: t.feuilles_zurueck }));
 
-    expect(contexte.enregistrer).toHaveBeenCalledExactlyOnceWith('fb000021', true);
+    expect(contexte.enregistrer).toHaveBeenCalledExactlyOnceWith('fb000021', true, 'choix');
     expect(score(lignes()[0])).toBe('1/3 richtig');
   });
 

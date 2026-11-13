@@ -57,7 +57,9 @@ describe('TacheAChoix', () => {
     const optionsDePoly = sansNumero(POLY.question);
     // Une question jugée est rendue aussitôt (R17).
     choisirDans(HEMI.question, 'halb');
-    expect(onRepondu).toHaveBeenCalledExactlyOnceWith([{ id: HEMI.id, juste: true }]);
+    expect(onRepondu).toHaveBeenCalledExactlyOnceWith([
+      { id: HEMI.id, juste: true, mode: 'choix' },
+    ]);
 
     // Une question de plus, et les places changent : chacune garde ses options et son choix.
     fireEvent.click(screen.getByTestId('changer'));
@@ -78,9 +80,9 @@ describe('TacheAChoix', () => {
     choisirDans(ENDO.question, 'innen');
     fireEvent.click(optionsDe(HEMI.question)[0]);
     expect(onRepondu.mock.calls).toEqual([
-      [[{ id: HEMI.id, juste: true }]],
-      [[{ id: POLY.id, juste: false }]],
-      [[{ id: ENDO.id, juste: true }]],
+      [[{ id: HEMI.id, juste: true, mode: 'choix' }]],
+      [[{ id: POLY.id, juste: false, mode: 'choix' }]],
+      [[{ id: ENDO.id, juste: true, mode: 'choix' }]],
     ]);
   });
 
@@ -89,10 +91,10 @@ describe('TacheAChoix', () => {
     const etats = { a: true, b: null, c: false };
 
     // Un élément sans réponse : rien. L'état d'un élément hors de la tâche ne compte pas.
-    expect(resultatsDeTache([{ id: 'a' }, { id: 'b' }], etats, juger)).toBeUndefined();
-    expect(resultatsDeTache([{ id: 'c' }, { id: 'a' }], etats, juger)).toEqual([
-      { id: 'c', juste: false },
-      { id: 'a', juste: true },
+    expect(resultatsDeTache([{ id: 'a' }, { id: 'b' }], etats, juger, 'choix')).toBeUndefined();
+    expect(resultatsDeTache([{ id: 'c' }, { id: 'a' }], etats, juger, 'association')).toEqual([
+      { id: 'c', juste: false, mode: 'association' },
+      { id: 'a', juste: true, mode: 'association' },
     ]);
   });
 
@@ -121,14 +123,16 @@ describe('TacheAChoix', () => {
     expect(screen.getByText('Der Magen ist ein Hohlorgan.')).toBeTruthy();
     expect(optionsDe('Der Magen ist paarig.').map((x) => x.className)).toEqual(['wrong', 'right']);
     // L'affirmation jugée est rendue aussitôt (R17).
-    expect(onRepondu).toHaveBeenCalledExactlyOnceWith([{ id: 'fb000035', juste: false }]);
+    expect(onRepondu).toHaveBeenCalledExactlyOnceWith([
+      { id: 'fb000035', juste: false, mode: 'choix' },
+    ]);
 
     // Sans correction, rien de plus ; chaque affirmation est rendue une fois, dès son choix.
     choisirDans('Die Milz filtert das Blut.', 'Richtig');
     fireEvent.click(optionsDe('Der Magen ist paarig.')[1]);
     expect(onRepondu.mock.calls).toEqual([
-      [[{ id: 'fb000035', juste: false }]],
-      [[{ id: 'fb000034', juste: true }]],
+      [[{ id: 'fb000035', juste: false, mode: 'choix' }]],
+      [[{ id: 'fb000034', juste: true, mode: 'choix' }]],
     ]);
   });
 });

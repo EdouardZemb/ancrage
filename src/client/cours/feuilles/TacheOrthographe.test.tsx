@@ -42,12 +42,14 @@ describe('TacheOrthographe', () => {
 
     // Un mot jugé est rendu aussitôt (R17).
     repondre('rueebli', 'rüebli');
-    expect(onRepondu).toHaveBeenCalledExactlyOnceWith([{ id: 'fb000051', juste: false }]);
+    expect(onRepondu).toHaveBeenCalledExactlyOnceWith([
+      { id: 'fb000051', juste: false, mode: 'saisie' },
+    ]);
     repondre('zervix', ' Cervix ');
 
     expect(onRepondu.mock.calls).toEqual([
-      [[{ id: 'fb000051', juste: false }]],
-      [[{ id: 'fb000052', juste: true }]],
+      [[{ id: 'fb000051', juste: false, mode: 'saisie' }]],
+      [[{ id: 'fb000052', juste: true, mode: 'saisie' }]],
     ]);
     expect(screen.queryByRole('textbox')).toBeNull();
   });
@@ -63,6 +65,8 @@ describe('TacheOrthographe', () => {
     expect(onRepondu).not.toHaveBeenCalled();
     expect(screen.getAllByRole('textbox')).toHaveLength(2);
     repondre('zervix', 'Cervix');
-    expect(onRepondu).toHaveBeenCalledExactlyOnceWith([{ id: 'fb000052', juste: true }]);
+    expect(onRepondu).toHaveBeenCalledExactlyOnceWith([
+      { id: 'fb000052', juste: true, mode: 'saisie' },
+    ]);
   });
 });

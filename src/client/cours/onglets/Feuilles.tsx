@@ -307,7 +307,7 @@ function DerouleDeFeuille(props: {
     if (nouveaux.length === 0) return;
     const ajoutes = Object.fromEntries(nouveaux.map(({ id, juste }) => [id, juste]));
     changer({ ...deroule, resultats: { ...deroule.resultats, ...ajoutes } });
-    for (const { id, juste } of nouveaux) void enregistrer(id, juste);
+    for (const { id, juste, mode } of nouveaux) void enregistrer(id, juste, mode);
   };
 
   return (

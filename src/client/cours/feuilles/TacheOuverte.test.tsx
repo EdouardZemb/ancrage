@@ -37,15 +37,17 @@ describe('TacheOuverte', () => {
     expect(screen.getByText('Das Blut')).toBeTruthy();
     fireEvent.click(bouton('Gewusst'));
     // Une question jugée est rendue aussitôt (R17).
-    expect(onRepondu).toHaveBeenCalledExactlyOnceWith([{ id: 'fb000061', juste: true }]);
+    expect(onRepondu).toHaveBeenCalledExactlyOnceWith([
+      { id: 'fb000061', juste: true, mode: 'montree' },
+    ]);
 
     fireEvent.click(bouton('Antwort zeigen'));
     expect(screen.getByText('Der Backofen')).toBeTruthy();
     fireEvent.click(bouton('Nicht gewusst'));
 
     expect(onRepondu.mock.calls).toEqual([
-      [[{ id: 'fb000061', juste: true }]],
-      [[{ id: 'fb000062', juste: false }]],
+      [[{ id: 'fb000061', juste: true, mode: 'montree' }]],
+      [[{ id: 'fb000062', juste: false, mode: 'montree' }]],
     ]);
     expect(screen.queryByRole('button', { name: 'Gewusst' })).toBeNull();
   });

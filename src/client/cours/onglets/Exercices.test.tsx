@@ -139,7 +139,7 @@ describe('Exercices', () => {
     taper('Cevolitis');
 
     expect(contexte.enregistrer).toHaveBeenCalledTimes(1);
-    expect(contexte.enregistrer).toHaveBeenCalledWith(ZEVOLITIS, false);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(ZEVOLITIS, false, 'saisie');
     expect(verdict().className).toBe('verdict ko');
     expect(verdict().querySelector('span')?.textContent).toBe(t.verdict_fausse);
     expect(verdict().querySelector('s')?.textContent).toBe('Cevolitis');
@@ -159,7 +159,7 @@ describe('Exercices', () => {
     taper('Zevolitis');
 
     expect(contexte.enregistrer).toHaveBeenCalledTimes(2);
-    expect(contexte.enregistrer).toHaveBeenLastCalledWith(ZEVOLITIS, true);
+    expect(contexte.enregistrer).toHaveBeenLastCalledWith(ZEVOLITIS, true, 'saisie');
     expect(verdict().className).toBe('verdict ok');
     expect(verdict().querySelector('span')?.textContent).toBe(t.verdict_juste);
     // Juste : on n'affiche pas la saisie barrée.
@@ -177,7 +177,7 @@ describe('Exercices', () => {
     });
     fireEvent.submit(document.querySelector('form.typed') as HTMLFormElement);
 
-    expect(contexte.enregistrer).toHaveBeenCalledWith(ZEVOLITIS, true);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(ZEVOLITIS, true, 'saisie');
   });
 
   it('saisie_casse_espaces_et_forme_unicode_sont_sans_effet', () => {
@@ -186,7 +186,7 @@ describe('Exercices', () => {
       const contexte = contexteDe('schreib');
       rendreDansUnCoursVivant(<Exercices />, contexte);
       taper(donnee);
-      expect(contexte.enregistrer).toHaveBeenCalledWith(ZEVOLITIS, true);
+      expect(contexte.enregistrer).toHaveBeenCalledWith(ZEVOLITIS, true, 'saisie');
       cleanup();
     }
     // Mais une lettre de plus ou de moins est une faute.
@@ -194,7 +194,7 @@ describe('Exercices', () => {
       const contexte = contexteDe('schreib');
       rendreDansUnCoursVivant(<Exercices />, contexte);
       taper(donnee);
-      expect(contexte.enregistrer).toHaveBeenCalledWith(ZEVOLITIS, false);
+      expect(contexte.enregistrer).toHaveBeenCalledWith(ZEVOLITIS, false, 'saisie');
       cleanup();
     }
   });
@@ -205,7 +205,7 @@ describe('Exercices', () => {
 
     fireEvent.click(screen.getByRole('button', { name: t.pruefen }));
 
-    expect(contexte.enregistrer).toHaveBeenCalledWith(ZEVOLITIS, false);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(ZEVOLITIS, false, 'saisie');
     expect(verdict().className).toBe('verdict ko');
     // Rien à barrer.
     expect(verdict().querySelector('s')).toBeNull();
@@ -231,7 +231,7 @@ describe('Exercices', () => {
     fireEvent.click(faux);
 
     expect(contexte.enregistrer).toHaveBeenCalledTimes(1);
-    expect(contexte.enregistrer).toHaveBeenCalledWith(donnee.id, false);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(donnee.id, false, 'choix');
     expect(verdict().className).toBe('verdict ko');
     expect(verdict().querySelector('s')?.textContent).toBe(fausse);
     expect(verdict().querySelector('b')?.textContent).toBe(
@@ -245,7 +245,7 @@ describe('Exercices', () => {
     const autre = ARTIKELS[invite()];
     fireEvent.click(boutons().find((x) => texteDe(x) === autre.reponse) as HTMLButtonElement);
 
-    expect(contexte.enregistrer).toHaveBeenLastCalledWith(autre.id, true);
+    expect(contexte.enregistrer).toHaveBeenLastCalledWith(autre.id, true, 'choix');
     expect(verdict().className).toBe('verdict ok');
     expect(verdict().querySelector('s')).toBeNull();
     expect(verdict().querySelector('b')?.textContent).toBe(
@@ -262,7 +262,7 @@ describe('Exercices', () => {
 
     fireEvent.click(boutons()[0]);
 
-    expect(contexte.enregistrer).toHaveBeenCalledWith('e4000001', false);
+    expect(contexte.enregistrer).toHaveBeenCalledWith('e4000001', false, 'choix');
     expect(verdict().querySelector('s')?.textContent).toBe('rubrus');
     expect(verdict().querySelector('b')?.textContent).toBe('rubra');
   });
@@ -298,7 +298,7 @@ describe('Exercices', () => {
 
     fireEvent.click(boutons()[1]);
 
-    expect(contexte.enregistrer).toHaveBeenCalledWith('e4000001', true);
+    expect(contexte.enregistrer).toHaveBeenCalledWith('e4000001', true, 'choix');
     expect(document.querySelector('.rule')).toBeNull();
   });
 
@@ -317,7 +317,11 @@ describe('Exercices', () => {
     touche('3');
 
     expect(contexte.enregistrer).toHaveBeenCalledTimes(1);
-    expect(contexte.enregistrer).toHaveBeenCalledWith(donnee.id, options[2] === donnee.reponse);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(
+      donnee.id,
+      options[2] === donnee.reponse,
+      'choix',
+    );
     // La question est répondue : les chiffres ne comptent plus.
     touche('1');
     touche('2');

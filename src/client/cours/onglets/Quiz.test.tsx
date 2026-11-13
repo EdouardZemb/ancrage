@@ -93,7 +93,7 @@ describe('Quiz', () => {
     fireEvent.click(fausses[0]);
 
     expect(contexte.enregistrer).toHaveBeenCalledTimes(1);
-    expect(contexte.enregistrer).toHaveBeenCalledWith(unite.id, false);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(unite.id, false, 'choix');
     expect(fausses[0].className).toBe('wrong');
     expect(bonne.className).toBe('right');
     expect(fausses.slice(1).map((bouton) => bouton.className)).toEqual(['', '']);
@@ -114,7 +114,7 @@ describe('Quiz', () => {
 
     fireEvent.click(bonne);
 
-    expect(contexte.enregistrer).toHaveBeenCalledWith(unite.id, true);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(unite.id, true, 'choix');
     expect(bonne.className).toBe('right');
     // Aucune option n'est en rouge : la personne a juste.
     expect(fausses.map((bouton) => bouton.className)).toEqual(['', '', '']);
@@ -160,7 +160,11 @@ describe('Quiz', () => {
     touche('3');
 
     expect(contexte.enregistrer).toHaveBeenCalledTimes(1);
-    expect(contexte.enregistrer).toHaveBeenCalledWith(unite.id, options[2] === unite.reponse);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(
+      unite.id,
+      options[2] === unite.reponse,
+      'choix',
+    );
     expect(boutons()[2].className).toMatch(/^(right|wrong)$/);
     // La question est répondue : les autres touches ne comptent plus.
     touche('1');
@@ -313,7 +317,7 @@ describe('Quiz', () => {
     fireEvent.click(fausse);
 
     expect(contexte.enregistrer).toHaveBeenCalledTimes(1);
-    expect(contexte.enregistrer).toHaveBeenCalledWith('fb000007', false);
+    expect(contexte.enregistrer).toHaveBeenCalledWith('fb000007', false, 'choix');
     expect(fausse.className).toBe('wrong');
     expect(boutons().find((b) => texteDe(b) === 'über dem Mass')?.className).toBe('right');
     expect(progression()).toBe('0 / 1 richtig');
@@ -328,7 +332,7 @@ describe('Quiz', () => {
     expect(boutons().map(texteDe)).toEqual([t.feuille_richtig, t.feuille_falsch]);
     fireEvent.click(boutons()[0]);
 
-    expect(contexte.enregistrer).toHaveBeenCalledWith('fb000008', true);
+    expect(contexte.enregistrer).toHaveBeenCalledWith('fb000008', true, 'choix');
     expect(progression()).toBe('1 / 1 richtig');
   });
 });

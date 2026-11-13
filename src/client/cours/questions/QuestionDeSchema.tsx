@@ -5,6 +5,7 @@
  * série ni le tirage de l'appelant.
  */
 import type { ModuleServiDe } from '../../../domaine/cours/prepare.js';
+import type { ModeDeReponse } from '../../../domaine/journal/evenement.js';
 import { useTouches } from '../clavier.js';
 import { enGras, focaliser, Options } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
@@ -26,7 +27,8 @@ export function QuestionDeSchema(props: {
   schema: ModuleServiDe<'schema'>;
   mode: 'benennen' | 'zeigen';
   tache: TacheDeSchema;
-  repondre(j: number): void;
+  /** Le point choisi, et le geste : `choix` (un nom parmi quatre) ou `pointage` (un point touché). */
+  repondre(j: number, mode: ModeDeReponse): void;
   suivante(): void;
 }) {
   const { schema, mode, tache, repondre, suivante } = props;
@@ -46,7 +48,7 @@ export function QuestionDeSchema(props: {
       numero,
       () => {
         const j = tache.options[i];
-        if (j !== undefined) repondre(j);
+        if (j !== undefined) repondre(j, 'choix');
       },
     ]),
   );
@@ -87,7 +89,7 @@ export function QuestionDeSchema(props: {
         ) : (
           <Options
             options={tache.options.map((j) => schema.points[j].terme)}
-            choisir={(k) => repondre(tache.options[k])}
+            choisir={(k) => repondre(tache.options[k], 'choix')}
           />
         )}
       </>
@@ -100,7 +102,12 @@ export function QuestionDeSchema(props: {
           {enGras(t.schemas_tippe_auf, { terme: point.terme })}{' '}
           <span class="muted">({point.sens})</span>
         </p>
-        <DessinSchema schema={schema} marques={marques} cliquable={!repondue} choisir={repondre} />
+        <DessinSchema
+          schema={schema}
+          marques={marques}
+          cliquable={!repondue}
+          choisir={(j) => repondre(j, 'pointage')}
+        />
       </div>
       {verdict}
     </>

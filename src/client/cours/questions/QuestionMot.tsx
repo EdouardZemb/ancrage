@@ -12,6 +12,7 @@ import { useMemo } from 'preact/hooks';
 import type { Morpheme, Mot } from '../../../domaine/contenu/modele.js';
 import type { ModuleServiDe } from '../../../domaine/cours/prepare.js';
 import type { Hasard } from '../../../domaine/hasard.js';
+import type { ModeDeReponse } from '../../../domaine/journal/evenement.js';
 import { motBienForme, optionsDeSens, tuilesDuMot } from '../../../domaine/seances/mots.js';
 import { useTouches } from '../clavier.js';
 import { enGras, focaliser, Options } from '../composants-cours.js';
@@ -66,8 +67,11 @@ export function tacheDeMot(
 export function QuestionMot(props: {
   module: ModuleServiDe<'morphologie'>;
   tache: TacheDeMot;
-  /** La tâche changée ; `juste` n'est donné qu'au geste qui juge le mot, avec la tâche finie. */
-  onTache(tache: TacheDeMot, juste?: boolean): void;
+  /**
+   * La tâche changée ; `jugement` n'est donné qu'au geste qui juge le mot, avec la tâche finie :
+   * `choix` pour une décomposition, `assemblage` pour des tuiles.
+   */
+  onTache(tache: TacheDeMot, jugement?: { juste: boolean; mode: ModeDeReponse }): void;
   onSuivante(): void;
   /** Le libellé de la suite ; « Nächstes Wort » par défaut, comme dans l'onglet des mots. */
   libelleSuivante?: string;
@@ -105,7 +109,10 @@ export function QuestionMot(props: {
       onTache({ ...tache, resultats, etape, options });
       return;
     }
-    onTache({ ...tache, resultats, etape, fini: true }, resultats.every(Boolean));
+    onTache(
+      { ...tache, resultats, etape, fini: true },
+      { juste: resultats.every(Boolean), mode: 'choix' },
+    );
   };
 
   const poser = (id: string) => {
@@ -119,7 +126,7 @@ export function QuestionMot(props: {
   const verifier = () => {
     if (tache.mode !== 'bilden' || tache.verifie !== null || tache.choisies.length === 0) return;
     const juste = motBienForme(tache.mot, tache.choisies);
-    onTache({ ...tache, verifie: { juste } }, juste);
+    onTache({ ...tache, verifie: { juste } }, { juste, mode: 'assemblage' });
   };
 
   const touches = Object.fromEntries(

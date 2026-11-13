@@ -104,7 +104,7 @@ function TextesDuModule(props: { module: ModuleServiDe<'texte-annote'> }) {
     if (suivante.phase !== 'bilan') return;
     const reponses = [...suivante.resultats, ...suivante.reponses];
     if (reponses.length > 0) {
-      void enregistrer(suivante.texte.id, texteReussi(reponses, module.reussite));
+      void enregistrer(suivante.texte.id, texteReussi(reponses, module.reussite), 'lecture');
     }
   };
 

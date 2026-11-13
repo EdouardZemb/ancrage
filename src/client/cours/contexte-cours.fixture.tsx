@@ -12,7 +12,7 @@ import { coursServiDeTest } from '../../domaine/cours/cours.fixture.js';
 import { type CoursPrepare, type Onglet, preparerCours } from '../../domaine/cours/prepare.js';
 import type { CoursServi } from '../../domaine/cours/servi.js';
 import { hasardDeterministe } from '../../domaine/hasard.js';
-import type { Evenement } from '../../domaine/journal/evenement.js';
+import type { Evenement, ModeDeReponse } from '../../domaine/journal/evenement.js';
 import { APPAREIL_DE_TEST, idDeTest } from '../stockage/evenements.fixture.js';
 import {
   type ContexteCours,
@@ -83,11 +83,17 @@ export function rendreDansUnCoursVivant(onglet: ComponentChild, contexte: Contex
         evenements,
         etats: etatsDuCours(evenements, contexte.cours),
         preferences,
-        enregistrer: (unite, juste) => {
+        enregistrer: (unite, juste, mode) => {
           rang.current += 1;
-          const reponse = reponseDeTest(1000 + rang.current, unite, juste, contexte.aujourdhui);
+          const reponse = reponseDeTest(
+            1000 + rang.current,
+            unite,
+            juste,
+            contexte.aujourdhui,
+            mode,
+          );
           setEvenements((courants) => [...courants, reponse]);
-          return contexte.enregistrer(unite, juste);
+          return contexte.enregistrer(unite, juste, mode);
         },
         changerPreferences: (choisies) => {
           setPreferences(choisies);
@@ -158,13 +164,19 @@ const sur2 = (n: number): string => String(n).padStart(2, '0');
  * Des événements du cours de test, écrits à la main (invariant 7) : le `n`-ième (de 0 à 3599)
  * porte l'identifiant `n` et la seconde `n` de 8 h, le jour donné.
  */
-export function reponseDeTest(n: number, unite: string, juste: boolean, jour: string): Evenement {
+export function reponseDeTest(
+  n: number,
+  unite: string,
+  juste: boolean,
+  jour: string,
+  mode?: ModeDeReponse,
+): Evenement {
   return {
     id: idDeTest(n),
     cours: 'cs000001',
     unite,
     type: 'reponse',
-    resultat: { juste },
+    resultat: mode === undefined ? { juste } : { juste, mode },
     repondu_a: `${jour}T08:${sur2(Math.floor(n / 60))}:${sur2(n % 60)}.000+02:00`,
     appareil: APPAREIL_DE_TEST,
     v: 1,

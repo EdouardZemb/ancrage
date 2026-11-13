@@ -36,15 +36,15 @@ describe('QuestionDeSchema', () => {
     expect(boutons().map(texteDe)).toEqual(['Rand', 'Mitte', 'Oberpol', 'Unterpol']);
     fireEvent.click(boutons()[1]);
     expect(repondre).toHaveBeenCalledTimes(1);
-    expect(repondre).toHaveBeenCalledWith(1);
+    expect(repondre).toHaveBeenCalledWith(1, 'choix');
   });
 
   it('benennen_les_touches_choisissent_le_nom_de_meme_rang', () => {
     const { repondre } = poser('benennen');
     touche('1');
-    expect(repondre).toHaveBeenLastCalledWith(3);
+    expect(repondre).toHaveBeenLastCalledWith(3, 'choix');
     touche('3');
-    expect(repondre).toHaveBeenLastCalledWith(0);
+    expect(repondre).toHaveBeenLastCalledWith(0, 'choix');
   });
 
   it('benennen_repondu_montre_le_verdict_la_suite_et_ne_repond_plus', () => {

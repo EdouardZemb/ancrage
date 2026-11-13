@@ -42,15 +42,15 @@ describe('QuestionAChoix', () => {
     expect(screen.getByText(t.quiz_touches)).toBeTruthy();
     fireEvent.click(boutons().find((b) => texteDe(b) === 'Vier') as HTMLButtonElement);
     expect(onChoix).toHaveBeenCalledTimes(1);
-    expect(onChoix).toHaveBeenCalledWith(1, true);
+    expect(onChoix).toHaveBeenCalledWith(1, true, 'choix');
   });
 
   it('un_mauvais_choix_appelle_onChoix_faux_et_les_touches_choisissent', () => {
     const { onChoix } = poser(question());
     touche('1');
-    expect(onChoix).toHaveBeenLastCalledWith(0, false);
+    expect(onChoix).toHaveBeenLastCalledWith(0, false, 'choix');
     touche('2');
-    expect(onChoix).toHaveBeenLastCalledWith(1, true);
+    expect(onChoix).toHaveBeenLastCalledWith(1, true, 'choix');
     touche('4');
     expect(onChoix).toHaveBeenCalledTimes(2);
   });

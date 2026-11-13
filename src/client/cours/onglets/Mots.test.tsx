@@ -162,7 +162,7 @@ describe('Mots', () => {
     expect(document.querySelector('.card .kind')?.textContent).toBe('Wort zerlegen · Teil 2 von 2');
     expect(boutons()).toHaveLength(0);
     expect(contexte.enregistrer).toHaveBeenCalledTimes(1);
-    expect(contexte.enregistrer).toHaveBeenCalledWith(GASTRITIS, true);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(GASTRITIS, true, 'choix');
     expect(progression()).toBe('1 / 1 richtig · 1 von 3 Wörtern geschafft');
     const suivant = screen.getByRole('button', { name: t.mots_naechstes });
     expect(document.activeElement).toBe(suivant);
@@ -193,7 +193,7 @@ describe('Mots', () => {
 
     expect(segments().map((x) => x.className)).toEqual(['seg ko', 'seg ok', 'seg ok']);
     expect(contexte.enregistrer).toHaveBeenCalledTimes(1);
-    expect(contexte.enregistrer).toHaveBeenCalledWith(TACHYKARDIE, false);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(TACHYKARDIE, false, 'choix');
     expect(progression()).toBe('0 / 1 richtig · 0 von 3 Wörtern geschafft');
   });
 
@@ -244,7 +244,7 @@ describe('Mots', () => {
       'gastr = Magen · -itis = Entzündung',
     );
     expect(contexte.enregistrer).toHaveBeenCalledTimes(1);
-    expect(contexte.enregistrer).toHaveBeenCalledWith(GASTRITIS, true);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(GASTRITIS, true, 'assemblage');
     expect(progression()).toBe('1 / 1 richtig · 1 von 3 Wörtern geschafft');
     // Plus de tuile ni de bouton à manipuler : « Nächstes Wort » a le focus.
     expect(tuiles()).toHaveLength(0);
@@ -269,7 +269,7 @@ describe('Mots', () => {
     expect(verdict.querySelector('span')?.textContent).toBe(t.mots_nicht_ganz);
     // La bonne composition est montrée, pas celle de la personne.
     expect(verdict.querySelector('b')?.textContent).toBe('Gastr·itis');
-    expect(contexte.enregistrer).toHaveBeenCalledWith(GASTRITIS, false);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(GASTRITIS, false, 'assemblage');
     expect(progression()).toBe('0 / 1 richtig · 0 von 3 Wörtern geschafft');
   });
 
@@ -282,7 +282,7 @@ describe('Mots', () => {
     fireEvent.click(tuile('kard'));
     fireEvent.click(screen.getByRole('button', { name: t.pruefen }));
 
-    expect(contexte.enregistrer).toHaveBeenCalledWith(TACHYKARDIE, false);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(TACHYKARDIE, false, 'assemblage');
     expect(document.querySelector('.verdict b')?.textContent).toBe('Tachy·kard·ie');
   });
 
@@ -388,7 +388,7 @@ describe('Mots', () => {
     );
     touche(String(bonne + 1));
     expect(contexte.enregistrer).toHaveBeenCalledTimes(1);
-    expect(contexte.enregistrer).toHaveBeenCalledWith(mot.id, true);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(mot.id, true, 'choix');
     // Un mot fini n'écoute plus les chiffres.
     touche('1');
     touche('2');

@@ -160,31 +160,35 @@ describe('Heute', () => {
     expect(document.querySelector('.card .front')?.textContent).toBe('Herz');
     cliquer(t.cartes_retourner);
     cliquer(t.cartes_su);
-    expect(contexte.enregistrer).toHaveBeenLastCalledWith(HERZ, true);
+    expect(contexte.enregistrer).toHaveBeenLastCalledWith(HERZ, true, 'retournee');
 
     // Un mot : chaque partie se nomme, et le mot s'enregistre à la dernière.
     const mot = contexte.cours.morphologie?.mots.find(({ id }) => id === GASTRITIS);
     expect(mot).toBeDefined();
     for (const segment of mot?.segments ?? []) {
-      expect(contexte.enregistrer).not.toHaveBeenCalledWith(GASTRITIS, expect.anything());
+      expect(contexte.enregistrer).not.toHaveBeenCalledWith(
+        GASTRITIS,
+        expect.anything(),
+        expect.anything(),
+      );
       choisir(sensDuMorpheme(contexte, segment.morpheme));
     }
-    expect(contexte.enregistrer).toHaveBeenLastCalledWith(GASTRITIS, true);
+    expect(contexte.enregistrer).toHaveBeenLastCalledWith(GASTRITIS, true, 'choix');
     cliquer(t.suivante);
 
     // Un point de schéma : on le nomme parmi les propositions.
     choisir('Mitte');
-    expect(contexte.enregistrer).toHaveBeenLastCalledWith(MITTE, true);
+    expect(contexte.enregistrer).toHaveBeenLastCalledWith(MITTE, true, 'choix');
     cliquer(t.suivante);
 
     // Un exercice à options.
     choisir('der');
-    expect(contexte.enregistrer).toHaveBeenLastCalledWith(ARTIKEL, true);
+    expect(contexte.enregistrer).toHaveBeenLastCalledWith(ARTIKEL, true, 'choix');
     cliquer(t.suivante);
 
     // Une question fermée de fiche.
     choisir('über dem Mass');
-    expect(contexte.enregistrer).toHaveBeenLastCalledWith(QCM, true);
+    expect(contexte.enregistrer).toHaveBeenLastCalledWith(QCM, true, 'choix');
     expect(contexte.enregistrer).toHaveBeenCalledTimes(5);
     cliquer(t.suivante);
 
@@ -202,7 +206,7 @@ describe('Heute', () => {
     fireEvent.submit(document.querySelector('form.typed') as HTMLFormElement);
 
     expect(contexte.enregistrer).toHaveBeenCalledTimes(1);
-    expect(contexte.enregistrer).toHaveBeenCalledWith('e2000001', true);
+    expect(contexte.enregistrer).toHaveBeenCalledWith('e2000001', true, 'saisie');
   });
 
   it('la_premiere_reponse_jugee_fait_deja_une_seance_en_cours', () => {
@@ -242,7 +246,7 @@ describe('Heute', () => {
       reponse: { juste: false, donnee: 'die' },
     });
     expect(contexte.enregistrer).toHaveBeenCalledTimes(1);
-    expect(contexte.enregistrer).toHaveBeenCalledWith(ARTIKEL, false);
+    expect(contexte.enregistrer).toHaveBeenCalledWith(ARTIKEL, false, 'choix');
 
     // La suite d'une faute : l'exercice va en fin de file, une fois.
     cliquer(t.suivante);
@@ -309,8 +313,8 @@ describe('Heute', () => {
     cliquer(t.cartes_pas_su);
 
     expect(contexte.enregistrer).toHaveBeenCalledTimes(2);
-    expect(contexte.enregistrer).toHaveBeenNthCalledWith(1, HERZ, false);
-    expect(contexte.enregistrer).toHaveBeenNthCalledWith(2, HERZ, false);
+    expect(contexte.enregistrer).toHaveBeenNthCalledWith(1, HERZ, false, 'retournee');
+    expect(contexte.enregistrer).toHaveBeenNthCalledWith(2, HERZ, false, 'retournee');
     expect(screen.getByRole('heading', { name: t.heute_fin })).toBeTruthy();
     expect(screen.getByText(formater(t.heute_resultat, { justes: 0, faites: 1 }))).toBeTruthy();
     // La synchronisation attend que la dernière réponse soit rangée.

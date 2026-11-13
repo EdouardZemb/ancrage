@@ -10,6 +10,7 @@
  * élément déjà reçu ; il propose la tâche suivante quand tous ses éléments l'ont été.
  */
 import type { GenreDeTache, Tache } from '../../../domaine/contenu/modele.js';
+import type { ModeDeReponse } from '../../../domaine/journal/evenement.js';
 import { useCours } from '../contexte-cours.js';
 import { tacheEntamee } from '../seances-en-cours.js';
 
@@ -20,6 +21,8 @@ export const CLE_FEUILLES = 'feuilles';
 export interface ResultatDElement {
   id: string;
   juste: boolean;
+  /** Le geste de la réponse : `choix`, `saisie`, `association` ou `montree`. */
+  mode: ModeDeReponse;
 }
 
 export interface PropsDeTache<G extends GenreDeTache> {
@@ -104,12 +107,13 @@ export function resultatsDeTache<E extends { id: string }, T>(
   elements: readonly E[],
   etats: EtatsDesElements<T>,
   juger: (element: E, etat: T) => boolean | undefined,
+  mode: ModeDeReponse,
 ): ResultatDElement[] | undefined {
   const resultats: ResultatDElement[] = [];
   for (const element of elements) {
     const juste = juger(element, etats[element.id]);
     if (juste === undefined) return undefined;
-    resultats.push({ id: element.id, juste });
+    resultats.push({ id: element.id, juste, mode });
   }
   return resultats;
 }

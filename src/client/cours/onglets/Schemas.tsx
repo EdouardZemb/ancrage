@@ -8,7 +8,9 @@
  * recommence au changement de schéma ou d'exercice. Un schéma sans point n'a rien à demander :
  * l'onglet le dit, et ne plante pas.
  */
+
 import type { ModuleServiDe } from '../../../domaine/cours/prepare.js';
+import type { ModeDeReponse } from '../../../domaine/journal/evenement.js';
 import { reussis } from '../../../domaine/progression/statistiques.js';
 import { tacheDeSchema } from '../../../domaine/seances/schemas.js';
 import { useCours } from '../contexte-cours.js';
@@ -60,7 +62,7 @@ function SchemaChoisi(props: { schema: ModuleServiDe<'schema'> }) {
   const choisir = (suite: Partial<Preferences['schemas']>) =>
     changerPreferences({ ...preferences, schemas: { ...preferences.schemas, ...suite } });
 
-  const repondre = (j: number) => {
+  const repondre = (j: number, mode: ModeDeReponse) => {
     if (tache === null || tache.choisi !== null) return;
     const juste = j === tache.cible;
     setCourante({
@@ -69,7 +71,7 @@ function SchemaChoisi(props: { schema: ModuleServiDe<'schema'> }) {
       justes: serie.justes + (juste ? 1 : 0),
       tache: { ...tache, choisi: j },
     });
-    void enregistrer(points[tache.cible].id, juste);
+    void enregistrer(points[tache.cible].id, juste, mode);
   };
 
   const acquis = formater(t.schemas_gekonnt, {

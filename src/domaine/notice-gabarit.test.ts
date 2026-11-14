@@ -126,6 +126,8 @@ describe('notice', () => {
         // ADR-0013 : le mode de chaque réponse, les statistiques d'ensemble, le suivi avec accord.
         'la manière dont tu as répondu',
         'jamais ce que tu as répondu',
+        'éléments associés ou classés',
+        'texte tapé puis compté juste par toi',
         'statistiques d’ensemble',
         'Si tu es d’accord, le responsable suit aussi ta progression',
         'sans ton accord, il n’en voit que les chiffres d’ensemble',
@@ -138,6 +140,9 @@ describe('notice', () => {
         'für den Dienst nötig',
         'die Art, wie du geantwortet hast',
         'nie, was du geantwortet hast',
+        // Le mode `association` (appariement, classement) : la notice dit chaque geste que le client note.
+        'Elemente zugeordnet oder eingeordnet',
+        'Text getippt und von dir als richtig gewertet',
         'Gesamtstatistiken',
         'Wenn du einverstanden bist, verfolgt der Verantwortliche auch deinen Lernfortschritt',
         'ohne dein Einverständnis sieht er nur die Gesamtzahlen',
@@ -154,8 +159,9 @@ describe('notice', () => {
   });
 
   it('notice_porte_la_version_de_son_dernier_changement', () => {
-    // Le texte change avec ADR-0013 (le suivi avec accord) : la version est celle de ce changement.
-    expect(NOTICE_VERSION).toBe('2026-11-13');
+    // Le texte change avec ADR-0013 (le suivi avec accord), puis d'un geste oublié, l'association :
+    // la version est celle de ce dernier changement.
+    expect(NOTICE_VERSION).toBe('2026-11-14');
   });
 
   it('notice_dit_les_limites_de_ce_qu_elle_promet', () => {

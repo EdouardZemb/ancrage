@@ -177,9 +177,10 @@ Edouard a validé la spec et le plan le 12/11/2026.
   redirection pour une référence, et ne comprend pas un chemin `/c/…`. Cinq suites s'ajoutent :
   le seuil de trois personnes du rapport d'ensemble, sa semaine comptée « par ses personnes », le
   commentaire d'en-tête de `rapport.ts`, qui ne cite pas les 70 %, le statut de l'ADR-0012,
-  complété deux fois, et la commande qui mesure le poids du client. Une sixième revient à
-  Edouard : la notice ne cite pas l'appariement ni le classement parmi les
-  manières de répondre, alors que le client en note le mode (`association`).
+  complété deux fois, et la commande qui mesure le poids du client. Une sixième revenait à
+  Edouard : la notice ne citait ni l'appariement ou le classement (`association`), ni la saisie
+  comptée juste par la personne (`corrigee`), parmi les manières de répondre. Elle les cite
+  depuis le 14/11/2026, avant l'étiquette du lot.
 - **La vérification sur Android** : faite par Edouard le 14/11/2026, au staging, sans remarque
   rapportée. Une carte retournée, une saisie, un choix et un exercice ; l'export, qui porte le
   mode ; la notice dans les deux langues.

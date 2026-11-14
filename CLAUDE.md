@@ -218,11 +218,30 @@ Le lot M2 a donné au cours sa séance du jour, « Heute » (ancrage#14) :
   et « Heute » posent tous deux. Ni l'API, ni le manifeste, ni le journal n'ont changé.
 
 Ses décisions et ses arbitrages (« M2-P<n> », « M2-R<n> ») sont dans `docs/conception/lot-m2.md`.
-Le lot suivant de la milestone est FSRS pour un cours réel, ajusté et suivi (ancrage#21).
+
+Le lot M3 a donné ce qu'il faut pour passer un cours monté à FSRS, ajusté et suivi (ancrage#21). Le
+cours de l'instance reste en Leitner jusqu'à son passage, qui est une PR du dépôt de données :
+- chaque réponse du journal note son mode, le geste qui l'a donnée, dans `resultat` (ADR-0013). Le
+  serveur l'accepte depuis la `v0.14.0`, le client l'émet depuis la version suivante, et la notice
+  le dit. Une fois cette version en ligne, on ne redescend plus sous la `v0.14.0` ;
+- `memoire` porte `parametres` (les 21 poids de FSRS-6), `examen` (un intervalle vaut au plus
+  la moitié des jours qui restent, et un jour au moins ; M3-P5) et l'algorithme `par-chapitre`,
+  avec ses `chapitres` en FSRS et le reste en Leitner
+  (`src/domaine/progression/ordonnanceur.ts`, `fsrs.ts`, `reglages.ts`) ;
+- l'écran `/mesure` chronomètre le rejeu du journal sur l'appareil. Le seuil de 300 ms pour 10 000
+  réponses est tenu ; un cours entier en FSRS attend ancrage#31 ;
+- deux outils du poste, hors de l'image, lisent une copie de la base : `memoire:ajuster` ajuste les
+  poids, `memoire:rapport` écrit le rapport de suivi. Le rapport d'une personne demande la date de
+  son accord ; le rapport d'ensemble n'affiche une case que si elle passe une règle unique
+  (`caseAdmise`), avec des limites déclarées (`docs/exploitation.md`, « Le rapport de suivi »).
+
+Ses décisions et ses arbitrages (« M3-P<n> », « M3-R<n> ») sont dans `docs/conception/lot-m3.md`.
+Parmi les lots suivants de la milestone : le planning d'un cours (ancrage#30) et le rejeu d'une
+seule unité (ancrage#31).
 
 Les suites sans urgence d'un lot vont dans une issue « Au prochain passage »
 (ancrage-donnees#81 est fermée ; celle des lots 2c, 2d, F3, S1 et S2 est ancrage-donnees#156 ; celle
-des lots M1 et M2 est ancrage#11). Une
+des lots M1, M2 et M3 est ancrage#11). Une
 PR qui touche un fichier de cette liste regarde sa case, et la coche si elle la règle.
 
 Le déploiement est aligné sur la cible `serveur` de `modele-projet` (l'alignement date du lot 2 du

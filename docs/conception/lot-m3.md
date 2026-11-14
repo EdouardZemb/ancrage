@@ -186,9 +186,9 @@ Edouard a validé la spec et le plan le 12/11/2026.
 - **Le passage du cours de l'instance** : des PR du dépôt de données, après l'étiquette de ce lot.
   Le plan prévoyait l'ajustement d'abord, puis un seul chapitre, trois semaines de rapports, et
   les autres. Les chapitres du premier passage sont neufs : leur journal est loin des 1 000
-  révisions qu'exige l'ajustement. Ils passeront donc d'abord en `par-chapitre` avec les poids par défaut
-  et la date de l'examen, et l'ajustement viendra quand leur journal le permettra. L'ordre et le
-  nombre de chapitres du premier passage se décident dans la PR du dépôt de données.
+  révisions qu'exige l'ajustement. Ils passeront donc d'abord en `par-chapitre` avec les poids
+  par défaut et la date de l'examen, et l'ajustement viendra quand leur journal le permettra.
+  L'ordre et le nombre de chapitres du premier passage se décident dans la PR du dépôt de données.
 - **L'accord de l'apprenante** pour le rapport de sa progression : Edouard le lui demande. Sans
   lui, seuls les chiffres d'ensemble se produisent.
 - **Parmi les lots suivants** : le planning d'un cours (ancrage#30), le rejeu d'une seule unité

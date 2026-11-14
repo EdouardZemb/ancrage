@@ -59,11 +59,13 @@ Edouard a validé la spec et le plan le 12/11/2026.
    moins. Le plafond porte sur l'échéance rendue, pas sur la stabilité que garde FSRS. Deux écarts
    à la spec, accordés par Edouard le 12/11/2026 : à un jour de l'examen, l'intervalle est d'un
    jour, plus que la moitié ; le jour de l'examen et après, il n'y a plus de plafond. Leitner n'est
-   pas concerné : il plafonne déjà à 16 jours.
+   pas concerné : il plafonne déjà à son dernier intervalle, 16 jours dans le cours d'exemple.
 6. **M3-P6, l'accord se dit à la commande.** La base n'a pas de champ d'accord, et n'en gagne pas.
    Le rapport d'une personne demande `--personne <identifiant>` et `--accord <JJ/MM/AAAA>`, la date
    où elle l'a donné, que le rapport imprime. Sans les deux, le rapport ne donne que des chiffres
-   d'ensemble.
+   d'ensemble. Le plan fixait aussi leurs seuils, auxquels le code renvoie sous ce numéro : une
+   personne est active à 20 réponses sur 28 jours ; sous trois personnes actives, le rapport
+   s'arrête ; une case de moins de 20 réponses est omise. M3-R3 les a resserrés.
 7. **M3-P7, la mesure sur téléphone.** Un écran de l'application, `/mesure`, fabrique en mémoire un
    journal inventé de la taille voulue et chronomètre son rejeu par chaque algorithme, sur
    l'appareil qui l'ouvre. Il ne lit ni n'écrit aucune donnée, et n'est lié depuis aucun écran. Il
@@ -75,7 +77,8 @@ Edouard a validé la spec et le plan le 12/11/2026.
    une unité déjà révisée garde son histoire, elle ne repart pas de zéro. Le nombre d'unités dues
    le jour du passage est donc de l'ordre de celui de Leitner la veille, et « Heute » l'étale par
    ses séances de 20. Un test compare les deux comptes sur un journal inventé d'un mois : FSRS ne
-   dépasse pas une fois et demie Leitner. Au-delà, la question reviendrait à Edouard.
+   dépasse pas une fois et demie Leitner. Au-delà, la question reviendrait à Edouard. Le rapport
+   de suivi montrera le pic réel, au passage du cours de l'instance.
 10. **M3-P10, l'ajustement lit ce que le rejeu lit.** `etatsFsrs` traite chaque réponse comme une
     révision, celles d'un même jour à zéro jour d'écart. L'outil donne à l'optimiseur la même suite,
     tirée de la même fonction, pour que les paramètres ajustés soient ceux du calcul qui s'en sert.
@@ -92,14 +95,14 @@ Edouard a validé la spec et le plan le 12/11/2026.
 
   Le seuil est de 300 ms pour 10 000 réponses (`docs/exploitation.md`, « Mesurer le rejeu sur un
   téléphone ») : il est tenu. À 30 000 réponses, FSRS sur tout un cours le dépasse, et le mode par
-  chapitre le touche (M3-R1).
+  chapitre le dépasse de peu (M3-R1).
 - **La mutation**, sur la tête des corrections de la revue finale (14/11/2026) : 97,38 % pour le
   groupe `domaine`, 98,02 % pour le groupe `serveur`. `fsrs.ts`, `ordonnanceur.ts` et `reglages.ts`
   sont dans le premier.
 - **Le poids du client construit**, scripts et styles : 140 997 octets gzip sur la tête du lot. Le
   lot M2 relevait 138 078 ; la mesure de ce lot a été refaite sans retrouver la commande du lot M2,
   et l'écart de 2 919 octets vaut sous cette réserve.
-- **Les tests** : 2 437 passés à la revue finale, dans 154 fichiers.
+- **Les tests** : 2 437 passés sur la tête des corrections de la revue finale, dans 154 fichiers.
 
 ## Les arbitrages de l'exécution
 
@@ -107,24 +110,26 @@ Edouard a validé la spec et le plan le 12/11/2026.
    comptait alors environ 9 100 réponses : la ligne des 10 000 s'applique, sous le seuil. Le coût
    monte en ligne droite avec le journal, parce que chaque réponse rejoue tout. Un premier chapitre
    peut passer ; un cours entier attend que le rejeu ne recalcule que l'unité répondue (ancrage#31).
-2. **M3-R2, un cours monté attend la version qui suit la `v0.14.0`.** Elle est la première à
-   connaître `par-chapitre`, `parametres` et `examen` : un manifeste qui les porte n'entre au dépôt
-   de données qu'une version plus tard (invariant 8).
+2. **M3-R2, un cours monté attend la version qui suit la `v0.14.0`.** La `v0.14.0` est la première
+   à connaître `par-chapitre`, `parametres` et `examen` : un manifeste qui les porte n'entre au
+   dépôt de données qu'une version plus tard (invariant 8), donc pas avant celle qui la suit.
 3. **M3-R3, le rapport d'ensemble ne laisse pas déduire une personne.** La revue finale, puis trois
    relectures de ses corrections, ont chacune trouvé un moyen de retrouver quelqu'un sans son
    accord : les dates d'un compte ancien, un maximum de projection, une tuile, la différence entre
    un total et ses cases, un compte exact, la largeur d'une barre. Le rapport y répond par une
    seule règle, `caseAdmise`, pour toute case affichée : trois personnes distinctes au moins, vingt
    réponses ou vingt éléments au moins, aucune personne au-delà de 70 %. Il ne lit que les
-   personnes actives au jour du rapport (vingt réponses sur les 28 jours qui le précèdent),
-   n'imprime ni compte exact ni total, et donne des pourcentages entiers. Une case refusée se fond
-   dans sa voisine ou disparaît. La dernière relecture ne trouve plus de moyen de retrouver une
+   personnes actives au jour du rapport (vingt réponses sur les 28 jours qui finissent ce jour-là).
+   Il n'imprime ni compte exact de réponses ou d'éléments par case, ni total : seuls le nombre de
+   personnes actives et celui des éléments du cours sont dits, avec des pourcentages entiers. Une
+   case refusée se fond (une boîte avec sa voisine, un délai ou un mode dans « autres ») ou
+   disparaît (un jour, une semaine). La dernière relecture ne trouve plus de moyen de retrouver une
    case refusée.
 4. **M3-R4, les limites déclarées du rapport d'ensemble.** `docs/exploitation.md`, « Le rapport de
    suivi », les écrit : un pourcentage entier laisse estimer une case fondue à quelques unités
    près ; à trois personnes, une médiane est la valeur de l'une d'elles ; les moyennes de la
    projection n'ont pas de contrôle de dominance ; deux rapports de dates voisines peuvent se
-   comparer. Le seuil de trois personnes est celui de M3-P6 ; un seuil plus haut reste une question
+   comparer. Le seuil de trois personnes vient du plan (M3-P6) ; un seuil plus haut reste une question
    ouverte.
 5. **M3-R5, l'ajustement se filtre comme le rejeu.** `memoire:ajuster` exige `--contenu` et accepte
    `--chapitre`, répétable. Il lit les cartes des chapitres donnés ; sinon celles de `chapitres` en
@@ -163,17 +168,25 @@ Edouard a validé la spec et le plan le 12/11/2026.
 ## Les suites
 
 - **Au registre** (`docs/registre.md`) : LE-16, le banc à date figée (M3-R8) ; LE-17, le rapport
-  d'ensemble jugé sûr parce qu'il ne nomme personne (M3-R3).
+  d'ensemble jugé sûr parce qu'il ne nomme personne (M3-R3) ; AM-5, le hook `cours-absent`, qui
+  lit mal deux formes de plus de la commande d'envoi.
 - **Dans « Au prochain passage » (ancrage#11)** : les trois cases « Avant qu'un cours monté passe
-  en FSRS » sont cochées. S'y ajoutent le hook `cours-absent`, qui prend aussi une redirection pour
-  une référence, et le seuil de trois personnes du rapport d'ensemble.
+  en FSRS » sont cochées. La case du hook `cours-absent` est précisée : il prend aussi une
+  redirection pour une référence, et ne comprend pas un chemin `/c/…`. Quatre suites s'ajoutent :
+  le seuil de trois personnes du rapport d'ensemble, sa semaine comptée « par ses personnes », le
+  statut de l'ADR-0012, complété deux fois, et la commande qui mesure le poids du client. Une
+  cinquième revient à Edouard : la notice ne cite pas l'appariement ni le classement parmi les
+  manières de répondre, alors que le client en note le mode (`association`).
 - **La vérification sur Android** : faite par Edouard le 14/11/2026, au staging, sans remarque
   rapportée. Une carte retournée, une saisie, un choix et un exercice ; l'export, qui porte le
   mode ; la notice dans les deux langues.
 - **Le passage du cours de l'instance** : des PR du dépôt de données, après l'étiquette de ce lot.
-  D'abord des chapitres en `par-chapitre`, avec la date de l'examen ; l'ajustement des paramètres
-  quand le journal de ces chapitres compte 1 000 révisions.
+  Le plan prévoyait l'ajustement d'abord, puis un seul chapitre, trois semaines de rapports, et
+  les autres. Les chapitres d'anatomie sont neufs : leur journal est loin des 1 000 révisions
+  qu'exige l'ajustement. Ils passeront donc d'abord en `par-chapitre` avec les poids par défaut
+  et la date de l'examen, et l'ajustement viendra quand leur journal le permettra. L'ordre et le
+  nombre de chapitres du premier passage se décident dans la PR du dépôt de données.
 - **L'accord de l'apprenante** pour le rapport de sa progression : Edouard le lui demande. Sans
   lui, seuls les chiffres d'ensemble se produisent.
-- **Les lots suivants** : le planning d'un cours (ancrage#30), le rejeu d'une seule unité
+- **Parmi les lots suivants** : le planning d'un cours (ancrage#30), le rejeu d'une seule unité
   (ancrage#31), les éléments rebelles (ancrage#32).

@@ -3,6 +3,7 @@ import type { Evenement, ModeDeReponse } from '../../domaine/journal/evenement.j
 import { coursDExemple } from './cours-exemple.fixture.js';
 import { reponseInventee } from './ecrire-journal.fixture.js';
 import {
+  caseAdmise,
   estActive,
   MINIMUM_D_UNE_CASE,
   mesures,
@@ -128,19 +129,43 @@ test('la_reussite_observee_a_un_defaut_la_ou_la_mesure_manque', () => {
   expect(observee.parBoite[5]).toBe(0.5);
 });
 
-test('une_personne_est_active_a_vingt_reponses_dans_les_vingt_huit_derniers_jours_de_son_journal', () => {
+test('une_personne_est_active_a_vingt_reponses_dans_les_vingt_huit_jours_qui_finissent_au_jour_du_rapport', () => {
+  const AUJOURDHUI = '2026-01-30';
   const duJour = (jour: number, n: number) =>
     Array.from({ length: n }, (_, i) => reponse(jour, 10, i, 0, A, true));
   // 19 réponses dans la fenêtre, 3 avant : pas encore active.
-  expect(estActive([...duJour(2, 3), ...duJour(30, 19)])).toBe(false);
+  expect(estActive([...duJour(2, 3), ...duJour(30, 19)], AUJOURDHUI)).toBe(false);
   // 20 réponses : active.
-  expect(estActive(duJour(30, 20))).toBe(true);
+  expect(estActive(duJour(30, 20), AUJOURDHUI)).toBe(true);
   // 20 réponses, dont 5 il y a 28 jours (hors fenêtre) : inactive ; il y a 27 jours : active.
   const ancien = Array.from({ length: 5 }, (_, i) => reponse(2, 10, i, 0, A, true));
   const recent = Array.from({ length: 15 }, (_, i) => reponse(30, 10, i, 0, A, true));
-  expect(estActive([...ancien, ...recent])).toBe(false);
+  expect(estActive([...ancien, ...recent], AUJOURDHUI)).toBe(false);
   const limite = Array.from({ length: 5 }, (_, i) => reponse(3, 10, i, 0, A, true));
-  expect(estActive([...limite, ...recent])).toBe(true);
+  expect(estActive([...limite, ...recent], AUJOURDHUI)).toBe(true);
+});
+
+test('un_compte_ancien_n_est_plus_actif_au_jour_du_rapport', () => {
+  const ancien = Array.from({ length: 50 }, (_, i) => reponse(5, 10, i, 0, A, true));
+  expect(estActive(ancien, '2026-02-20')).toBe(false);
+  expect(estActive(ancien, '2026-01-05')).toBe(true);
+  // Les réponses d'après le jour du rapport ne comptent pas.
+  expect(estActive(ancien, '2026-01-04')).toBe(false);
+});
+
+test('une_case_demande_trois_personnes_vingt_reponses_et_aucune_au_dela_de_70_pour_cent', () => {
+  expect(caseAdmise([10, 5, 5])).toBe(true);
+  // Deux personnes, cent réponses : trop peu de personnes.
+  expect(caseAdmise([50, 50])).toBe(false);
+  // Trois personnes, mais une seule répond vraiment : un zéro n'est pas une personne.
+  expect(caseAdmise([30, 0, 0, 0])).toBe(false);
+  expect(caseAdmise([30, 1, 0])).toBe(false);
+  // Dix-neuf réponses : trop peu.
+  expect(caseAdmise([7, 6, 6])).toBe(false);
+  // Une personne à 98 % de la case : écartée. À 70 % pile : admise ; au-delà : écartée.
+  expect(caseAdmise([98, 1, 1])).toBe(false);
+  expect(caseAdmise([70, 15, 15])).toBe(true);
+  expect(caseAdmise([71, 15, 14])).toBe(false);
 });
 
 test('le_minimum_d_une_case_est_de_vingt_reponses', () => {

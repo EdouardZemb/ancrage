@@ -7,6 +7,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import Database from 'better-sqlite3';
 import { FSRS6_DEFAULT_WEIGHTS, FSRS6Model } from 'ts-fsrs/models/fsrs-6';
 import { afterEach, beforeEach } from 'vitest';
 import { hasardDeterministe } from '../../domaine/hasard.js';
@@ -70,6 +71,10 @@ export interface OptionsDeSimulation {
   graine: number;
   /** Les 21 poids de la mémoire simulée ; par défaut, ceux de FSRS-6. */
   poids?: readonly number[];
+  /** Les identifiants des unités, dans l'ordre ; par défaut `m0000000`, `m0000001`… */
+  identifiants?: readonly string[];
+  /** Le cours des réponses ; par défaut `COURS_DE_TEST`. */
+  cours?: string;
 }
 
 /** Les poids que remplace une mémoire simulée : elle oublie bien plus vite que celle par défaut. */
@@ -110,6 +115,8 @@ export function journalSimule({
   passages,
   graine,
   poids = FSRS6_DEFAULT_WEIGHTS,
+  identifiants,
+  cours = COURS_DE_TEST,
 }: OptionsDeSimulation): Evenement[] {
   const hasard = hasardDeterministe(graine);
   const modele = FSRS6Model.create({
@@ -121,7 +128,7 @@ export function journalSimule({
   });
   const reponses: { instant: number; unite: string; juste: boolean }[] = [];
   for (let rang = 0; rang < unites; rang++) {
-    const unite = `m${String(rang).padStart(7, '0')}`;
+    const unite = identifiants?.[rang] ?? `m${String(rang).padStart(7, '0')}`;
     let jour = Math.floor(hasard() * ECART_MAXIMAL);
     let minute = 0;
     let memoire: ReturnType<typeof modele.step> | undefined;
@@ -145,7 +152,7 @@ export function journalSimule({
   }
   reponses.sort((a, b) => a.instant - b.instant || (a.unite < b.unite ? -1 : 1));
   return reponses.map(({ instant, unite, juste }, rang) =>
-    reponseInventee(instant, rang, unite, juste),
+    reponseInventee(instant, rang, unite, juste, cours),
   );
 }
 
@@ -178,6 +185,26 @@ export function ecrireJournal(
     return personnes;
   } finally {
     fermerBase(base);
+  }
+}
+
+/** Passe la base de `chemin` en mode WAL, puis la ferme : l'en-tête du fichier garde le mode. */
+export function passerEnWal(chemin: string): void {
+  const sqlite = new Database(chemin);
+  try {
+    sqlite.pragma('journal_mode = WAL');
+  } finally {
+    sqlite.close();
+  }
+}
+
+/** Une copie de `source` par `VACUUM INTO`, comme le fait le responsable : un seul fichier. */
+export function copierParVacuum(source: string, copie: string): void {
+  const sqlite = new Database(source, { readonly: true });
+  try {
+    sqlite.prepare('vacuum into ?').run(copie);
+  } finally {
+    sqlite.close();
   }
 }
 

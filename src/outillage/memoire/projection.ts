@@ -255,18 +255,17 @@ const moyenne = (valeurs: readonly number[]): number =>
 
 /**
  * La moyenne de projections de même durée, une par personne : la charge par personne. Le jour où
- * tout est vu est le dernier de ceux des personnes, ou `null` si l'une d'elles ne l'atteint pas.
+ * tout est vu est celui de la personne médiane (les dates, `null` en dernier : rang `n / 2`), ou
+ * `null` si la médiane ne le voit pas : ni la plus lente ni la plus rapide ne se lit dans la page.
  */
 export function moyenneDeProjections(projections: readonly Projection[]): Projection {
   const [premiere] = projections;
   if (premiere === undefined) throw new RangeError('aucune projection à moyenner');
   const jours = premiere.jours;
-  const jourToutVu = projections.some((projection) => projection.jourToutVu === null)
-    ? null
-    : (projections
-        .map((projection) => projection.jourToutVu ?? '')
-        .sort()
-        .at(-1) ?? null);
+  const dates = projections
+    .map((projection) => projection.jourToutVu)
+    .sort((a, b) => (a === null ? 1 : b === null ? -1 : a < b ? -1 : a > b ? 1 : 0));
+  const jourToutVu = dates[Math.floor(dates.length / 2)] ?? null;
   return {
     jours,
     chargeParJour: Array.from({ length: jours }, (_, rang) =>

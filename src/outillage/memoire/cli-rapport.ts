@@ -2,11 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
-import { type CoursPrepare, preparerCours } from '../../domaine/cours/prepare.js';
-import { memoireDuCours, versCoursServi } from '../../domaine/cours/servi.js';
+import { memoireDuCours } from '../../domaine/cours/servi.js';
 import type { Evenement } from '../../domaine/journal/evenement.js';
-import { chargerContenus } from '../../serveur/contenus/chargeur.js';
-import { lireJournalDe, lireJournaux } from './lire-journaux.js';
+import { lireCours } from './lire-cours.js';
+import { lireJournalDe, lireJournaux, messageDeBaseIllisible } from './lire-journaux.js';
 import { estActive, PERSONNES_ACTIVES_MINIMUM } from './mesures.js';
 import { construireRapport } from './rapport.js';
 
@@ -67,13 +66,6 @@ function estDansUnDepot(fichier: string): boolean {
     if (parent === dossier) return false;
     dossier = parent;
   }
-}
-
-function lireCours(dossier: string, id: string): CoursPrepare | undefined {
-  const lu = chargerContenus(dossier);
-  if (lu.erreurs.length > 0) return undefined;
-  const cours = lu.cours.find((candidat) => candidat.id === id);
-  return cours === undefined ? undefined : preparerCours(versCoursServi(cours));
 }
 
 /** Lance la commande ; rend le code de sortie. Ne lève jamais. */
@@ -164,9 +156,9 @@ export async function executer(
       }
       journaux = [journal];
     }
-  } catch {
+  } catch (erreur) {
     // Le message de la bibliothèque n'est pas repris : la commande ne dit que ce qu'elle sait.
-    sortie.err(`base illisible : ${base}`);
+    sortie.err(messageDeBaseIllisible(erreur, base));
     return SORTIE_ERREUR;
   }
 
@@ -186,9 +178,11 @@ export async function executer(
   }
   if (personne !== undefined) {
     sortie.out('Rapport d’une personne écrit.');
-  } else if (journaux.filter((journal) => estActive(journal)).length < PERSONNES_ACTIVES_MINIMUM) {
+  } else if (
+    journaux.filter((journal) => estActive(journal, aujourdhui)).length < PERSONNES_ACTIVES_MINIMUM
+  ) {
     sortie.out(
-      'Rapport d’ensemble écrit : moins de trois personnes actives, il s’arrête aux totaux.',
+      'Rapport d’ensemble écrit : moins de trois personnes actives, il ne garde que le nombre d’éléments du cours.',
     );
   } else {
     sortie.out('Rapport d’ensemble écrit.');

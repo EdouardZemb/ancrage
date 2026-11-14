@@ -65,7 +65,28 @@ export const MINIMUM_D_UNE_CASE = 20;
 /** Il faut trois personnes actives au moins pour un rapport d'ensemble (M3-P6). */
 export const PERSONNES_ACTIVES_MINIMUM = 3;
 
-/** Une personne est active à 20 réponses au moins dans les 28 derniers jours de son journal. */
+/** Aucune personne ne fait plus de 70 % (en pour cent) des réponses d'une case d'un rapport d'ensemble. */
+export const PART_MAXIMALE_D_UNE_PERSONNE = 70;
+const POURCENT = 100;
+
+/**
+ * La règle d'une case d'un rapport d'ensemble, la seule : `comptes` est le nombre de réponses (ou
+ * d'éléments) de chaque personne dans la case. Il faut au moins `PERSONNES_ACTIVES_MINIMUM` personnes
+ * distinctes qui y comptent, au moins `MINIMUM_D_UNE_CASE` en tout, et aucune personne à plus de
+ * `PART_MAXIMALE_D_UNE_PERSONNE` du total : sans quoi la case décrirait une personne.
+ */
+export function caseAdmise(comptes: readonly number[]): boolean {
+  const presents = comptes.filter((compte) => compte > 0);
+  const total = presents.reduce((somme, compte) => somme + compte, 0);
+  const plusGrand = Math.max(0, ...presents);
+  return (
+    presents.length >= PERSONNES_ACTIVES_MINIMUM &&
+    total >= MINIMUM_D_UNE_CASE &&
+    plusGrand * POURCENT <= total * PART_MAXIMALE_D_UNE_PERSONNE
+  );
+}
+
+/** Une personne est active à 20 réponses au moins dans les 28 jours qui finissent au jour du rapport. */
 const REPONSES_D_UNE_PERSONNE_ACTIVE = 20;
 const JOURS_D_ACTIVITE = 28;
 const MS_PAR_SECONDE = 1000;
@@ -261,11 +282,17 @@ export function reussiteObservee(m: Mesures): ReussiteObservee {
   };
 }
 
-/** Une personne est active : 20 réponses au moins dans les 28 derniers jours de son journal. */
-export function estActive(journal: readonly Evenement[]): boolean {
-  const jours = reponsesDe(journal).map((reponse) => jourDe(reponse.repondu_a));
-  const dernier = jours.at(-1);
-  if (dernier === undefined) return false;
-  const debut = ajouterJours(dernier, 1 - JOURS_D_ACTIVITE);
-  return jours.filter((jour) => jour >= debut).length >= REPONSES_D_UNE_PERSONNE_ACTIVE;
+/**
+ * Une personne est active : 20 réponses au moins dans les 28 jours qui finissent au jour du rapport
+ * (`aujourdhui`, compris). Un compte dont les réponses sont plus anciennes n'est plus actif, et une
+ * réponse d'après le jour du rapport ne compte pas.
+ */
+export function estActive(journal: readonly Evenement[], aujourdhui: string): boolean {
+  const debut = ajouterJours(aujourdhui, 1 - JOURS_D_ACTIVITE);
+  return (
+    reponsesDe(journal).filter((reponse) => {
+      const jour = jourDe(reponse.repondu_a);
+      return jour >= debut && jour <= aujourdhui;
+    }).length >= REPONSES_D_UNE_PERSONNE_ACTIVE
+  );
 }

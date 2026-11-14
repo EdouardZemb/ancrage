@@ -15,8 +15,8 @@ import { ETAT_NEUF, type EtatUnite, journalSansDoublon } from './etat.js';
  * que `trierEvenements` fixe : deux appareils qui ont les mêmes événements aboutissent au même état.
  *
  * Ce qui fixe le calcul, et ne doit jamais dépendre d'un défaut de la bibliothèque :
- * - le modèle est nommé (`FSRS6Model`, ses poids par défaut), jamais celui que `ts-fsrs` prend
- *   quand on ne dit rien ;
+ * - le modèle est nommé (`FSRS6Model`, ses poids par défaut ou, s'il les porte, ceux du manifeste),
+ *   jamais celui que `ts-fsrs` prend quand on ne dit rien ;
  * - aucune dispersion des intervalles (pas de `fuzz`), aucune étape courte : le résultat ne contient
  *   pas de hasard et se compte en jours entiers ;
  * - une réponse est datée de son jour local (`jourDe`), porté à midi UTC : l'heure ne compte pas,

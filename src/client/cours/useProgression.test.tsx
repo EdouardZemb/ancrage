@@ -198,7 +198,9 @@ describe('useProgression', () => {
     expect(
       evenements
         .filter(({ type }) => type === 'reponse')
-        .map(({ unite, resultat }) => [unite, resultat]),
+        .map(({ unite, resultat }) => [unite, resultat])
+        // Deux réponses de la même milliseconde n'ont pas d'ordre garanti dans le journal.
+        .sort(([a], [b]) => String(a).localeCompare(String(b))),
     ).toEqual([
       ['c1000001', { juste: false, mode: 'corrigee' }],
       ['c2000001', { juste: true, mode: 'choix' }],

@@ -1,15 +1,24 @@
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { ajuster, MINIMUM_DE_REVUES, type Qualite } from './ajuster.js';
-import { lireJournaux } from './lire-journaux.js';
+import { chapitresAAjuster, garderLesCartes } from './cartes-a-ajuster.js';
+import { lireCours } from './lire-cours.js';
+import { lireJournaux, messageDeBaseIllisible } from './lire-journaux.js';
 
 /*
- * `pnpm memoire:ajuster --base <copie.sqlite> --cours <id>` : ajuste les 21 poids de FSRS-6 sur les
- * journaux d'un cours, lus dans une copie de la base, et écrit le bloc à coller dans le manifeste,
- * puis la qualité de la prédiction avant et après. Un outil du poste, hors de l'image (M3).
+ * `pnpm memoire:ajuster --base <copie.sqlite> --cours <id> --contenu <dossier> [--chapitre <module de
+ * cartes>]…` : ajuste les 21 poids de FSRS-6 sur les journaux d'un cours, lus dans une copie de la
+ * base, et écrit le bloc à coller dans le manifeste, puis la qualité de la prédiction avant et
+ * après. Un outil du poste, hors de l'image (M3).
  *
- * Codes : 0 ajusté ; 2 moins de 1 000 révisions exploitables, aucun paramètre écrit ; 64 usage ;
- * 1 base illisible. Rien de ce qui nomme une personne n'est lu jusqu'ici, donc rien ne s'écrit.
+ * Il n'apprend que sur ce que le rejeu lit, c'est-à-dire ce que FSRS planifiera : les cartes des
+ * `--chapitre` donnés ; sinon celles de `chapitres` du manifeste s'il est en `par-chapitre` ; sinon,
+ * en `fsrs`, toutes les unités du cours ; sinon (Leitner) toutes les cartes du cours. Le seuil de 1 000
+ * révisions et la qualité se calculent sur ce filtre.
+ *
+ * Codes : 0 ajusté ; 2 moins de 1 000 révisions exploitables, aucun paramètre écrit ; 64 usage (dont
+ * un `--chapitre` qui n'est pas un module de cartes du cours) ; 1 base ou contenu illisible, ou base
+ * en mode WAL. Rien de ce qui nomme une personne n'est lu jusqu'ici, donc rien ne s'écrit.
  */
 
 const SORTIE_OK = 0;
@@ -17,7 +26,8 @@ const SORTIE_ERREUR = 1;
 const SORTIE_TROP_PEU = 2;
 const SORTIE_USAGE = 64;
 
-const USAGE = 'usage : pnpm memoire:ajuster --base <copie.sqlite> --cours <identifiant du cours>';
+const USAGE =
+  'usage : pnpm memoire:ajuster --base <copie.sqlite> --cours <identifiant du cours> --contenu <dossier> [--chapitre <identifiant d’un module de cartes>]…';
 
 export interface Sortie {
   out: (ligne: string) => void;
@@ -41,11 +51,16 @@ function ecrireQualite(titre: string, qualite: Qualite, sortie: Sortie): void {
 
 /** Lance la commande ; rend le code de sortie. Ne lève jamais. */
 export async function executer(argv: readonly string[], sortie: Sortie): Promise<number> {
-  let valeurs: { base?: string; cours?: string };
+  let valeurs: { base?: string; cours?: string; contenu?: string; chapitre?: string[] };
   try {
     const lus = parseArgs({
       args: [...argv],
-      options: { base: { type: 'string' }, cours: { type: 'string' } },
+      options: {
+        base: { type: 'string' },
+        cours: { type: 'string' },
+        contenu: { type: 'string' },
+        chapitre: { type: 'string', multiple: true },
+      },
       allowPositionals: false,
       strict: true,
     });
@@ -54,20 +69,33 @@ export async function executer(argv: readonly string[], sortie: Sortie): Promise
     sortie.err(USAGE);
     return SORTIE_USAGE;
   }
-  const { base, cours } = valeurs;
-  if (base === undefined || base === '' || cours === undefined || cours === '') {
+  const { base, cours, contenu, chapitre = [] } = valeurs;
+  if (!base || !cours || !contenu) {
     sortie.err(USAGE);
     return SORTIE_USAGE;
   }
 
-  let journaux: ReturnType<typeof lireJournaux>['journaux'];
-  try {
-    journaux = lireJournaux(base, cours).journaux;
-  } catch {
-    // Le message de la bibliothèque n'est pas repris : la commande ne dit que ce qu'elle sait.
-    sortie.err(`base illisible : ${base}`);
+  const prepare = lireCours(contenu, cours);
+  if (prepare === undefined) {
+    sortie.err('contenu illisible, ou cours introuvable dans ce contenu');
     return SORTIE_ERREUR;
   }
+  const choisis = chapitresAAjuster(prepare, chapitre);
+  if ('inconnu' in choisis) {
+    sortie.err(`--chapitre ${choisis.inconnu} n’est pas un module de cartes de ce cours`);
+    sortie.err(USAGE);
+    return SORTIE_USAGE;
+  }
+
+  let lus: ReturnType<typeof lireJournaux>['journaux'];
+  try {
+    lus = lireJournaux(base, cours).journaux;
+  } catch (erreur) {
+    // Le message de la bibliothèque n'est pas repris : la commande ne dit que ce qu'elle sait.
+    sortie.err(messageDeBaseIllisible(erreur, base));
+    return SORTIE_ERREUR;
+  }
+  const { journaux, ecartees } = garderLesCartes(lus, prepare, choisis.chapitres);
 
   let ajustement: Awaited<ReturnType<typeof ajuster>>;
   try {
@@ -78,7 +106,7 @@ export async function executer(argv: readonly string[], sortie: Sortie): Promise
   }
   if (!ajustement.ajuste) {
     sortie.err(
-      `${ajustement.revues} révisions exploitables, moins de ${MINIMUM_DE_REVUES} : aucun paramètre écrit`,
+      `${ajustement.revues} révisions exploitables, moins de ${MINIMUM_DE_REVUES} : aucun paramètre écrit (${ecartees} réponse(s) écartée(s))`,
     );
     return SORTIE_TROP_PEU;
   }
@@ -89,6 +117,11 @@ export async function executer(argv: readonly string[], sortie: Sortie): Promise
   sortie.out(`parametres: [${ajustement.parametres.map((poids) => poids.toFixed(4)).join(', ')}]`);
   sortie.out('');
   sortie.out(`${ajustement.revues} révisions exploitables, tous comptes confondus.`);
+  sortie.out(
+    choisis.chapitres === null
+      ? `Appris sur tout le cours (FSRS le planifie en entier) ; ${ecartees} réponse(s) écartée(s).`
+      : `Appris sur les cartes de ${choisis.chapitres.size} module(s) ; ${ecartees} réponse(s) écartée(s) (autres modules, mots, points, exercices, fiches).`,
+  );
   sortie.out('');
   ecrireQualite('Avant (poids par défaut)', ajustement.avant, sortie);
   sortie.out('');

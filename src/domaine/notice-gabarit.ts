@@ -19,7 +19,7 @@
 import { composerNotice, dateAffichee, type Notice, type ValeursDeNotice } from './notice.js';
 
 /** La version du gabarit : la date de fusion de la PR qui l'a changé, `AAAA-MM-JJ`. */
-export const NOTICE_VERSION = '2026-11-14';
+export const NOTICE_VERSION = '2026-11-16';
 
 /** Les langues de la notice, celles de l'interface. */
 export type LangueDeNotice = keyof ValeursDeNotice['valeurs'];
@@ -53,7 +53,7 @@ const fr: Notice = {
         'pour chaque passkey : sa clé publique, son compteur, ses modes de connexion, le type d’appareil et ses dates ;',
         'pour chaque session : une empreinte de son jeton, le type d’appareil et ses dates ;',
         'tes groupes et tes droits sur les cours ;',
-        'ton journal de réponses : pour chaque réponse, l’élément du cours, le résultat (juste ou faux ; pour un examen, les points, le nombre de questions, la note, la durée et le nombre de chapitres), la manière dont tu as répondu (carte retournée, texte tapé, texte tapé puis compté juste par toi, choix parmi des propositions, tuiles assemblées, point touché, éléments associés ou classés, réponse montrée, bilan d’un texte : jamais ce que tu as répondu), l’heure, et un code tiré au hasard sur ton appareil, qui distingue tes appareils sans rien dire d’eux.',
+        'ton journal de réponses : pour chaque réponse, l’élément du cours, le résultat (juste ou faux ; pour un examen, les points, le nombre de questions, la note, la durée et le nombre de chapitres), la manière dont tu as répondu (carte retournée, texte tapé, texte tapé puis compté juste par toi, choix parmi des propositions, tuiles assemblées, point touché, éléments associés ou classés, réponse montrée, bilan d’un texte, réponse à un pré-test, donnée avant d’avoir appris l’élément et qui ne compte pas dans ta progression : jamais ce que tu as répondu), l’heure, et un code tiré au hasard sur ton appareil, qui distingue tes appareils sans rien dire d’eux.',
       ],
       paragraphes: [
         'Jamais : ton adresse e-mail, ton numéro de téléphone, ton vrai nom, la signature de ton navigateur (User-Agent), dont seul le type d’appareil est tiré, ni le texte que tu tapes. Ton adresse IP n’est jamais enregistrée : le serveur la garde seulement en mémoire, pour limiter les tentatives de connexion, et l’oublie au plus tard une minute après ta dernière tentative.',
@@ -126,7 +126,7 @@ const de: Notice = {
         'für jeden Passkey: sein öffentlicher Schlüssel, sein Zähler, seine Verbindungsarten, der Gerätetyp und wann er erstellt und zuletzt benutzt wurde;',
         'für jede Sitzung: ein Fingerabdruck ihres Tokens, der Gerätetyp und wann sie begonnen hat, zuletzt benutzt wurde und abläuft;',
         'deine Gruppen und deine Berechtigungen für die Kurse;',
-        'das Protokoll deiner Antworten: für jede Antwort das Element des Kurses, das Ergebnis (richtig oder falsch; bei einer Probeprüfung die Punkte, die Zahl der Fragen, die Note, die Dauer und die Zahl der Kapitel), die Art, wie du geantwortet hast (Karte umgedreht, Text getippt, Text getippt und von dir als richtig gewertet, Auswahl unter Vorschlägen, Kacheln zusammengesetzt, angetippter Punkt, Elemente zugeordnet oder eingeordnet, gezeigte Antwort, Auswertung eines Textes: nie, was du geantwortet hast), die Uhrzeit und ein auf deinem Gerät zufällig erzeugter Code, der deine Geräte unterscheidet, ohne etwas über sie zu verraten.',
+        'das Protokoll deiner Antworten: für jede Antwort das Element des Kurses, das Ergebnis (richtig oder falsch; bei einer Probeprüfung die Punkte, die Zahl der Fragen, die Note, die Dauer und die Zahl der Kapitel), die Art, wie du geantwortet hast (Karte umgedreht, Text getippt, Text getippt und von dir als richtig gewertet, Auswahl unter Vorschlägen, Kacheln zusammengesetzt, angetippter Punkt, Elemente zugeordnet oder eingeordnet, gezeigte Antwort, Auswertung eines Textes, Antwort in einem Vortest, die vor dem Lernen gegeben wird und nicht für deinen Fortschritt zählt: nie, was du geantwortet hast), die Uhrzeit und ein auf deinem Gerät zufällig erzeugter Code, der deine Geräte unterscheidet, ohne etwas über sie zu verraten.',
       ],
       paragraphes: [
         'Niemals: deine E-Mail-Adresse, deine Telefonnummer, dein echter Name, die Signatur deines Browsers (User-Agent), aus der nur der Gerätetyp abgeleitet wird, oder der Text, den du eintippst. Deine IP-Adresse wird nirgends aufgezeichnet: Der Server hält sie nur im Arbeitsspeicher, um Anmeldeversuche zu begrenzen, und vergisst sie spätestens eine Minute nach deinem letzten Anmeldeversuch.',

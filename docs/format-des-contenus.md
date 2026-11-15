@@ -316,6 +316,40 @@ fällig », tant qu'il reste zéro jour ou plus (à un jour : « Noch 1 Tag bis 
 même : « Heute ist die Prüfung »). Après
 l'examen, rien ne s'affiche. Un cours en `leitner` n'a pas d'`examen`, donc pas de compte à rebours.
 
+**Le pré-test** (lot M4, partie B ; ADR-0014). Trois jours avant l'ouverture d'une étape de cours,
+« Heute » propose cinq questions à choix sur ses cartes. Il ne demande aucune clé de manifeste : ses
+valeurs (la fenêtre, le nombre de questions) sont des constantes du code.
+
+- **L'étape** : la première étape `cours`, dans l'ordre du planning, qui s'ouvre dans un à trois
+  jours, datée ou relative. Le jour de son ouverture, l'étape est ouverte : plus de pré-test. Ni une
+  étape `revision`, ni la semaine 1 d'un planning relatif, toujours ouverte. Le pré-test ne porte
+  que sur les modules que l'étape ouvre, ceux qu'aucune étape ouverte plus tôt ne cite (à ouverture
+  égale, l'étape placée avant l'emporte) : une étape qui n'ouvre aucun module n'a pas de pré-test.
+  Il faut encore deux réponses distinctes au moins parmi leurs unités directes, pour qu'une question
+  à choix ait des options, et une unité directe neuve au moins.
+- **Une seule fois** : dès la première réponse, le pré-test de l'étape est fait, même abandonné ; il
+  ne revient pas. Tant qu'il n'est pas commencé, l'offre revient chaque jour de la fenêtre. Après un
+  pré-test fini, l'offre d'une autre étape de la même fenêtre peut paraître.
+- **Les questions** : au plus cinq, tirées au hasard parmi les cartes neuves des modules que l'étape
+  ouvre (une par carte), au moment où la personne commence. Chacune montre la carte au sens direct,
+  avec jusqu'à quatre options tirées dans ces mêmes modules. Le tirage diffère d'un appareil à
+  l'autre : « fait » se lit dans le journal.
+- **L'écran** : l'offre est un cadre en tête de « Heute », avant le premier geste de la séance, sur
+  l'écran de fin et sur « Heute ist nichts fällig » ; jamais en pleine séance. Le pré-test commencé
+  prend la place de la séance du jour, qui reste gardée, et « Zur Tagesrunde » y ramène à tout
+  moment. Une erreur n'y est pas une faute : la bonne option est en vert, l'option choisie, si elle
+  est fausse, garde le style neutre d'un choix, et aucun compte de justes ne se dit.
+- **Au journal** : chaque réponse est un événement `reponse` sur l'unité directe de la carte, avec
+  `resultat: { juste, mode: 'pretest' }`. Rien de ce qui se dérive du journal ne la compte :
+  `journalDesRevisions` la retire de l'état de Leitner, de FSRS, de la projection et de
+  l'ajustement, des découvertes du jour et des réponses par jour (donc de la série). Une carte
+  pré-testée reste neuve, et sa première vraie réponse est sa découverte ; une faute de pré-test ne
+  rend rien due. La comptent, en revanche, le départ d'un planning relatif (tout événement),
+  l'export, la suppression et la purge d'un compte, et le pré-test lui-même, qui lit le journal pour
+  savoir s'il est fait.
+- **Rien n'est gardé** : l'offre, l'étape et ce qui est fait se dérivent du journal, du manifeste et
+  du jour (invariant 5).
+
 **Sans `planning`**, la clé est absente du cours analysé, de la forme servie et de l'instantané de
 référence : tout est ouvert, comme avant. Le client qui reçoit un planning qu'il ne comprend pas (un
 genre inconnu, une semaine hors bornes, une date mal formée) l'ignore : tout est ouvert, et le cours

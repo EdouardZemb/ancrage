@@ -105,7 +105,10 @@ function LigneDeChapitre(props: { chapitre: Chapitre; avecUnit: boolean }) {
       <span class="title">
         {chapitre.titre}
         {avecUnit && chapitre.unit !== undefined && (
-          <span class="pill unit">{formater(t.apercu_unit, { n: chapitre.unit })}</span>
+          <>
+            {' '}
+            <span class="pill unit">{formater(t.apercu_unit, { n: chapitre.unit })}</span>
+          </>
         )}
         <br />
         <span class="meta">
@@ -208,12 +211,12 @@ export function Apercu() {
   const { morphologie, textes, exercices, feuilles } = cours;
 
   /**
-   * La ligne des schémas donnés. Sur une ligne qui n'a pas tous les schémas du cours, « Üben »
-   * choisit d'abord un schéma de la ligne si le choix gardé n'en est pas un (A2-D9).
+   * La ligne des schémas donnés. « Üben » choisit d'abord le premier schéma de la ligne si le
+   * choix gardé n'en est pas un (A2-D9) ; avec tous les schémas du cours, le choix gardé en est
+   * toujours un.
    */
   const ligneDeSchemas = (schemas: CoursPrepare['schemas']) => {
     const points = schemas.flatMap((schema) => schema.points.map(({ id }) => id));
-    const partielle = schemas.length < cours.schemas.length;
     return {
       onglet: 'schemas',
       nom: t.onglet_schemas,
@@ -221,7 +224,7 @@ export function Apercu() {
       faits: reussis(points, etats),
       total: points.length,
       ouvrir: () => {
-        if (partielle && !schemas.some(({ id }) => id === preferences.schemas.schema)) {
+        if (!schemas.some(({ id }) => id === preferences.schemas.schema)) {
           changerPreferences({
             ...preferences,
             schemas: { ...preferences.schemas, schema: schemas[0].id },
@@ -329,15 +332,19 @@ export function Apercu() {
         });
   const derniere = sections.at(-1) as Section;
   // Les mots réussis font aussi l'un des quatre chiffres.
-  const mots = derniere.exercices.find(({ onglet }) => onglet === 'mots');
+  const idsDesMots = morphologie?.mots.map(({ id }) => id) ?? [];
 
   return (
     <section>
       <div class="stats">
         <Chiffre valeur={tout.sures} sur={tout.total} libelle={t.apercu_sures} />
         <Chiffre valeur={dues} libelle={t.apercu_dues} />
-        {mots !== undefined && (
-          <Chiffre valeur={mots.faits} sur={mots.total} libelle={t.apercu_mots} />
+        {morphologie !== undefined && (
+          <Chiffre
+            valeur={reussis(idsDesMots, etats)}
+            sur={idsDesMots.length}
+            libelle={t.apercu_mots}
+          />
         )}
         {cours.examen !== undefined && (
           <Chiffre

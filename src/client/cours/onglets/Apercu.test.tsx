@@ -333,6 +333,8 @@ describe('Apercu par manuel', () => {
     expect(beta.map((l) => l.querySelector('.num')?.textContent)).toStrictEqual(['1', '2']);
     expect(beta[0].textContent).toContain('Vorsilben');
     expect(beta[1].textContent).toContain('Anfangskapitel');
+    // Une espace sépare le titre de l'étiquette : le texte lu n'est pas « …titreUnit 2 ».
+    expect(beta[0].querySelector('.title')?.textContent).toContain('Vorsilben Unit 2');
     expect(beta.map((l) => l.querySelector('.pill.unit')?.textContent)).toStrictEqual([
       'Unit 2',
       'Unit 1',
@@ -409,6 +411,38 @@ describe('Apercu par manuel', () => {
     const aller = (contexte.aller as Mock).mock.invocationCallOrder.at(-1) as number;
     expect(preferences).toBeLessThan(aller);
     expect(contexte.aller).toHaveBeenLastCalledWith('schemas');
+  });
+
+  it('apercu_manuels_ueben_choisit_le_premier_schema_de_la_ligne', () => {
+    const servi = coursAvecManuels();
+    const cours: CoursServi = {
+      ...servi,
+      modules: servi.modules.flatMap((module) =>
+        module.id === SCHEMA_2 && module.type === 'schema'
+          ? [
+              module,
+              {
+                ...module,
+                id: 'sc000003',
+                titre: 'Das dritte Muster',
+                points: module.points.map((p) => ({ ...p, id: p.id.replace('r', 't') })),
+              },
+            ]
+          : [module],
+      ),
+    };
+    const contexte = contexteDeTest({ cours });
+    rendreDansLeCours(<Apercu />, contexte);
+
+    // Deux schémas sans manuel, sur la même ligne : le choix gardé (celui d'Alpha) n'en est pas.
+    const ligne = ligneDe('apercu-uebungen')[1];
+    expect(ligne.textContent).toContain('Das zweite Muster · Das dritte Muster');
+    fireEvent.click(within(ligne).getByRole('button', { name: 'Üben' }));
+
+    expect(contexte.changerPreferences).toHaveBeenCalledWith({
+      ...contexte.preferences,
+      schemas: { ...contexte.preferences.schemas, schema: SCHEMA_2 },
+    });
   });
 
   it('apercu_manuels_un_manuel_inconnu_range_le_chapitre_dans_les_uebungen', () => {

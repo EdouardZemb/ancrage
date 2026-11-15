@@ -1062,7 +1062,6 @@ form.typed input {
 .pill.unit {
   background: var(--line);
   color: var(--muted);
-  margin-left: 6px;
   white-space: nowrap;
 }
 

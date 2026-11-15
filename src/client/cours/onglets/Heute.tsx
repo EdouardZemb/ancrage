@@ -1,11 +1,12 @@
 /*
  * « Heute » (M2), la séance du jour : une seule file qui mêle tout ce qui est dû aujourd'hui, quel
- * que soit le type de l'unité, puis quelques cartes neuves (`composerSeance`). Les neuves viennent
- * du choix fait dans Karteikarten (M2-P10), et `nouvelles_par_seance` est un plafond par jour
- * (M2-P9) : le quota est ce que laissent les cartes déjà découvertes aujourd'hui, où qu'elles aient
- * été répondues, et une fois le plafond atteint « Nächste Runde » ne reprend que les dues. Chaque élément se
- * pose avec l'écran de son onglet (`questions/`), et sa réponse entre au journal comme une réponse
- * ordinaire : rien de nouveau n'est écrit. Une faute remet l'élément en fin de file une fois.
+ * que soit le type de l'unité, puis quelques cartes neuves (`composerSeance`). Sans planning, les
+ * neuves viennent du choix fait dans Karteikarten (M2-P10), et `nouvelles_par_seance` est un
+ * plafond par jour (M2-P9) : le quota est ce que laissent les cartes déjà découvertes aujourd'hui,
+ * où qu'elles aient été répondues, et une fois le plafond atteint « Nächste Runde » ne reprend que
+ * les dues. Chaque élément se pose avec l'écran de son onglet (`questions/`), et sa réponse entre au
+ * journal comme une réponse ordinaire : rien de nouveau n'est écrit. Une faute remet l'élément en
+ * fin de file une fois.
  *
  * La séance vit dans l'écran du cours (`useEtatDOnglet`) : un détour par un autre onglet retrouve
  * la même question et la même file, et retient la mise à jour de l'application (`heuteEnCours`).
@@ -14,9 +15,11 @@
  * (M2-P6) ; après la première réponse,
  * elle ne suit plus le journal, comme une séance de cartes.
  *
- * Le planning du cours (M4) ne ferme que les cartes neuves : celles d'un module fermé ne sont pas
- * candidates, et ce qui est dû reste dû (A1-D7). Le compte à rebours avant l'examen se dit sur les
- * trois écrans de l'onglet, sans lien avec le planning (A1-D8).
+ * Avec un planning (M4), les cartes neuves viennent des modules ouverts, dans l'ordre du planning
+ * et sans égard au chapitre choisi dans Karteikarten (B-D2), à un rythme calculé : ce qui est
+ * ouvert se répartit sur les jours avant l'ouverture suivante, `nouvelles_par_seance` restant un
+ * plafond (B-D3, `neuvesDuJour`). Ce qui est dû reste dû (A1-D7). Le compte à rebours avant
+ * l'examen se dit sur les trois écrans de l'onglet, sans lien avec le planning (A1-D8).
  *
  * Un geste, une écriture (M2-P7) : la réponse et le verdict, ou la suite et la question d'après,
  * s'écrivent d'un seul bloc.
@@ -26,13 +29,11 @@ import type { CoursPrepare } from '../../../domaine/cours/prepare.js';
 import { memoireDuCours } from '../../../domaine/cours/servi.js';
 import type { Hasard } from '../../../domaine/hasard.js';
 import type { ModeDeReponse } from '../../../domaine/journal/evenement.js';
-import { unitesDuChoix } from '../../../domaine/seances/cartes.js';
 import {
   apresReponseDuJour,
   bilanDuJour,
   cartesNeuves,
   composerSeance,
-  decouvertesLe,
   duesDuJour,
   type Posable,
   posablesDuCours,
@@ -41,9 +42,9 @@ import {
 import {
   departDuPlanning,
   joursAvantExamen,
-  modulesFermes,
   planningDuCours,
 } from '../../../domaine/seances/planning.js';
+import { neuvesDuJour } from '../../../domaine/seances/rythme.js';
 import { optionsDuPoint } from '../../../domaine/seances/schemas.js';
 import { useCours } from '../contexte-cours.js';
 import {
@@ -79,9 +80,10 @@ export interface EtatDeHeute {
 }
 
 /**
- * La clé d'une séance : le jour, les identifiants des dues du moment, ceux des cartes neuves du
- * choix, puis le quota du jour (M2-P6, M2-P9). Une carte neuve répondue ailleurs, ou un changement
- * de chapitre dans Karteikarten, change la clé, comme une due.
+ * La clé d'une séance : le jour, les identifiants des dues du moment, ceux des cartes neuves
+ * candidates, puis le quota du jour (M2-P6, M2-P9, B-D7). Le rythme y entre par ces candidates et ce
+ * quota. Une carte neuve répondue ailleurs, ou un changement de chapitre dans Karteikarten sans
+ * planning, change la clé, comme une due.
  */
 export function cleDuJour(
   aujourdhui: string,
@@ -155,13 +157,12 @@ export function Heute() {
     aller,
     useEtatDOnglet,
   } = useCours();
-  const nouvelles = cours.cours.leitner.nouvellesParSeance;
   const posables = useMemo(() => posablesDuCours(cours), [cours]);
   const dues = useMemo(
     () => duesDuJour(posables, etats, aujourdhui),
     [posables, etats, aujourdhui],
   );
-  // Le planning ne ferme que les cartes neuves : ce qui est dû reste dû (A1-D7). Le départ relit
+  // Le planning ne règle que les cartes neuves : ce qui est dû reste dû (A1-D7). Le départ relit
   // tout le journal, il ne se refait que si le journal ou le jour change.
   const planning = useMemo(() => planningDuCours(cours.cours), [cours]);
   const depart = useMemo(
@@ -169,34 +170,33 @@ export function Heute() {
     [planning, evenements, aujourdhui],
   );
   const examen = useMemo(() => memoireDuCours(cours.cours)?.examen, [cours]);
-  // Les candidates sont les cartes du choix de Karteikarten (M2-P10), des modules ouverts.
-  const candidates = useMemo(() => {
-    const fermes =
-      planning === undefined ? new Set<string>() : modulesFermes(planning, depart, aujourdhui);
-    const choix = new Set(
-      unitesDuChoix(cours, preferences.cartes.chapitre, preferences.cartes.sens)
-        .filter(({ module }) => !fermes.has(module))
-        .map(({ id }) => id),
-    );
-    return posables.filter((p) => p.genre === 'carte' && choix.has(p.id));
-  }, [
-    cours,
-    posables,
-    planning,
-    depart,
-    aujourdhui,
-    preferences.cartes.chapitre,
-    preferences.cartes.sens,
-  ]);
-  const neuvesDuChoix = useMemo(() => cartesNeuves(candidates, etats), [candidates, etats]);
-  // Le plafond du jour moins les cartes du cours découvertes aujourd'hui (M2-P9).
-  // Le compte relit le journal : il ne se refait que si le journal, le jour ou le cours changent.
-  const decouvertes = useMemo(
-    () => decouvertesLe(evenements, aujourdhui, new Set(cours.unites.map(({ id }) => id))),
-    [evenements, aujourdhui, cours],
+  // Les cartes neuves du jour et leur quota (M2-P9, B-D2, B-D3). Sans planning, les neuves du choix
+  // de Karteikarten et le plafond moins les cartes découvertes aujourd'hui ; avec un planning, les
+  // premières cartes neuves des modules ouverts, au rythme du jour. Le compte relit le journal :
+  // il ne se refait que si le journal, le jour, le cours ou le choix changent.
+  const { candidates, quota } = useMemo(
+    () =>
+      neuvesDuJour(
+        cours,
+        posables,
+        { etats, evenements, aujourdhui },
+        { chapitre: preferences.cartes.chapitre, sens: preferences.cartes.sens },
+        planning === undefined ? undefined : { planning, depart, examen },
+      ),
+    [
+      cours,
+      posables,
+      etats,
+      evenements,
+      aujourdhui,
+      planning,
+      depart,
+      examen,
+      preferences.cartes.chapitre,
+      preferences.cartes.sens,
+    ],
   );
-  const quota = Math.max(0, nouvelles - decouvertes);
-  const cle = cleDuJour(aujourdhui, dues, neuvesDuChoix, quota);
+  const cle = cleDuJour(aujourdhui, dues, candidates, quota);
 
   // Les éléments que la séance en cours a réussis : le journal ne les montre qu'une fois rangés,
   // et l'écran de fin ne les compte plus parmi les dues. Une séance neuve repart d'un ensemble vide.

@@ -35,6 +35,8 @@ export interface CoursServi {
   memoire?: unknown;
   /** Absent : le cours n'a pas de planning. À lire par `planningDuCours`. */
   planning?: unknown;
+  /** Absent : le cours ne nomme pas ses manuels. À lire par `lireManuels`. */
+  manuels?: unknown;
   /** Dans l'ordre de `cours.yaml`. */
   modules: ModuleServi[];
 }
@@ -182,8 +184,11 @@ function tacheServie(tache: Tache): Tache {
 /**
  * Un module tel que l'API le sert, construit champ par champ, éléments imbriqués compris : ce que
  * le modèle ajoute à un module ne part pas tant qu'on ne l'a pas écrit ici. `ModuleServi` est le
- * module sans son `fichier` : un champ de plus au modèle fait échouer `pnpm types` dans cette
- * fonction, et un type de module de plus fait échouer la garde `never`.
+ * module sans son `fichier` : un type de module de plus fait échouer la garde `never`. Un champ
+ * facultatif de plus au modèle, lui, ne fait pas échouer `pnpm types` : un littéral qui l'oublie
+ * reste bien typé. Ce qui le voit, c'est `COURS_SOURCE`, qui porte la clé, avec
+ * `contenu_servi_avec_droit` (il compare le cours servi au modèle) et
+ * `cles_servies_de_chaque_type_de_module` (`routes-cours.test.ts`, une liste exacte des clés).
  */
 export function moduleServi(module: Module): ModuleServi {
   switch (module.type) {
@@ -193,6 +198,9 @@ export function moduleServi(module: Module): ModuleServi {
         id: module.id,
         numero: module.numero,
         titre: module.titre,
+        ...(module.manuel === undefined ? {} : { manuel: module.manuel }),
+        ...(module.chapitre === undefined ? {} : { chapitre: module.chapitre }),
+        ...(module.unit === undefined ? {} : { unit: module.unit }),
         cartes: module.cartes.map(carteServie),
       };
     case 'morphologie':
@@ -222,6 +230,7 @@ export function moduleServi(module: Module): ModuleServi {
         type: 'schema',
         id: module.id,
         titre: module.titre,
+        ...(module.manuel === undefined ? {} : { manuel: module.manuel }),
         ...descriptionServie(module),
         viewbox: module.viewbox,
         dessin: module.dessin,
@@ -317,6 +326,9 @@ export function versCoursServi(cours: Cours): CoursServi {
     leitner: cours.leitner,
     ...(cours.memoire === undefined ? {} : { memoire: cours.memoire }),
     ...(cours.planning === undefined ? {} : { planning: cours.planning }),
+    ...(cours.manuels === undefined
+      ? {}
+      : { manuels: cours.manuels.map(({ id, titre }) => ({ id, titre })) }),
     modules: cours.modules.map(moduleServi),
   };
 }

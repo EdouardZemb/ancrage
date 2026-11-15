@@ -2,6 +2,9 @@ type: "cartes"
 id: "7dty0tg7"
 numero: 2
 titre: "Zutaten"
+manuel: "dfyhpe2p"
+chapitre: 2
+unit: 2
 statut: "source"
 cartes:
   - id: "hkc99h4e"

@@ -1059,6 +1059,12 @@ form.typed input {
   color: var(--muted);
 }
 
+.pill.unit {
+  background: var(--line);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 .table {
   display: grid;
   border-top: 1px solid var(--line);

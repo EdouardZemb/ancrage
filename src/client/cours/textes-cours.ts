@@ -72,6 +72,8 @@ const de = {
   apercu_legende_fach: 'Fach {n}',
   apercu_legende_sicher: 'Fach {n} · sicher',
   apercu_weitere: 'Weitere Übungen',
+  division_uebungen: 'Übungen',
+  apercu_unit: 'Unit {n}',
   apercu_ueben: 'Üben',
   // La ligne des fiches (F1-D12), pas dans le prototype : le singulier pour une seule.
   apercu_feuille_une: '1 Arbeitsblatt',
@@ -237,6 +239,7 @@ const de = {
   examen_punkte: '{points} von {questions} Punkten ({pourcent} %) · {minutes} Min.',
   examen_nach_kapitel: 'Nach Kapitel',
   examen_kapitel: 'Kapitel {n}',
+  examen_kapitel_manuel: 'Kapitel {n} · {manuel}',
   examen_richtig: '{justes} / {total} richtig',
   examen_fehler: 'Fehler ({n})',
   examen_keine_fehler: 'Keine Fehler – ausgezeichnet!',

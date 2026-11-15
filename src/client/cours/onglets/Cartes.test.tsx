@@ -2,7 +2,13 @@
 import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Carte } from '../../../domaine/contenu/modele.js';
-import { CHAPITRE_1, CHAPITRE_2, coursServiDeTest } from '../../../domaine/cours/cours.fixture.js';
+import {
+  CHAPITRE_1,
+  CHAPITRE_2,
+  coursAvecChapitreAuManuelInconnu,
+  coursAvecManuels,
+  coursServiDeTest,
+} from '../../../domaine/cours/cours.fixture.js';
 import type { CoursServi } from '../../../domaine/cours/servi.js';
 import type { SeanceCartes } from '../../../domaine/seances/cartes.js';
 import { enAttente } from '../../attente.fixture.js';
@@ -19,7 +25,7 @@ import type { ContexteCours } from '../contexte-cours.js';
 import type { Preferences } from '../preferences.js';
 import { TEXTES_COURS } from '../textes-cours.js';
 import { Cartes } from './Cartes.js';
-import { progression, touche } from './onglets.fixture.js';
+import { groupesDe, optionsHorsGroupes, progression, touche } from './onglets.fixture.js';
 import { Quiz } from './Quiz.js';
 
 afterEach(cleanup);
@@ -741,5 +747,63 @@ describe('Cartes', () => {
       expect(progression()).toBe('0 beantwortet · 1 übrig');
       expect(enonce()).toBe('tachy-');
     });
+  });
+});
+
+describe('Cartes par manuel', () => {
+  function contexteAvecManuels(cours: CoursServi, chapitre: string): ContexteCours {
+    const contexte = contexteDeTest({ cours });
+    contexte.preferences = {
+      ...contexte.preferences,
+      cartes: { chapitre, sens: 'direct', saisie: true },
+    };
+    return contexte;
+  }
+
+  it('cartes_sans_manuel_le_choix_est_celui_d_aujourd_hui', () => {
+    rendreDansUnCoursVivant(<Cartes />, contexteDe([HERZ, TACHY]));
+
+    // Le DOM du choix, figé tel qu'il était avant les manuels.
+    expect((document.querySelector('select') as HTMLElement).outerHTML).toBe(
+      '<select aria-label="Kapitel"><option value="mc000001">1 · Anfangskapitel</option>' +
+        '<option value="mc000002">2 · Vorsilben</option><option value="tous">Alle Kapitel</option></select>',
+    );
+    expect(screen.getByText('Begriff · Begriff → Bedeutung · Kap. 1')).toBeTruthy();
+  });
+
+  it('cartes_par_manuel_un_optgroup_dans_l_ordre_du_livre', () => {
+    const contexte = contexteAvecManuels(coursAvecManuels(), CHAPITRE_1);
+    rendreDansUnCoursVivant(<Cartes />, contexte);
+
+    const choix = screen.getByLabelText(t.choix_chapitre) as HTMLSelectElement;
+    // Alpha n'a pas de chapitre : pas de groupe ; Beta range le chapitre 1 avant le 2.
+    expect(groupesDe(choix)).toEqual([['Lehrbuch Beta', ['1 · Vorsilben', '2 · Anfangskapitel']]]);
+    expect(optionsHorsGroupes(choix)).toEqual([['tous', 'Alle Kapitel']]);
+    expect(choix.value).toBe(CHAPITRE_1);
+    expect(
+      (Array.from(choix.options).find((option) => option.selected) as HTMLOptionElement).value,
+    ).toBe(CHAPITRE_1);
+    // Le numéro de la carte est celui du chapitre dans son manuel.
+    expect(screen.getByText(/· Kap\. 2$/)).toBeTruthy();
+
+    fireEvent.change(choix, { target: { value: CHAPITRE_2 } });
+
+    expect(contexte.changerPreferences).toHaveBeenLastCalledWith({
+      ...contexte.preferences,
+      cartes: { chapitre: CHAPITRE_2, sens: 'direct', saisie: true },
+    });
+    expect((screen.getByLabelText(t.choix_chapitre) as HTMLSelectElement).value).toBe(CHAPITRE_2);
+    expect(screen.getByText(/· Kap\. 1$/)).toBeTruthy();
+  });
+
+  it('cartes_par_manuel_un_chapitre_au_manuel_inconnu_est_dans_les_uebungen', () => {
+    const contexte = contexteAvecManuels(coursAvecChapitreAuManuelInconnu(), CHAPITRE_1);
+    rendreDansUnCoursVivant(<Cartes />, contexte);
+
+    const choix = screen.getByLabelText(t.choix_chapitre) as HTMLSelectElement;
+    expect(groupesDe(choix)).toEqual([
+      ['Lehrbuch Beta', ['2 · Anfangskapitel']],
+      [t.division_uebungen, ['2 · Vorsilben']],
+    ]);
   });
 });

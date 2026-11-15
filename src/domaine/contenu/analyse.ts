@@ -22,6 +22,7 @@ import {
   signalerDoublons,
 } from './analyse-commun.js';
 import { resoudreFeuille } from './analyse-feuilles.js';
+import { controlerManuels, noterManuels } from './analyse-manuels.js';
 import { defautsDuDessin, lireDessin } from './dessin.js';
 import type { ErreurContenu } from './erreurs.js';
 import { estIdentifiant } from './identifiants.js';
@@ -268,6 +269,7 @@ function analyserCours(
   const ecrit = lire(analyse, fichierCours, schemaDeCours);
   if (!ecrit) return undefined;
   noterIdentifiant(analyse, ecrit.id, fichierCours, 'id');
+  noterManuels(analyse, fichierCours, ecrit.manuels);
 
   const references = new Set([fichierCours]);
   const modulesCites = new Set<string>();
@@ -302,6 +304,7 @@ function analyserCours(
   });
 
   controlerNumeros(analyse, modules);
+  controlerManuels(analyse, ecrit.manuels, modules);
   controlerModulesUniques(analyse, modules);
   if (toutLu) {
     controlerChapitres(analyse, modules);
@@ -357,6 +360,9 @@ function analyserCours(
             })),
           },
         }),
+    ...(ecrit.manuels === undefined
+      ? {}
+      : { manuels: ecrit.manuels.map(({ id, titre }) => ({ id, titre })) }),
     ...(ecrit.derogation_diffusion === undefined
       ? {}
       : {
@@ -444,6 +450,9 @@ function resoudreCartes(
     fichier,
     numero: ecrit.numero,
     titre: ecrit.titre,
+    ...(ecrit.manuel === undefined ? {} : { manuel: ecrit.manuel }),
+    ...(ecrit.chapitre === undefined ? {} : { chapitre: ecrit.chapitre }),
+    ...(ecrit.unit === undefined ? {} : { unit: ecrit.unit }),
     cartes,
   };
 }
@@ -567,6 +576,7 @@ function resoudreSchema(
     id: ecrit.id,
     fichier,
     titre: ecrit.titre,
+    ...(ecrit.manuel === undefined ? {} : { manuel: ecrit.manuel }),
     ...descriptionDe(ecrit),
     ...etatPropre(ecrit.statut, ecrit.verifie_le),
     viewbox: dessin.viewbox,

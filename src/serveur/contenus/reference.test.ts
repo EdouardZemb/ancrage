@@ -1,8 +1,14 @@
 import { FSRS6_DEFAULT_WEIGHTS } from 'ts-fsrs/models/fsrs-6';
 import { describe, expect, it } from 'vitest';
 import { analyserContenus } from '../../domaine/contenu/analyse.js';
-import { exempleDeCours, REGLAGES_DE_L_EXAMEN } from '../../domaine/contenu/exemple.fixture.js';
-import type { Cours, Planning } from '../../domaine/contenu/modele.js';
+import {
+  exempleAvecManuels,
+  exempleDeCours,
+  ID_MANUEL_ALPHA,
+  ID_MANUEL_BETA,
+  REGLAGES_DE_L_EXAMEN,
+} from '../../domaine/contenu/exemple.fixture.js';
+import type { Cours, Manuel, Planning } from '../../domaine/contenu/modele.js';
 import { calculerReference } from './reference.js';
 
 function coursDe(fichiers: Map<string, string>): Cours {
@@ -383,6 +389,46 @@ describe('calculerReference', () => {
     const ecrite = cours.planning?.etapes[0] ?? {};
     expect(Object.keys(ecrite)).toEqual(['titre', 'seance', 'genre', 'modules']);
     expect(ecrite).not.toHaveProperty('en_trop');
+  });
+
+  it('manuel_recopie_champ_par_champ_dans_l_ordre', () => {
+    const manuel = { titre: 'Lehrbuch Alpha', id: ID_MANUEL_ALPHA, en_trop: 'x' };
+    const manuels = [manuel] as unknown as Manuel[];
+    const { cours } = calculerReference({ ...coursDe(exempleDeCours()), manuels });
+    const ecrit = cours.manuels?.[0] ?? {};
+    expect(Object.keys(ecrit)).toEqual(['id', 'titre']);
+    expect(ecrit).not.toHaveProperty('en_trop');
+  });
+
+  it('manuels_ecrits_apres_planning_et_cles_des_entrees_dans_l_ordre', () => {
+    const { cours } = calculerReference(coursDe(exempleAvecManuels()));
+    expect(cours.manuels).toStrictEqual([
+      { id: ID_MANUEL_ALPHA, titre: 'Lehrbuch Alpha' },
+      { id: ID_MANUEL_BETA, titre: 'Lehrbuch Beta' },
+    ]);
+    expect(Object.keys(cours).slice(-1)).toEqual(['manuels']);
+
+    const planning = {
+      etapes: [{ titre: 'Woche 1', semaine: 1, genre: 'cours' as const, modules: ['aaaaaaaa'] }],
+    };
+    const avecPlanning = calculerReference({ ...coursDe(exempleAvecManuels()), planning });
+    expect(Object.keys(avecPlanning.cours).slice(-2)).toEqual(['planning', 'manuels']);
+
+    const reference = calculerReference(coursDe(exempleAvecManuels()));
+    const cles = ['module', 'numero', 'titre', 'manuel', 'chapitre', 'unit'];
+    expect(reference.chapitres.map((chapitre) => Object.keys(chapitre))).toEqual([cles, cles]);
+    expect(reference.chapitres[0]).toMatchObject({ manuel: ID_MANUEL_ALPHA, chapitre: 2, unit: 1 });
+    expect(Object.keys(reference.schemas[0]).slice(0, 3)).toEqual(['id', 'titre', 'manuel']);
+    expect(reference.schemas[0].manuel).toBe(ID_MANUEL_ALPHA);
+  });
+
+  it('cours_sans_manuels_sans_ces_cles_nulle_part_dans_la_reference', () => {
+    const reference = calculerReference(coursDe(exempleDeCours()));
+    expect(reference.cours).not.toHaveProperty('manuels');
+    for (const entree of [...reference.chapitres, ...reference.schemas]) {
+      for (const cle of ['manuel', 'chapitre', 'unit']) expect(entree).not.toHaveProperty(cle);
+    }
+    expect(JSON.stringify(reference)).not.toMatch(/"(manuels?|chapitre|unit)"/);
   });
 
   it('memoire_par_chapitre_ecrite_en_entier_dans_la_reference', () => {

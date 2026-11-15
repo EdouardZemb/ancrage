@@ -5,7 +5,7 @@
  * `*.fixture.ts`.
  */
 import { analyserContenus } from '../domaine/contenu/analyse.js';
-import { exempleDeCours } from '../domaine/contenu/exemple.fixture.js';
+import { exempleAvecManuels, exempleDeCours } from '../domaine/contenu/exemple.fixture.js';
 import type { Cours } from '../domaine/contenu/modele.js';
 
 export const ID_A_VERIFIER = 'j5by5stz';
@@ -29,10 +29,11 @@ function variante(
   id: string,
   titre: string,
   transformer: (chemin: string, texte: string) => string = (_chemin, texte) => texte,
+  base: Map<string, string> = exempleDeCours(),
 ): Cours {
   return analyser(
     new Map(
-      [...exempleDeCours()].map(([chemin, texte]) => [
+      [...base].map(([chemin, texte]) => [
         chemin,
         transformer(
           chemin,
@@ -81,17 +82,23 @@ const RELUS: readonly { chemin: string; avant: string; apres: string }[] = [
 /**
  * Une variante où chaque élément « à vérifier » devient `source`, sauf `RELUS` qui passent à
  * `vérifié` : chaque clé facultative d'état est ainsi servie au moins une fois
- * (`cles_servies_de_chaque_type_de_module`).
+ * (`cles_servies_de_chaque_type_de_module`). Il nomme aussi deux manuels, et range ses modules de
+ * cartes et son schéma dans l'un d'eux : les clés des manuels sont servies elles aussi.
  */
-export const COURS_SOURCE = variante(ID_SOURCE, 'Quellenkurs', (chemin, texte) => {
-  const propre = texte.replace(/^( *)statut: "à vérifier"$/gm, '$1statut: "source"');
-  return RELUS.filter((relu) => relu.chemin === chemin).reduce((texteRelu, relu) => {
-    if (!texteRelu.includes(relu.avant)) {
-      throw new Error(`RELUS : « ${relu.avant} » introuvable dans ${relu.chemin}`);
-    }
-    return texteRelu.replace(relu.avant, () => relu.apres);
-  }, propre);
-});
+export const COURS_SOURCE = variante(
+  ID_SOURCE,
+  'Quellenkurs',
+  (chemin, texte) => {
+    const propre = texte.replace(/^( *)statut: "à vérifier"$/gm, '$1statut: "source"');
+    return RELUS.filter((relu) => relu.chemin === chemin).reduce((texteRelu, relu) => {
+      if (!texteRelu.includes(relu.avant)) {
+        throw new Error(`RELUS : « ${relu.avant} » introuvable dans ${relu.chemin}`);
+      }
+      return texteRelu.replace(relu.avant, () => relu.apres);
+    }, propre);
+  },
+  exempleAvecManuels(),
+);
 /** Une variante « à vérifier » dont le manifeste autorise la diffusion à un groupe. */
 export const COURS_DEROGE = variante(ID_DEROGE, 'Ausnahmekurs', (chemin, texte) =>
   chemin === 'essai/cours.yaml'

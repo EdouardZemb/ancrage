@@ -3,7 +3,9 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { analyserContenus } from '../../domaine/contenu/analyse.js';
 import {
+  exempleAvecManuels,
   exempleDeCours,
+  ID_MANUEL_ALPHA,
   modifier,
   valeursDeNoticeDExemple,
 } from '../../domaine/contenu/exemple.fixture.js';
@@ -58,6 +60,16 @@ describe('textesDuCours', () => {
     expect(textes).toContain('Erfundene Etappe eins');
     expect(textes).not.toContain('Kurz'); // sous le seuil de longueur
     expect(textesDuCours(cours)).not.toContain('Erfundene Etappe eins');
+  });
+
+  it('prend_les_titres_des_manuels_de_douze_caracteres_ou_plus', () => {
+    const { cours } = analyserContenus(exempleAvecManuels());
+    const [avec] = cours;
+    expect(textesDuCours(avec)).toContain('Lehrbuch Alpha');
+    const court = { ...avec, manuels: [{ id: ID_MANUEL_ALPHA, titre: 'Lehrbuch Ab' }] };
+    expect(textesDuCours(court)).not.toContain('Lehrbuch Ab'); // onze caractères
+    const [sans] = analyserContenus(exempleDeCours()).cours;
+    expect(textesDuCours(sans)).not.toContain('Lehrbuch Alpha');
   });
 
   it('prend_les_textes_de_douze_caracteres_ou_plus', () => {

@@ -3,13 +3,34 @@
  * (ils quittent `Examen.tsx`, 2b-D6).
  */
 import { useState } from 'preact/hooks';
-import type { ModuleServiDe } from '../../../domaine/cours/prepare.js';
+import { divisionsDuCours, numeroAffiche } from '../../../domaine/cours/manuels.js';
+import type { Chapitre, ModuleServiDe } from '../../../domaine/cours/prepare.js';
 import { composerExamen, examenAvecModulesPossible } from '../../../domaine/seances/examen.js';
+import { titreDeDivision } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
 import { formater } from '../textes-cours.js';
 import type { Passage } from './examen-libelles.js';
 
 export const MS_PAR_MINUTE = 60_000;
+
+/** Une case par chapitre, « {n} · {titre} », que les deux modes des cases partagent (A2-D11). */
+function CasesDeChapitres(props: {
+  chapitres: readonly Chapitre[];
+  choisis: readonly string[];
+  /** Reçoit le chapitre et son nouvel état. */
+  basculer(id: string, coche: boolean): void;
+}) {
+  return props.chapitres.map((chapitre) => (
+    <label key={chapitre.id} class="inline">
+      <input
+        type="checkbox"
+        checked={props.choisis.includes(chapitre.id)}
+        onChange={(e) => props.basculer(chapitre.id, e.currentTarget.checked)}
+      />{' '}
+      {numeroAffiche(chapitre)} · {chapitre.titre}
+    </label>
+  ));
+}
 
 /** Les réglages d'un examen, avant de le commencer (H:2005-2028). */
 export function Reglages(props: {
@@ -29,6 +50,14 @@ export function Reglages(props: {
     changerPreferences({ ...preferences, examen: { ...preferences.examen, ...suite } });
   };
   const tousLesChapitres = cours.chapitres.map(({ id }) => id);
+  const divisions = divisionsDuCours(cours);
+  // Les chapitres gardés restent dans l'ordre du cours, quel que soit le rangement à l'écran.
+  const basculer = (id: string, coche: boolean) =>
+    choisir({
+      chapitres: tousLesChapitres.filter((autre) =>
+        autre === id ? coche : chapitres.includes(autre),
+      ),
+    });
 
   const demarrer = () => {
     if (chapitres.length === 0) return;
@@ -59,24 +88,26 @@ export function Reglages(props: {
     <section>
       <h2>{t.examen_titre}</h2>
       <p class="muted">{formater(t.examen_anleitung, { note: module.noteSuffisante })}</p>
-      <div class="checks">
-        {cours.chapitres.map((chapitre) => (
-          <label key={chapitre.id} class="inline">
-            <input
-              type="checkbox"
-              checked={chapitres.includes(chapitre.id)}
-              onChange={(e) =>
-                choisir({
-                  chapitres: tousLesChapitres.filter((id) =>
-                    id === chapitre.id ? e.currentTarget.checked : chapitres.includes(id),
-                  ),
-                })
-              }
-            />{' '}
-            {chapitre.numero} · {chapitre.titre}
-          </label>
-        ))}
-      </div>
+      {divisions === undefined ? (
+        <div class="checks">
+          <CasesDeChapitres chapitres={cours.chapitres} choisis={chapitres} basculer={basculer} />
+        </div>
+      ) : (
+        divisions
+          .filter((division) => division.chapitres.length > 0)
+          .map((division) => (
+            <fieldset key={division.manuel?.id ?? 'uebungen'}>
+              <legend>{titreDeDivision(division, t)}</legend>
+              <div class="checks">
+                <CasesDeChapitres
+                  chapitres={division.chapitres}
+                  choisis={chapitres}
+                  basculer={basculer}
+                />
+              </div>
+            </fieldset>
+          ))
+      )}
       <div class="controls">
         <label class="inline">
           {t.examen_fragen}{' '}

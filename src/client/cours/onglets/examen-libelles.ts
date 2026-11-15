@@ -2,6 +2,7 @@
  * Les libellés et les énoncés de « Prüfung » : des fonctions pures, de la question ou du groupe au
  * texte que l'écran montre (elles quittent `Examen.tsx`, 2b-D6).
  */
+import { numeroAffiche, numeroDeLUnite } from '../../../domaine/cours/manuels.js';
 import type { CoursPrepare } from '../../../domaine/cours/prepare.js';
 import type {
   CorrectionExamen,
@@ -35,10 +36,19 @@ export interface Passage {
   resultat: Remis | null;
 }
 
-/** Le libellé du groupe d'un résultat : « Kapitel n », ou celui de l'onglet du module. */
+/**
+ * Le libellé du groupe d'un résultat : « Kapitel n », ou « Kapitel n · {manuel} » quand le chapitre
+ * a un manuel (A2-D7), ou celui de l'onglet du module.
+ */
 export function libelleDuGroupe(groupe: string, cours: CoursPrepare, t: Textes): string {
   const chapitre = cours.chapitres.find(({ id }) => id === groupe);
-  if (chapitre !== undefined) return formater(t.examen_kapitel, { n: chapitre.numero });
+  if (chapitre !== undefined) {
+    const n = numeroAffiche(chapitre);
+    const manuel = cours.manuels.find(({ id }) => id === chapitre.manuel);
+    return manuel === undefined
+      ? formater(t.examen_kapitel, { n })
+      : formater(t.examen_kapitel_manuel, { n, manuel: manuel.titre });
+  }
   switch (groupe) {
     case 'mots':
       return cours.morphologie?.titre ?? groupe;
@@ -70,7 +80,7 @@ export function etiquetteDe(question: QuestionExamen, cours: CoursPrepare, t: Te
       return [
         cours.cours.typesDeCarte[unite.type],
         sens,
-        formater(t.carte_chapitre, { n: unite.numero }),
+        formater(t.carte_chapitre, { n: numeroDeLUnite(cours, unite) }),
       ].join(' · ');
     }
     case 'mot':

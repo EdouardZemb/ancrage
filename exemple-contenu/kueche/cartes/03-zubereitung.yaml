@@ -2,6 +2,9 @@ type: "cartes"
 id: "cntctqb2"
 numero: 3
 titre: "Zubereitung"
+manuel: "dfyhpe2p"
+chapitre: 1
+unit: 3
 statut: "source"
 cartes:
   - id: "hvxcj27n"

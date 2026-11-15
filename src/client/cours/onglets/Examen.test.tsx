@@ -4,6 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   CHAPITRE_1,
   CHAPITRE_2,
+  coursAvecChapitreAuManuelInconnu,
+  coursAvecManuels,
   coursAvecReglages,
   coursSans,
   coursServiDeTest,
@@ -1435,5 +1437,103 @@ describe('Examen', () => {
       expect(note()).toBe('1.0');
       expect(contexte.enregistrerExamen).toHaveBeenCalledTimes(1);
     });
+  });
+});
+
+describe('Examen par manuel', () => {
+  /** Les cases d'un `fieldset` : leur texte et leur état. */
+  function casesDe(groupe: Element): [string, boolean][] {
+    return Array.from(groupe.querySelectorAll('label')).map((label) => [
+      (label.textContent ?? '').trim(),
+      (label.querySelector('input') as HTMLInputElement).checked,
+    ]);
+  }
+
+  it('examen_sans_manuel_les_cases_sont_celles_d_aujourd_hui', () => {
+    rendreDansUnCoursVivant(<Examen />, contexteDeTest());
+
+    expect(document.querySelector('fieldset')).toBeNull();
+    // Le DOM des cases, figé tel qu'il était avant les manuels.
+    expect((document.querySelector('.checks') as HTMLElement).outerHTML).toBe(
+      '<div class="checks"><label class="inline"><input type="checkbox"> 1 · Anfangskapitel</label>' +
+        '<label class="inline"><input type="checkbox"> 2 · Vorsilben</label></div>',
+    );
+  });
+
+  it('examen_par_manuel_un_fieldset_par_division_qui_a_des_chapitres', () => {
+    const contexte = contexteDeTest({ cours: coursAvecManuels() });
+    rendreDansUnCoursVivant(<Examen />, contexte);
+
+    const groupes = Array.from(document.querySelectorAll('fieldset'));
+    // Alpha n'a pas de chapitre : pas de groupe ; Beta range le chapitre 1 avant le 2.
+    expect(groupes.map((g) => g.querySelector('legend')?.textContent)).toEqual(['Lehrbuch Beta']);
+    expect(groupes[0].querySelectorAll('.checks')).toHaveLength(1);
+    expect(casesDe(groupes[0])).toEqual([
+      ['1 · Vorsilben', true],
+      ['2 · Anfangskapitel', true],
+    ]);
+
+    fireEvent.click(screen.getByRole('checkbox', { name: '1 · Vorsilben' }));
+    expect(casesDe(groupes[0])).toEqual([
+      ['1 · Vorsilben', false],
+      ['2 · Anfangskapitel', true],
+    ]);
+    expect(contexte.changerPreferences).toHaveBeenLastCalledWith({
+      ...contexte.preferences,
+      examen: { ...contexte.preferences.examen, chapitres: [CHAPITRE_1] },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: t.examen_keine }));
+    expect(casesDe(groupes[0]).map(([, coche]) => coche)).toEqual([false, false]);
+    fireEvent.click(screen.getByRole('button', { name: t.examen_alle }));
+    expect(casesDe(groupes[0]).map(([, coche]) => coche)).toEqual([true, true]);
+  });
+
+  it('examen_par_manuel_un_chapitre_au_manuel_inconnu_est_dans_les_uebungen', () => {
+    rendreDansUnCoursVivant(
+      <Examen />,
+      contexteDeTest({ cours: coursAvecChapitreAuManuelInconnu() }),
+    );
+
+    const groupes = Array.from(document.querySelectorAll('fieldset'));
+    expect(groupes.map((g) => g.querySelector('legend')?.textContent)).toEqual([
+      'Lehrbuch Beta',
+      t.division_uebungen,
+    ]);
+    expect(casesDe(groupes[1])).toEqual([['2 · Vorsilben', true]]);
+
+    const coches = () => groupes.map((g) => casesDe(g).map(([, coche]) => coche));
+    const avant = coches();
+    expect(avant.flat().length).toBeGreaterThan(1);
+    fireEvent.click(screen.getByRole('button', { name: t.examen_keine }));
+    expect(
+      coches()
+        .flat()
+        .every((coche) => !coche),
+    ).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: t.examen_alle }));
+    expect(coches()).toEqual(groupes.map((_, i) => avant[i].map(() => true)));
+  });
+
+  it('examen_par_manuel_les_cartes_et_le_resultat_disent_le_numero_dans_le_manuel', () => {
+    const contexte = contexteDe({ cours: coursAvecManuels() });
+    const attendue = composee(contexte);
+    const rang = attendue.questions.findIndex(
+      (question) => question.genre === 'carte' && question.unite.module === CHAPITRE_2,
+    );
+    expect(rang).toBeGreaterThanOrEqual(0);
+    rendreDansUnCoursVivant(<Examen />, contexte);
+    demarrer();
+    for (let i = 0; i < rang; i++) sauter();
+
+    // `CHAPITRE_2` est le chapitre 1 de son manuel, et son `numero` est 2.
+    expect(etiquette()).toMatch(/ · Kap\. 1$/);
+    for (let i = rang; i < attendue.questions.length; i++) sauter();
+    cliquer(t.examen_abgeben);
+
+    const groupes = lignes(t.examen_nach_kapitel).map(
+      (ligne) => ligne.querySelector('b')?.textContent,
+    );
+    expect(groupes.slice(0, 2)).toEqual(['Kapitel 2 · Lehrbuch Beta', 'Kapitel 1 · Lehrbuch Beta']);
   });
 });

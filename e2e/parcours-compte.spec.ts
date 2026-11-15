@@ -851,6 +851,17 @@ parcours('invitation_passkey_reconnexion_et_lien_de_secours', async ({ telephone
     // Le journal du serveur avant les réponses de l'étape : elles doivent s'y ajouter.
     const evenementsAvantLEtape = await evenementsDuServeur(lernende);
     await ongletDansLaMarge(lernende, deCours.onglet_apercu);
+    // Les divisions de l'aperçu : les deux manuels dans l'ordre de `manuels` (le Beispielbuch d'abord,
+    // alors que le premier module du cours est dans le Beispielheft), puis « Übungen ».
+    // Lues par leur `id` : le titre du cours est aussi un `h2`.
+    await expect(lernende.locator('h2[id^="apercu-"]')).toHaveText([
+      'Beispielbuch Küche',
+      'Beispielheft Geräte',
+      deCours.division_uebungen,
+    ]);
+    await expect(lernende.locator('#apercu-manuel-dfyhpe2p')).toHaveText('Beispielbuch Küche');
+    await expect(lernende.locator('#apercu-manuel-dgb1wgcc')).toHaveText('Beispielheft Geräte');
+    await expect(lernende.locator('#apercu-uebungen')).toHaveText(deCours.division_uebungen);
     await ongletsDeCartesDansLaMarge(lernende);
     await exercicesAnnexesDansLaMarge(lernende);
     await feuillesDansLaMarge(lernende);

@@ -1,11 +1,14 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, screen, within } from '@testing-library/preact';
 import { afterEach, describe, expect, it, type Mock } from 'vitest';
+import { ID_MANUEL_ALPHA, ID_MANUEL_BETA } from '../../../domaine/contenu/exemple.fixture.js';
 import {
   CHAPITRE_1,
   CHAPITRE_2,
+  coursAvecManuels,
   coursSans,
   coursServiDeTest,
+  SCHEMA_2,
 } from '../../../domaine/cours/cours.fixture.js';
 import type { CoursServi } from '../../../domaine/cours/servi.js';
 import {
@@ -283,5 +286,200 @@ describe('Apercu', () => {
     expect(screen.queryByText('Wörter zerlegt / gebildet')).toBeNull();
     expect(screen.queryByText('noch keine Probeprüfung')).toBeNull();
     expect(screen.queryByRole('list', { name: 'Weitere Übungen' })).toBeNull();
+  });
+});
+
+/** Un intertitre de division, lu par son `id`. */
+function intertitre(id: string): HTMLElement | null {
+  return document.getElementById(id);
+}
+
+/** Les lignes de la liste qu'un intertitre nomme. */
+function ligneDe(id: string): HTMLElement[] {
+  return lignes(intertitre(id)?.textContent ?? '');
+}
+
+/** Les intertitres de division de la page, `id|titre`, dans l'ordre. */
+function intertitresDeLaPage(): string[] {
+  return [...document.querySelectorAll('section h2')]
+    .filter((h) => h.id.startsWith('apercu-manuel-') || h.id === 'apercu-uebungen')
+    .map((h) => `${h.id}|${h.textContent}`);
+}
+
+function pointsDuSchema(servi: CoursServi, id: string): string[] {
+  const module = servi.modules.find((m) => m.id === id);
+  return module?.type === 'schema' ? module.points.map((p) => p.id) : [];
+}
+
+describe('Apercu par manuel', () => {
+  it('apercu_manuels_divisions_dans_l_ordre_sans_division_vide', () => {
+    rendreDansLeCours(<Apercu />, contexteDeTest({ cours: coursAvecManuels() }));
+
+    expect(intertitresDeLaPage()).toStrictEqual([
+      `apercu-manuel-${ID_MANUEL_ALPHA}|Lehrbuch Alpha`,
+      `apercu-manuel-${ID_MANUEL_BETA}|Lehrbuch Beta`,
+      'apercu-uebungen|Übungen',
+    ]);
+    expect(screen.queryByText('Lehrbuch Gamma')).toBeNull();
+    expect(screen.queryByText('Kapitel')).toBeNull();
+    expect(screen.queryByText('Weitere Übungen')).toBeNull();
+  });
+
+  it('apercu_manuels_chapitres_dans_l_ordre_du_livre_avec_leur_unit', () => {
+    rendreDansLeCours(<Apercu />, contexteDeTest({ cours: coursAvecManuels() }));
+
+    const beta = ligneDe(`apercu-manuel-${ID_MANUEL_BETA}`);
+    expect(beta).toHaveLength(2);
+    expect(beta.map((l) => l.querySelector('.num')?.textContent)).toStrictEqual(['1', '2']);
+    expect(beta[0].textContent).toContain('Vorsilben');
+    expect(beta[1].textContent).toContain('Anfangskapitel');
+    // Une espace sépare le titre de l'étiquette : le texte lu n'est pas « …titreUnit 2 ».
+    expect(beta[0].querySelector('.title')?.textContent).toContain('Vorsilben Unit 2');
+    expect(beta.map((l) => l.querySelector('.pill.unit')?.textContent)).toStrictEqual([
+      'Unit 2',
+      'Unit 1',
+    ]);
+  });
+
+  it('apercu_manuels_schemas_et_exercices_par_division', () => {
+    const servi = coursAvecManuels();
+    const [premier] = pointsDuSchema(servi, 'sc000001');
+    const contexte = contexteDeTest({
+      cours: servi,
+      evenements: [reponseDeTest(1, premier, true, AUJOURDHUI_DE_TEST)],
+    });
+    rendreDansLeCours(<Apercu />, contexte);
+
+    const alpha = ligneDe(`apercu-manuel-${ID_MANUEL_ALPHA}`);
+    expect(alpha).toHaveLength(1);
+    expect(alpha[0].textContent).toContain('Schemata');
+    expect(alpha[0].textContent).toContain('Das Musterorgan · 1/5');
+    expect(alpha[0].textContent).not.toContain('Das zweite Muster');
+
+    const autres = ligneDe('apercu-uebungen');
+    expect(autres.map((l) => l.querySelector('.title')?.firstChild?.textContent)).toStrictEqual([
+      'Baukasten',
+      'Schemata',
+      'Berichte',
+      'Grammatik',
+      'Arbeitsblätter',
+    ]);
+    expect(autres[1].textContent).toContain('Das zweite Muster · 0/3');
+  });
+
+  it('apercu_manuels_la_legende_vient_une_fois_avant_les_uebungen', () => {
+    rendreDansLeCours(<Apercu />, contexteDeTest({ cours: coursAvecManuels() }));
+
+    expect(document.querySelectorAll('.legend')).toHaveLength(1);
+    const legende = document.querySelector('.legend') as HTMLElement;
+    expect(legende.nextElementSibling?.id).toBe('apercu-uebungen');
+  });
+
+  it('apercu_manuels_lernen_choisit_le_chapitre_et_ouvre_les_cartes', () => {
+    const contexte = contexteDeTest({ cours: coursAvecManuels() });
+    rendreDansLeCours(<Apercu />, contexte);
+
+    const beta = ligneDe(`apercu-manuel-${ID_MANUEL_BETA}`);
+    fireEvent.click(within(beta[1]).getByRole('button', { name: 'Lernen' }));
+
+    expect(contexte.changerPreferences).toHaveBeenCalledWith({
+      ...contexte.preferences,
+      cartes: { ...contexte.preferences.cartes, chapitre: CHAPITRE_1 },
+    });
+    expect(contexte.aller).toHaveBeenCalledWith('cartes');
+  });
+
+  it('apercu_manuels_ueben_choisit_un_schema_de_la_ligne', () => {
+    const contexte = contexteDeTest({ cours: coursAvecManuels() });
+    rendreDansLeCours(<Apercu />, contexte);
+
+    // Le schéma choisi par défaut est celui d'Alpha : sa ligne le laisse, et ouvre l'onglet.
+    const alpha = ligneDe(`apercu-manuel-${ID_MANUEL_ALPHA}`);
+    fireEvent.click(within(alpha[0]).getByRole('button', { name: 'Üben' }));
+    expect(contexte.changerPreferences).not.toHaveBeenCalled();
+    expect(contexte.aller).toHaveBeenLastCalledWith('schemas');
+
+    // La ligne d'« Übungen » n'a pas ce schéma : le sien devient le choix, avant d'ouvrir l'onglet.
+    const ligne = ligneDe('apercu-uebungen')[1];
+    fireEvent.click(within(ligne).getByRole('button', { name: 'Üben' }));
+    expect(contexte.changerPreferences).toHaveBeenCalledWith({
+      ...contexte.preferences,
+      schemas: { ...contexte.preferences.schemas, schema: SCHEMA_2 },
+    });
+    // Le choix précède l'ouverture : la dernière ouverture vient après le seul choix.
+    const [preferences] = (contexte.changerPreferences as Mock).mock.invocationCallOrder;
+    const aller = (contexte.aller as Mock).mock.invocationCallOrder.at(-1) as number;
+    expect(preferences).toBeLessThan(aller);
+    expect(contexte.aller).toHaveBeenLastCalledWith('schemas');
+  });
+
+  it('apercu_manuels_ueben_choisit_le_premier_schema_de_la_ligne', () => {
+    const servi = coursAvecManuels();
+    const cours: CoursServi = {
+      ...servi,
+      modules: servi.modules.flatMap((module) =>
+        module.id === SCHEMA_2 && module.type === 'schema'
+          ? [
+              module,
+              {
+                ...module,
+                id: 'sc000003',
+                titre: 'Das dritte Muster',
+                points: module.points.map((p) => ({ ...p, id: p.id.replace('r', 't') })),
+              },
+            ]
+          : [module],
+      ),
+    };
+    const contexte = contexteDeTest({ cours });
+    rendreDansLeCours(<Apercu />, contexte);
+
+    // Deux schémas sans manuel, sur la même ligne : le choix gardé (celui d'Alpha) n'en est pas.
+    const ligne = ligneDe('apercu-uebungen')[1];
+    expect(ligne.textContent).toContain('Das zweite Muster · Das dritte Muster');
+    fireEvent.click(within(ligne).getByRole('button', { name: 'Üben' }));
+
+    expect(contexte.changerPreferences).toHaveBeenCalledWith({
+      ...contexte.preferences,
+      schemas: { ...contexte.preferences.schemas, schema: SCHEMA_2 },
+    });
+  });
+
+  it('apercu_manuels_un_manuel_inconnu_range_le_chapitre_dans_les_uebungen', () => {
+    const servi = coursAvecManuels();
+    const cours: CoursServi = {
+      ...servi,
+      modules: servi.modules.map((module) =>
+        module.id === CHAPITRE_2 ? { ...module, manuel: 'zzzzzzzz' } : module,
+      ),
+    };
+    rendreDansLeCours(<Apercu />, contexteDeTest({ cours }));
+
+    const autres = ligneDe('apercu-uebungen');
+    expect(autres[0].querySelector('.num')?.textContent).toBe('2');
+    expect(autres[0].textContent).toContain('Vorsilben');
+    expect(autres[1].textContent).toContain('Baukasten');
+    expect(ligneDe(`apercu-manuel-${ID_MANUEL_BETA}`)).toHaveLength(1);
+  });
+
+  it('apercu_sans_manuel_l_ecran_est_celui_d_aujourd_hui', () => {
+    rendreDansLeCours(<Apercu />, contexteDeTest());
+
+    expect(intertitresDeLaPage()).toStrictEqual([]);
+    expect(lignes('Kapitel')).toHaveLength(2);
+    expect(lignes('Weitere Übungen')).toHaveLength(5);
+    expect(document.querySelector('.pill.unit')).toBeNull();
+    const legende = document.querySelector('.legend') as HTMLElement;
+    expect(legende.nextElementSibling?.id).toBe('apercu-weitere');
+  });
+
+  it('apercu_manuels_illisibles_gardent_le_mode_plat_sans_unit', () => {
+    const cours = { ...coursAvecManuels(), manuels: 42 } as CoursServi;
+    rendreDansLeCours(<Apercu />, contexteDeTest({ cours }));
+
+    expect(lignes('Kapitel')).toHaveLength(2);
+    expect(lignes('Weitere Übungen')).toHaveLength(5);
+    expect(document.querySelector('.pill.unit')).toBeNull();
+    expect(intertitresDeLaPage()).toStrictEqual([]);
   });
 });

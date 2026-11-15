@@ -15,8 +15,9 @@ import { ajouterJours, jourDe } from '../journal/temps.js';
  * quel ordre, aboutissent donc au même état.
  *
  * Un événement présent deux fois (même `id`) ne compte qu'une fois, et le premier fait foi, comme
- * chez le serveur : chaque fonction rejoue le journal sans doublon (`journalSansDoublon`). Le jour
- * d'un événement est son jour local (`jourDe`).
+ * chez le serveur : chaque fonction rejoue le journal sans doublon (`journalSansDoublon`, ou
+ * `journalDesRevisions`, qui retire aussi les pré-tests). Le jour d'un événement est son jour
+ * local (`jourDe`).
  */
 
 /** Le journal dans son ordre, chaque `id` une seule fois : le premier fait foi. */

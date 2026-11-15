@@ -2,7 +2,6 @@ import { ordonnanceurDuCours } from '../../client/cours/ordonnanceur-du-cours.js
 import type { CoursPrepare } from '../../domaine/cours/prepare.js';
 import {
   type Evenement,
-  estPretest,
   MODES_DE_REVISION,
   type ModeDeRevision,
 } from '../../domaine/journal/evenement.js';
@@ -148,7 +147,10 @@ type Reponse = Evenement & { type: 'reponse'; resultat: { mode?: ModeDeRevision 
 /** Les réponses du journal, sans doublon et sans les pré-tests (B-D9), dans l'ordre du journal. */
 function reponsesDe(journal: readonly Evenement[]): Reponse[] {
   return journalDesRevisions(journal).filter(
-    (evenement): evenement is Reponse => evenement.type === 'reponse' && !estPretest(evenement),
+    (evenement): evenement is Reponse =>
+      evenement.type === 'reponse' &&
+      (evenement.resultat.mode === undefined ||
+        (MODES_DE_REVISION as readonly string[]).includes(evenement.resultat.mode)),
   );
 }
 

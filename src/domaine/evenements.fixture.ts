@@ -56,13 +56,8 @@ export function pretestDeTest(
   reponduA: string,
 ): Evenement {
   return {
-    id: idDeTest(n),
-    cours: 'cm5r8t23',
-    unite,
+    ...reponseDeTest(n, unite, juste, reponduA),
     type: 'reponse',
     resultat: { juste, mode: 'pretest' },
-    repondu_a: reponduA,
-    appareil: APPAREIL_DE_TEST,
-    v: 1,
   };
 }

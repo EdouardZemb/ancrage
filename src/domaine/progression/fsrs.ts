@@ -11,8 +11,8 @@ import { ETAT_NEUF, type EtatUnite, journalDesRevisions } from './etat.js';
 /*
  * L'état d'apprentissage dérivé du journal par FSRS-6 (ADR-0012, M1-D2 à M1-D4), à côté de la
  * méthode de Leitner d'`etat.ts` : même journal, même type `EtatUnite`, rien de stocké (ADR-0004,
- * invariant 5). Chaque appel rejoue le journal sans doublon et sans pré-test (`journalDesRevisions`), dans l'ordre
- * que `trierEvenements` fixe : deux appareils qui ont les mêmes événements aboutissent au même état.
+ * invariant 5). Chaque appel rejoue le journal sans doublon et sans pré-test
+ * (`journalDesRevisions`), dans l'ordre que `trierEvenements` fixe : deux appareils qui ont les mêmes événements aboutissent au même état.
  *
  * Ce qui fixe le calcul, et ne doit jamais dépendre d'un défaut de la bibliothèque :
  * - le modèle est nommé (`FSRS6Model`, ses poids par défaut ou, s'il les porte, ceux du manifeste),

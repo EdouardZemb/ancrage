@@ -175,9 +175,23 @@ test('le_message_nomme_les_pretests_parmi_les_reponses_ecartees', async () => {
   // Trois réponses à des cartes du chapitre gardé, écartées parce que ce sont des pré-tests.
   expect(resultat.sortie).toContain('3 réponse(s) écartée(s)');
   expect(resultat.sortie).toContain('pré-tests');
-  // Sans chapitre FSRS demandé : tout le cours, mêmes pré-tests écartés et nommés.
+  // Avec deux chapitres demandés : les mêmes pré-tests sont écartés et nommés.
+  // La branche « tout le cours » (un contenu en `fsrs`) reste hors test.
   const toutLeCours = await lancer(
     ...arguments_('--chapitre', CHAPITRE_FSRS, '--chapitre', AUTRES_CHAPITRES[0] ?? ''),
   );
   expect(toutLeCours.sortie).toContain('pré-tests');
+}, 60_000);
+
+test('trop_peu_de_revisions_le_message_nomme_aussi_les_pretests', async () => {
+  const [premiere = ''] = cartesDe(CHAPITRE_FSRS);
+  const pretests = Array.from({ length: 3 }, (_, k) =>
+    reponseInventee(Date.UTC(2026, 0, 1, 10, k), 810_000 + k, premiere, k === 0, COURS, 'pretest'),
+  );
+  ecrireJournal(base(), [[...journalDeCartes(61, { unites: 18, passages: 12 }), ...pretests]]);
+
+  const resultat = await lancer(...arguments_());
+
+  expect(resultat.code).toBe(2);
+  expect(resultat.erreurs).toContain('3 réponse(s) écartée(s), pré-tests compris');
 }, 60_000);

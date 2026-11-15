@@ -2,6 +2,9 @@ type: "cartes"
 id: "n0sq3hfm"
 numero: 1
 titre: "Küchengeräte"
+manuel: "dgb1wgcc"
+chapitre: 1
+unit: 1
 statut: "source"
 cartes:
   - id: "xyv4pn7g"

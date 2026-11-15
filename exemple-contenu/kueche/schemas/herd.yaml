@@ -1,6 +1,7 @@
 type: "schema"
 id: "3mj72f3k"
 titre: "Der Kochherd"
+manuel: "dgb1wgcc"
 statut: "source"
 description: "Ein Herd mit Kochfeld und Backofen"
 dessin: "herd.svg"

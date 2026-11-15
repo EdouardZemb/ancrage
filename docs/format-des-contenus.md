@@ -99,6 +99,9 @@ planning:                  # facultative : voir « Le planning »
     - titre: "Woche 1"
       semaine: 1
       modules: ["<identifiant d'un module>"]
+manuels:                   # facultative : voir « Les manuels »
+  - id: "<id>"
+    titre: "Beispielbuch Küche"
 derogation_diffusion:      # facultative : voir « Dérogation de diffusion »
   motif: "<pourquoi>"
   date: "2026-10-16"
@@ -259,6 +262,80 @@ manifeste qui porte une clé qu'elle ignore (invariant 8). Exception : le cours 
 l'image, et l'image précédente garde le sien. Le cours d'exemple a un planning relatif : son premier
 module de cartes en semaine 1, le deuxième en semaine 2, le troisième en semaine 3.
 
+### Les manuels
+
+La clé `manuels` nomme les livres dont viennent les chapitres d'un cours. Chaque module de cartes dit
+alors son manuel, son numéro de chapitre dans ce manuel et sa Unit, et un schéma peut dire son
+manuel. Elle est facultative, et toute autre clé que celles ci-dessous est refusée.
+
+```yaml
+manuels:
+  - id: "<id>"
+    titre: "Beispielbuch Küche"
+  - id: "<id>"
+    titre: "Beispielheft Geräte"
+```
+
+- `manuels` est une liste, pour que l'ordre des divisions soit celui de l'écriture. Elle a au moins un
+  manuel.
+- `id` : un identifiant du format, tiré par `contenus:id`, inscrit dans `ids.lock` et unique dans
+  tout le contenu (invariant 4).
+- `titre` : un texte non vide, unique parmi les manuels du cours. C'est un texte du cours : il
+  n'entre jamais dans le client construit, et `contenus:client` le cherche dès douze caractères
+  (sous douze, un texte n'est pas cherché).
+
+**Les clés des modules.** Un module de cartes admet `manuel` (l'identifiant d'un manuel du cours),
+`chapitre` (un entier positif, son numéro dans ce manuel) et `unit` (un entier positif). Un schéma
+admet `manuel`. Les autres types de module n'en admettent aucune. `numero` reste obligatoire et
+unique dans le cours : il garde son rôle dans l'instantané, et sert de numéro quand le cours n'a pas
+de manuels. Un entier s'écrit sans guillemets (`"3"` est un texte, refusé).
+
+**Tout ou rien.** Un cours qui écrit `manuels` donne les trois clés à chacun de ses modules de
+cartes ; un cours qui ne l'écrit pas n'en donne aucune, ni `manuel` à un schéma. Chaque clé qui
+manque, ou qui est de trop, est une erreur à elle, dans le fichier du module.
+
+**Les contrôles.** Deux manuels n'ont pas le même titre. Un `manuel` désigne un manuel du cours, et
+deux modules de cartes n'ont pas le même chapitre du même manuel. Un manuel qu'aucun module ne cite
+est admis, et ne se montre pas : un cours peut nommer un manuel avant d'y ranger un module.
+
+**Ce qu'en font les écrans.**
+- « Übersicht » se divise : une division par manuel, dans l'ordre de `manuels`, puis « Übungen »,
+  toujours la dernière. Une division de manuel range ses chapitres dans l'ordre du livre (`chapitre`
+  croissant), puis ses schémas dans l'ordre du cours, sur une ligne « Schemata » ; « Übungen » reçoit
+  les chapitres et les schémas sans manuel lisible, puis la morphologie, les textes, les exercices
+  et les feuilles. Une division vide ne se montre pas. Une étiquette « Unit {n} » suit le titre d'un
+  chapitre. « Üben » d'une ligne de schémas ouvre un schéma de cette ligne.
+- Le choix du chapitre (Karteikarten, Quiz) a un groupe par division qui a des chapitres, ses options
+  libellées « {n} · {titre} », puis « Alle Kapitel ». La valeur d'une option reste l'identifiant du
+  module : les préférences gardées ne changent pas.
+- La Prüfung range ses cases par division, « Alle » et « Keine » valant pour tous les chapitres.
+- Le numéro d'un chapitre à l'écran est son `chapitre` quand il a un manuel lisible, sinon son
+  `numero` : pastille, options, cases, étiquette « Kap. n » d'une carte. Le groupe « Kapitel n » du
+  résultat de la Prüfung dit aussi son manuel (« Kapitel {n} · {manuel} »).
+- Le mode des divisions s'allume dès qu'un chapitre ou un schéma a un manuel lisible. Sinon chaque
+  écran s'affiche comme avant : « Kapitel », puis « Weitere Übungen ».
+
+**Le client lit sans rigueur.** Une liste de manuels qu'il ne comprend pas (pas une liste, vide, un
+manuel sans `id` ou sans `titre`, un `id` en double) laisse le cours en mode plat ; un module dont le
+manuel ou le chapitre est illisible va dans « Übungen ». Rien ne bloque le cours.
+
+**Dans l'instantané de référence,** `manuels` va dans `cours`, après `planning` ; une entrée de
+`chapitres` porte `manuel`, `chapitre` et `unit` après `titre`, et une entrée de `schemas` porte
+`manuel` après `titre`, chacun seulement s'il est écrit. **Sans ces clés,** elles sont absentes du
+cours analysé, de la forme servie et de l'instantané : l'instantané d'un cours qui n'en a pas ne
+change pas.
+
+**Retirer un manuel.** On le retire de `manuels` et des modules qui le nomment, et l'on marque sa
+ligne d'`ids.lock` `<id> retiré` : jamais on ne la supprime.
+
+**Un cours monté ne reçoit `manuels`, ni les clés `manuel`, `chapitre` et `unit` de ses modules, qu'à
+partir de la version qui suit celle qui les connaît**, la première étant celle qui suit la
+`v0.16.0`. Les schémas stricts du manifeste et des modules de l'image précédente, que le retour
+arrière remet en service, les refuseraient (invariant 8). Exception : le cours d'exemple vit dans
+l'image, et l'image précédente garde le sien. Le cours d'exemple nomme deux manuels inventés,
+« Beispielbuch Küche » puis « Beispielheft Geräte », et range ses trois modules de cartes dans leur
+ordre à lui, différent de celui du cours.
+
 ### Dérogation de diffusion
 
 Un cours qui contient au moins un élément `à vérifier` (voir « Statuts ») ne peut être ouvert à un
@@ -347,6 +424,9 @@ type: "cartes"
 id: "<id>"
 numero: 8
 titre: "Vorsilben der Küche"
+manuel: "<id d'un manuel de cours.yaml>"   # voir « Les manuels » : avec chapitre et unit, ou aucun
+chapitre: 2
+unit: 4
 statut: "source"
 cartes:
   - id: "<id>"
@@ -362,6 +442,7 @@ cartes:
 
 Règles des cartes :
 - `numero` est un entier positif, unique dans le cours.
+- `manuel`, `chapitre` et `unit` : voir « Les manuels ».
 - `type` est une clé de `types_de_carte`.
 - `recto` et `verso` ne sont pas vides, ne commencent ni ne finissent par un espace, et ne
   contiennent ni tabulation ni saut de ligne.
@@ -410,6 +491,7 @@ Un fichier YAML et son SVG.
 type: "schema"
 id: "<id>"
 titre: "Der Kochherd"
+manuel: "<id d'un manuel de cours.yaml>"   # facultatif : voir « Les manuels »
 statut: "source"
 dessin: "herd.svg"
 note: "…"

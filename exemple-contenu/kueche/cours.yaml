@@ -25,6 +25,11 @@ planning:
     - titre: "Woche 3 – Zubereitung"
       semaine: 3
       modules: ["cntctqb2"]
+manuels:
+  - id: "dfyhpe2p"
+    titre: "Beispielbuch Küche"
+  - id: "dgb1wgcc"
+    titre: "Beispielheft Geräte"
 derogation_diffusion:
   motif: "Cours d'exemple, inventé pour le poste et la CI : il n'a rien à relire."
   date: "2026-11-04"

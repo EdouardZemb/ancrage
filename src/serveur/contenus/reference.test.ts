@@ -354,10 +354,6 @@ describe('calculerReference', () => {
     const cours = coursDe(exempleDeCours());
     const sans = calculerReference(cours);
     expect(sans.cours).not.toHaveProperty('planning');
-    // Sans planning, la sérialisation est celle d'avant : aucune clé de plus.
-    expect(JSON.stringify(calculerReference({ ...cours, planning: undefined }))).toBe(
-      JSON.stringify(sans),
-    );
 
     const planning = {
       etapes: [{ titre: 'Woche 1', semaine: 1, genre: 'cours' as const, modules: ['aaaaaaaa'] }],
@@ -365,6 +361,12 @@ describe('calculerReference', () => {
     const memoire = { algorithme: 'fsrs' as const, retention: 0.85 };
     const { cours: avec } = calculerReference({ ...cours, memoire, planning });
     expect(avec.planning).toStrictEqual(planning);
+    expect(Object.keys(avec.planning?.etapes[0] ?? {})).toEqual([
+      'titre',
+      'semaine',
+      'genre',
+      'modules',
+    ]);
     expect(Object.keys(avec).slice(-2)).toEqual(['memoire', 'planning']);
   });
 

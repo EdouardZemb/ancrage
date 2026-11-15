@@ -8,6 +8,9 @@ import type { ReglagesMemoire } from '../contenu/modele.js';
  * client les applique en tolérant (`lireReglagesDeMemoire`) : un seul texte de règle pour les deux.
  */
 
+/** La dernière semaine d'un planning relatif : au-delà, `ajouterJours` sortirait des bornes. */
+export const SEMAINE_MAX = 520;
+
 /** Une date qui existe, `AAAA-MM-JJ`. */
 export function estDateIso(texte: string): boolean {
   const morceaux = /^(\d{4})-(\d{2})-(\d{2})$/.exec(texte);

@@ -230,7 +230,10 @@ export function calculerReference(cours: Cours): Reference {
         : {
             planning: {
               etapes: cours.planning.etapes.map((etape) => ({
-                ...etape,
+                titre: etape.titre,
+                ...(etape.seance === undefined ? {} : { seance: etape.seance }),
+                ...(etape.semaine === undefined ? {} : { semaine: etape.semaine }),
+                genre: etape.genre,
                 modules: [...etape.modules],
               })),
             },

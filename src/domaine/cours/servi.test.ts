@@ -2,6 +2,7 @@ import { FSRS6_DEFAULT_WEIGHTS } from 'ts-fsrs/models/fsrs-6';
 import { describe, expect, it } from 'vitest';
 import { analyserContenus } from '../contenu/analyse.js';
 import { exempleDeCours, modifier } from '../contenu/exemple.fixture.js';
+import { planningDuCours } from '../seances/planning.js';
 import { coursSans, coursServiDeTest, coursServiParLaV030 } from './cours.fixture.js';
 import type { CoursServi } from './servi.js';
 import { coursServiUtilisable, memoireDuCours, versCoursServi } from './servi.js';
@@ -286,6 +287,34 @@ describe('versCoursServi', () => {
     });
     expect(coursServiUtilisable(servi)).toBe(true);
     expect(memoireDuCours(servi)).toEqual(servi.memoire);
+  });
+
+  it('planning_traverse_du_yaml_au_client', () => {
+    const planning = [
+      'planning:',
+      '  etapes:',
+      '    - titre: "Woche 1"',
+      '      semaine: 1',
+      '      modules: ["epas79zz"]',
+      '    - titre: "Wiederholung"',
+      '      semaine: 2',
+      '      genre: "revision"',
+      '      modules: []',
+      'modules:',
+      '',
+    ].join('\n');
+    const fichiers = modifier(exempleDeCours(), 'essai/cours.yaml', 'modules:\n', planning);
+    const { cours, erreurs } = analyserContenus(fichiers);
+    expect(erreurs).toEqual([]);
+
+    const servi = JSON.parse(JSON.stringify(versCoursServi(cours[0]))) as CoursServi;
+    expect(coursServiUtilisable(servi)).toBe(true);
+    expect(planningDuCours(servi)).toStrictEqual({
+      etapes: [
+        { titre: 'Woche 1', semaine: 1, genre: 'cours', modules: ['epas79zz'] },
+        { titre: 'Wiederholung', semaine: 2, genre: 'revision', modules: [] },
+      ],
+    });
   });
 
   it('cours_sans_memoire_servi_comme_avant', () => {

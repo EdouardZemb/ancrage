@@ -1,5 +1,5 @@
 import * as z from 'zod';
-import { estDateIso, poidsFsrsValides } from '../progression/reglages.js';
+import { estDateIso, poidsFsrsValides, SEMAINE_MAX } from '../progression/reglages.js';
 import type { ErreurContenu } from './erreurs.js';
 import { estIdentifiant, REGLE_IDENTIFIANT } from './identifiants.js';
 import type { Statut } from './modele.js';
@@ -523,7 +523,7 @@ const reglagesMemoire = z
     }
   });
 
-const MESSAGE_DE_SEMAINE = 'Attendu un nombre entier entre 1 et 520.';
+const MESSAGE_DE_SEMAINE = `Attendu un nombre entier entre 1 et ${SEMAINE_MAX}.`;
 
 const etapeDePlanning = z
   .strictObject({
@@ -532,7 +532,7 @@ const etapeDePlanning = z
     semaine: z
       .int()
       .min(1, { error: MESSAGE_DE_SEMAINE })
-      .max(520, { error: MESSAGE_DE_SEMAINE })
+      .max(SEMAINE_MAX, { error: MESSAGE_DE_SEMAINE })
       .optional(),
     genre: z.enum(['cours', 'revision']).default('cours'),
     modules: z.array(identifiant),
@@ -558,7 +558,7 @@ const MESSAGE_AVANT = "Sa séance (ou sa semaine) précède celle de l'étape d'
 const aUneForme = (etape: { seance?: string; semaine?: number }) =>
   (etape.seance === undefined) !== (etape.semaine === undefined);
 const semaineValide = (semaine: number | undefined): semaine is number =>
-  semaine !== undefined && Number.isInteger(semaine) && semaine >= 1 && semaine <= 520;
+  semaine !== undefined && Number.isInteger(semaine) && semaine >= 1 && semaine <= SEMAINE_MAX;
 
 const reglagesPlanning = z
   .strictObject({

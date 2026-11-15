@@ -64,8 +64,8 @@ export function horizonDuRythme(
   const suivante = ouvertures.find((ouverture) => ouverture > aujourdhui);
   const derniere = ouvertures[ouvertures.length - 1] ?? aujourdhui;
   const horizon = suivante ?? ajouterJours(derniere, JOURS_APRES_LA_DERNIERE_ETAPE);
-  // Stryker disable next-line ConditionalExpression,EqualityOperator: sans examen, `undefined > jour`
-  // est faux ; un examen au jour de l'horizon rend ce même jour (équivalents).
+  // Stryker disable next-line ConditionalExpression,EqualityOperator: sans examen, `undefined >
+  // jour` est faux ; un examen au jour de l'horizon rend ce même jour (équivalents).
   if (examen !== undefined && examen > aujourdhui && examen < horizon) return examen;
   return horizon;
 }

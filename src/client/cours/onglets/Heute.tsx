@@ -4,16 +4,16 @@
  * neuves viennent du choix fait dans Karteikarten (M2-P10), et `nouvelles_par_seance` est un
  * plafond par jour (M2-P9) : le quota est ce que laissent les cartes déjà découvertes aujourd'hui,
  * où qu'elles aient été répondues, et une fois le plafond atteint « Nächste Runde » ne reprend que
- * les dues. Chaque élément se pose avec l'écran de son onglet (`questions/`), et sa réponse entre au
- * journal comme une réponse ordinaire : rien de nouveau n'est écrit. Une faute remet l'élément en
- * fin de file une fois.
+ * les dues. Chaque élément se pose avec l'écran de son onglet (`questions/`), et sa réponse entre
+ * au journal comme une réponse ordinaire : rien de nouveau n'est écrit. Une faute remet l'élément
+ * en fin de file une fois.
  *
  * La séance vit dans l'écran du cours (`useEtatDOnglet`) : un détour par un autre onglet retrouve
  * la même question et la même file, et retient la mise à jour de l'application (`heuteEnCours`).
  * Elle se compose avant tout geste, puisque le cours s'ouvre ici : tant qu'aucune réponse n'y est
- * donnée, elle se recompose quand la liste des dues, les neuves du choix ou le quota changent
- * (M2-P6) ; après la première réponse,
- * elle ne suit plus le journal, comme une séance de cartes.
+ * donnée, elle se recompose quand la liste des dues, les cartes neuves candidates ou le quota
+ * changent (M2-P6) ; après la première réponse, elle ne suit plus le journal, comme une séance de
+ * cartes.
  *
  * Avec un planning (M4), les cartes neuves viennent des modules ouverts, dans l'ordre du planning
  * et sans égard au chapitre choisi dans Karteikarten (B-D2), à un rythme calculé : ce qui est
@@ -81,8 +81,8 @@ export interface EtatDeHeute {
 
 /**
  * La clé d'une séance : le jour, les identifiants des dues du moment, ceux des cartes neuves
- * candidates, puis le quota du jour (M2-P6, M2-P9, B-D7). Le rythme y entre par ces candidates et ce
- * quota. Une carte neuve répondue ailleurs, ou un changement de chapitre dans Karteikarten sans
+ * candidates, puis le quota du jour (M2-P6, M2-P9, B-D7). Le rythme y entre par ces candidates et
+ * ce quota. Une carte neuve répondue ailleurs, ou un changement de chapitre dans Karteikarten sans
  * planning, change la clé, comme une due.
  */
 export function cleDuJour(

@@ -39,8 +39,8 @@ const NOUVELLES_PAR_JOUR = 15;
  */
 const UNITES_DU_PREMIER_CHAPITRE = 18;
 /**
- * Les jours d'aujourd'hui, compris, à l'ouverture de la semaine 2, exclue : l'horizon du rythme d'un
- * planning relatif, le premier jour (B-D4).
+ * Les jours d'aujourd'hui, compris, à l'ouverture de la semaine 2, exclue : l'horizon du rythme
+ * d'un planning relatif, le premier jour (B-D4).
  */
 const JOURS_JUSQU_A_LA_SEMAINE_2 = 7;
 /** Les essais pour tomber sur une faute, quand une réponse choisie à l'aveugle se trouve juste. */
@@ -51,8 +51,9 @@ const EXAMEN_DE_L_EXEMPLE = [2030, 6, 30] as const;
 
 /**
  * Le compte à rebours que « Heute » dit (A1-D8). Le test lit l'horloge réelle contre l'examen
- * inventé, lointain : il tient jusqu'au 28/06/2030 inclus (à un jour et le jour même, l'onglet
- * prend un autre libellé), et le calcul est celui du jour local, comme l'onglet.
+ * inventé, lointain : il tient jusqu'au 24/06/2030 inclus : ensuite l'examen devient l'horizon du
+ * rythme (B-D4), et le nombre de cartes neuves change. Le calcul est celui du jour local, comme
+ * l'onglet.
  */
 function compteARebours(): string {
   const [annee, mois, jour] = EXAMEN_DE_L_EXEMPLE;
@@ -63,7 +64,7 @@ function compteARebours(): string {
     maintenant.getDate(),
   );
   const jours = Math.round((Date.UTC(annee, mois - 1, jour) - aujourdhui) / 86_400_000);
-  if (jours < 2) throw new Error('l’examen inventé de l’exemple arrive : en reculer la date');
+  if (jours < 6) throw new Error('l’examen inventé de l’exemple arrive : en reculer la date');
   return formater(deCours.heute_examen_n, { n: jours });
 }
 
@@ -147,6 +148,8 @@ test('la_seance_du_jour_mele_les_types', async ({ page }) => {
 
   let file = 0;
   await test.step('3. « Heute » compte les fautes pour dues, et pose des cartes neuves', async () => {
+    // En tête : le garde de la date de l'examen précède l'assertion du nombre de cartes neuves.
+    const aRebours = compteARebours();
     await ouvrirOnglet(page, 'heute');
     await expect(page).toHaveURL(/\/cours\/[0-9a-z]{8}\/heute$/);
     const compte = await compteDeHeute(page);
@@ -165,7 +168,7 @@ test('la_seance_du_jour_mele_les_types', async ({ page }) => {
     file = compte.restantes;
     expect(file, 'file de la séance').toBe(Math.min(TAILLE_DE_SEANCE, fautes + neuves));
     // Le compte à rebours, sur l'écran de la séance : l'exemple a un `examen`.
-    await expect(page.locator('.cours .examenline', { hasText: compteARebours() })).toBeVisible();
+    await expect(page.locator('.cours .examenline', { hasText: aRebours })).toBeVisible();
   });
 
   const genres = new Set<GenreDeHeute>();

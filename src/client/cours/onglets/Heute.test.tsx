@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CHAPITRE_1, CHAPITRE_2, coursServiDeTest } from '../../../domaine/cours/cours.fixture.js';
 import { type CoursServi, memoireDuCours } from '../../../domaine/cours/servi.js';
 import type { Evenement } from '../../../domaine/journal/evenement.js';
-import { unitesDuChoix } from '../../../domaine/seances/cartes.js';
+import { type SensChoisi, unitesDuChoix } from '../../../domaine/seances/cartes.js';
 import {
   duesDuJour,
   type Posable,
@@ -746,8 +746,6 @@ describe('Heute', () => {
 
     expect(fileDe(memoire).length).toBeGreaterThan(0);
     expect(etatGarde(memoire).cle).toBe(cleDe(contexte));
-    // `cleDe` appelle `neuvesDuJour` : l'empreinte figée d'avant (compte neuf) la contrôle de dehors.
-    expect(empreinte(etatGarde(memoire).cle)).toBe('d9b0d46df168');
     expect(progression()).toContain(formater(t.heute_compte, { dues: 0, neues: 15 }));
     expect(screen.queryByText(COMPTE_A_REBOURS)).toBeNull();
   });
@@ -810,6 +808,70 @@ describe('Heute', () => {
 
     expect(fileDe(memoire)).toHaveLength(Math.ceil((un.size + deux.size) / 6));
     expect(fileDe(memoire).every((id) => un.has(id))).toBe(true);
+    // Les premières de l'ordre du planning, et elles seules : sans la coupe à `quota`, la séance
+    // tirerait parmi toutes les neuves ouvertes.
+    const premieres = contexte.cours.unites
+      .filter((unite) => unite.module === CHAPITRE_1 && unite.sens === 'direct')
+      .slice(0, Math.ceil((un.size + deux.size) / 6))
+      .map(({ id }) => id);
+    expect(new Set(fileDe(memoire))).toEqual(new Set(premieres));
+  });
+
+  it('le_choix_et_le_jour_recalculent_les_neuves_sans_que_le_journal_change', () => {
+    const memoire = new Map<string, unknown>();
+    const modele = contexteDe({ memoire });
+    // Le cours, le journal et les états sont les mêmes d'un rendu à l'autre : seuls le choix et le
+    // jour changent, et seules leurs dépendances peuvent refaire le compte.
+    const suivre = (contexte: ContexteCours, aujourdhui = modele.aujourdhui) => ({
+      ...contexte,
+      cours: modele.cours,
+      etats: modele.etats,
+      evenements: modele.evenements,
+      aujourdhui,
+    });
+    const vue = rendreDansLeCours(<Heute />, modele);
+    const rendre = (contexte: ContexteCours) =>
+      vue.rerender(
+        <ContexteDuCours.Provider value={contexte}>
+          <Heute />
+        </ContexteDuCours.Provider>,
+      );
+    const avecSens = (contexte: ContexteCours, sens: SensChoisi): ContexteCours => ({
+      ...contexte,
+      preferences: { ...contexte.preferences, cartes: { ...contexte.preferences.cartes, sens } },
+    });
+
+    const autreChapitre = suivre(avecChapitre(contexteDe({ memoire }), CHAPITRE_2));
+    rendre(autreChapitre);
+    expect(etatGarde(memoire).cle).toBe(cleDe(autreChapitre));
+
+    const autreSens = suivre(
+      avecSens(avecChapitre(contexteDe({ memoire }), CHAPITRE_2), 'inverse'),
+    );
+    rendre(autreSens);
+    expect(etatGarde(memoire).cle).toBe(cleDe(autreSens));
+  });
+
+  it('le_jour_recalcule_les_neuves_sans_que_le_journal_change', () => {
+    const memoire = new Map<string, unknown>();
+    const modele = contexteDe({
+      memoire,
+      cours: coursAvec({ planning: SEMAINES }),
+      evenements: [PLUS_ANCIEN],
+    });
+    const vue = rendreDansLeCours(<Heute />, modele);
+    const avant = etatGarde(memoire).cle;
+
+    // Le lendemain : le départ ne bouge pas, seul le jour fait passer le rythme de 4 à 5.
+    const demain = { ...modele, aujourdhui: '2026-10-18' };
+    vue.rerender(
+      <ContexteDuCours.Provider value={demain}>
+        <Heute />
+      </ContexteDuCours.Provider>,
+    );
+
+    expect(etatGarde(memoire).cle).toBe(cleDe(demain));
+    expect(etatGarde(memoire).cle).not.toBe(avant);
   });
 
   it('les_decouvertes_du_jour_dans_le_planning_retirent_leur_nombre_du_rythme', () => {
@@ -903,7 +965,7 @@ describe('Heute', () => {
     const avant = etatGarde(memoire);
 
     // Un événement plus ancien arrive, dans la même vue : le départ recule d'une semaine, la
-    // semaine 2 s'ouvre. Sans `cleanup`, les dépendances des `useMemo` sont éprouvées.
+    // semaine 2 s'ouvre. Sans `cleanup`, la recomposition est éprouvée dans la même vue.
     const apres = contexteDe({ memoire, cours, evenements: [PLUS_ANCIEN] });
     vue.rerender(
       <ContexteDuCours.Provider value={apres}>

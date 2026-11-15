@@ -19,6 +19,7 @@
  */
 import { useMemo, useRef } from 'preact/hooks';
 import type { CoursPrepare } from '../../../domaine/cours/prepare.js';
+import { memoireDuCours } from '../../../domaine/cours/servi.js';
 import type { Hasard } from '../../../domaine/hasard.js';
 import type { ModeDeReponse } from '../../../domaine/journal/evenement.js';
 import { unitesDuChoix } from '../../../domaine/seances/cartes.js';
@@ -33,6 +34,12 @@ import {
   posablesDuCours,
   type SeanceDuJour,
 } from '../../../domaine/seances/heute.js';
+import {
+  departDuPlanning,
+  joursAvantExamen,
+  modulesFermes,
+  planningDuCours,
+} from '../../../domaine/seances/planning.js';
 import { optionsDuPoint } from '../../../domaine/seances/schemas.js';
 import { useCours } from '../contexte-cours.js';
 import {
@@ -45,7 +52,7 @@ import { QuestionDExercice, type ReponseDExercice } from '../questions/QuestionD
 import { QuestionDeSchema, type TacheDeSchema } from '../questions/QuestionDeSchema.js';
 import { QuestionMot, type TacheDeMot, tacheDeMot } from '../questions/QuestionMot.js';
 import { heuteEnCours } from '../seances-en-cours.js';
-import { formater } from '../textes-cours.js';
+import { type CleTexteCours, formater } from '../textes-cours.js';
 
 /** L'état de la question de tête, selon le genre de l'élément posé. */
 export type QuestionDeTete =
@@ -118,6 +125,18 @@ export function questionDe(
   }
 }
 
+/** Le compte à rebours avant l'examen (A1-D8) ; rien sans examen ou après lui. */
+function ligneDExamen(jours: number | undefined, t: Record<CleTexteCours, string>) {
+  if (jours === undefined) return null;
+  const texte =
+    jours === 0
+      ? t.heute_examen_0
+      : jours === 1
+        ? t.heute_examen_1
+        : formater(t.heute_examen_n, { n: jours });
+  return <span class="progressline">{texte}</span>;
+}
+
 export function Heute() {
   const {
     cours,
@@ -138,15 +157,29 @@ export function Heute() {
     () => duesDuJour(posables, etats, aujourdhui),
     [posables, etats, aujourdhui],
   );
-  // Les candidates sont les cartes du choix de Karteikarten (M2-P10).
+  // Le planning ne ferme que les cartes neuves : ce qui est dû reste dû (A1-D7). Le départ relit
+  // tout le journal, il ne se refait que si le journal ou le jour change.
+  const planning = useMemo(() => planningDuCours(cours.cours), [cours]);
+  const depart = useMemo(() => departDuPlanning(evenements, aujourdhui), [evenements, aujourdhui]);
+  // Les candidates sont les cartes du choix de Karteikarten (M2-P10), des modules ouverts.
   const candidates = useMemo(() => {
+    const fermes =
+      planning === undefined ? new Set<string>() : modulesFermes(planning, depart, aujourdhui);
     const choix = new Set(
-      unitesDuChoix(cours, preferences.cartes.chapitre, preferences.cartes.sens).map(
-        ({ id }) => id,
-      ),
+      unitesDuChoix(cours, preferences.cartes.chapitre, preferences.cartes.sens)
+        .filter(({ module }) => !fermes.has(module))
+        .map(({ id }) => id),
     );
     return posables.filter((p) => p.genre === 'carte' && choix.has(p.id));
-  }, [cours, posables, preferences.cartes.chapitre, preferences.cartes.sens]);
+  }, [
+    cours,
+    posables,
+    planning,
+    depart,
+    aujourdhui,
+    preferences.cartes.chapitre,
+    preferences.cartes.sens,
+  ]);
   const neuvesDuChoix = useMemo(() => cartesNeuves(candidates, etats), [candidates, etats]);
   // Le plafond du jour moins les cartes du cours découvertes aujourd'hui (M2-P9).
   // Le compte relit le journal : il ne se refait que si le journal, le jour ou le cours changent.
@@ -217,6 +250,10 @@ export function Heute() {
   const encore = () => setCourante(composer());
 
   const neuves = cartesNeuves(seance.file, etats).length;
+  const compteARebours = ligneDExamen(
+    joursAvantExamen(memoireDuCours(cours.cours)?.examen, aujourdhui),
+    t,
+  );
   // À l'écran de fin : les dues que la séance n'a pas déjà réussies, le journal pouvant être en retard.
   const restantes = dues.filter(({ id }) => !reussis.current.has(id)).length;
 
@@ -227,6 +264,7 @@ export function Heute() {
         {seance.faites > 0 ? (
           <div class="done">
             <h2>{t.heute_fin}</h2>
+            {compteARebours}
             <p class="muted">
               {formater(t.heute_resultat, { justes, faites: elements })}
               {restantes > 0 && ` ${formater(t.heute_reste, { n: restantes })}`}
@@ -252,6 +290,7 @@ export function Heute() {
         ) : (
           <div class="done">
             <h2>{t.heute_rien}</h2>
+            {compteARebours}
             <p class="muted">{t.heute_rien_suite}</p>
             <div class="controls">
               <button type="button" class="primary" onClick={() => aller('apercu')}>
@@ -272,6 +311,7 @@ export function Heute() {
           {' · '}
           {formater(t.heute_progression, { faites: seance.faites, restantes: seance.file.length })}
         </span>
+        {compteARebours}
       </div>
       {tete.genre === 'carte' && question.genre === 'carte' && (
         <QuestionCarte

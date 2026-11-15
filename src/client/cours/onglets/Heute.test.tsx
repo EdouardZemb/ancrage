@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { coursServiDeTest } from '../../../domaine/cours/cours.fixture.js';
+import { CHAPITRE_1, CHAPITRE_2, coursServiDeTest } from '../../../domaine/cours/cours.fixture.js';
 import type { CoursServi } from '../../../domaine/cours/servi.js';
 import type { Evenement } from '../../../domaine/journal/evenement.js';
 import { unitesDuChoix } from '../../../domaine/seances/cartes.js';
@@ -14,6 +14,11 @@ import {
   type SeanceDuJour,
   TAILLE_DE_SEANCE,
 } from '../../../domaine/seances/heute.js';
+import {
+  departDuPlanning,
+  modulesFermes,
+  planningDuCours,
+} from '../../../domaine/seances/planning.js';
 import {
   AUJOURDHUI_DE_TEST,
   contexteDeTest,
@@ -90,7 +95,20 @@ function cleDe(contexte: ContexteCours): string {
   const posables = posablesDuCours(contexte.cours);
   const dues = duesDuJour(posables, contexte.etats, contexte.aujourdhui);
   const { chapitre, sens } = contexte.preferences.cartes;
-  const choix = new Set(unitesDuChoix(contexte.cours, chapitre, sens).map(({ id }) => id));
+  const planning = planningDuCours(contexte.cours.cours);
+  const fermes =
+    planning === undefined
+      ? new Set<string>()
+      : modulesFermes(
+          planning,
+          departDuPlanning(contexte.evenements, contexte.aujourdhui),
+          contexte.aujourdhui,
+        );
+  const choix = new Set(
+    unitesDuChoix(contexte.cours, chapitre, sens)
+      .filter(({ module }) => !fermes.has(module))
+      .map(({ id }) => id),
+  );
   const neuves = cartesNeuves(
     posables.filter(({ id }) => choix.has(id)),
     contexte.etats,
@@ -147,6 +165,58 @@ function choisir(option: string): void {
 function sensDuMorpheme(contexte: ContexteCours, id: string): string {
   return contexte.cours.morphologie?.morphemes.find((m) => m.id === id)?.sens ?? '';
 }
+
+/** Le cours de test, avec ces champs de manifeste en plus (planning, mémoire). */
+function coursAvec(champs: { planning?: unknown; memoire?: unknown }): CoursServi {
+  return { ...coursServiDeTest(), ...champs };
+}
+
+const SEMAINES = {
+  etapes: [
+    { titre: 'Woche 1', semaine: 1, modules: [CHAPITRE_1] },
+    { titre: 'Woche 2', semaine: 2, modules: [CHAPITRE_2] },
+  ],
+};
+
+/** Une étape 2 datée du 18/10, le lendemain du jour de test. */
+const SEANCES = {
+  etapes: [
+    { titre: 'Tag 1', seance: '2026-10-17', modules: [CHAPITRE_1] },
+    { titre: 'Tag 2', seance: '2026-10-18', modules: [CHAPITRE_2] },
+  ],
+};
+
+/** Un événement plus ancien, sur une unité hors du cours : seul le départ du planning change. */
+const PLUS_ANCIEN = reponseDeTest(0, 'zz000000', true, IL_Y_A_UNE_SEMAINE);
+
+function duChapitre(contexte: ContexteCours, chapitre: string): Set<string> {
+  return new Set(unitesDuChoix(contexte.cours, chapitre, 'mix').map(({ id }) => id));
+}
+
+function memoireAvecExamen(examen: string) {
+  return { algorithme: 'fsrs', retention: 0.9, examen };
+}
+
+const COMPTE_A_REBOURS = /Prüfung/;
+
+/** Les trois écrans de l'onglet, chacun posé sur le cours donné. */
+const ECRANS: Record<string, (cours: CoursServi) => void> = {
+  seance: (cours) => rendreDansLeCours(<Heute />, contexteDe({ cours })),
+  fin: (cours) => {
+    const memoire = new Map<string, unknown>();
+    const contexte = contexteDe({ cours, memoire });
+    amorcer(contexte, memoire, [HERZ]);
+    rendreDansLeCours(<Heute />, contexte);
+    cliquer(t.cartes_retourner);
+    cliquer(t.cartes_su);
+    expect(screen.getByRole('heading', { name: t.heute_fin })).toBeTruthy();
+  },
+  rien: (cours) => {
+    const leitner = { ...cours.leitner, nouvellesParSeance: 0 };
+    rendreDansLeCours(<Heute />, contexteDe({ cours: { ...cours, leitner } }));
+    expect(screen.getByRole('heading', { name: t.heute_rien })).toBeTruthy();
+  },
+};
 
 describe('Heute', () => {
   it('une_file_melee_pose_chaque_element_a_la_maniere_de_son_onglet', () => {
@@ -633,5 +703,136 @@ describe('Heute', () => {
     // Le verdict est toujours là, et la suite mène à la carte suivante.
     cliquer(t.suivante);
     expect(fileDe(memoire)).toEqual([LEBER]);
+  });
+
+  it('sans_planning_les_candidates_et_le_compte_sont_ceux_d_aujourd_hui', () => {
+    const memoire = new Map<string, unknown>();
+    const contexte = contexteDe({ memoire });
+    rendreDansLeCours(<Heute />, contexte);
+
+    expect(fileDe(memoire).length).toBeGreaterThan(0);
+    expect(etatGarde(memoire).cle).toBe(cleDe(contexte));
+    expect(progression()).toContain(formater(t.heute_compte, { dues: 0, neues: 15 }));
+    expect(screen.queryByText(COMPTE_A_REBOURS)).toBeNull();
+  });
+
+  it.each([
+    ['tous', 'tous'],
+    ['le_module_ferme', CHAPITRE_2],
+  ])('aucune_carte_neuve_d_un_module_ferme_quand_le_choix_est_%s', (_nom, choix) => {
+    const memoire = new Map<string, unknown>();
+    const cours = coursAvec({ planning: SEMAINES });
+    const contexte = avecChapitre(contexteDe({ memoire, cours }), choix);
+    rendreDansLeCours(<Heute />, contexte);
+    const ferme = duChapitre(contexte, CHAPITRE_2);
+
+    expect(fileDe(memoire).some((id) => ferme.has(id))).toBe(false);
+    if (choix === CHAPITRE_2) {
+      expect(fileDe(memoire)).toEqual([]);
+      expect(screen.getByRole('heading', { name: t.heute_rien })).toBeTruthy();
+    } else {
+      expect(fileDe(memoire).length).toBeGreaterThan(0);
+    }
+  });
+
+  it('une_carte_due_d_un_module_ferme_est_posee', () => {
+    const memoire = new Map<string, unknown>();
+    const evenements = [reponseDeTest(0, 'c2000001', false, '2026-10-16')];
+    const cours = coursAvec({ planning: SEMAINES });
+    rendreDansLeCours(
+      <Heute />,
+      avecChapitre(contexteDe({ memoire, evenements, cours }), CHAPITRE_2),
+    );
+
+    // Le départ est le 16/10 : la semaine 2 n'ouvre que le 23/10.
+    expect(fileDe(memoire)).toEqual(['c2000001']);
+    expect(progression()).toContain(formater(t.heute_compte, { dues: 1, neues: 0 }));
+  });
+
+  it('le_lendemain_de_la_seance_de_l_etape_ses_cartes_neuves_arrivent', () => {
+    const cours = coursAvec({ planning: SEANCES });
+    const veille = new Map<string, unknown>();
+    rendreDansLeCours(<Heute />, avecChapitre(contexteDe({ memoire: veille, cours }), CHAPITRE_2));
+    expect(fileDe(veille)).toEqual([]);
+    cleanup();
+
+    const memoire = new Map<string, unknown>();
+    const lendemain = contexteDe({ memoire, cours, aujourdhui: '2026-10-18' });
+    rendreDansLeCours(<Heute />, avecChapitre(lendemain, CHAPITRE_2));
+
+    const ouvert = duChapitre(lendemain, CHAPITRE_2);
+    expect(fileDe(memoire).length).toBeGreaterThan(0);
+    expect(fileDe(memoire).every((id) => ouvert.has(id))).toBe(true);
+  });
+
+  it('une_etape_qui_s_ouvre_avant_le_premier_geste_recompose_la_seance', () => {
+    const cours = coursAvec({ planning: SEMAINES });
+    const memoire = new Map<string, unknown>();
+    rendreDansLeCours(<Heute />, avecChapitre(contexteDe({ memoire, cours }), CHAPITRE_2));
+    expect(fileDe(memoire)).toEqual([]);
+    cleanup();
+
+    // Un événement plus ancien arrive : le départ recule d'une semaine, la semaine 2 s'ouvre.
+    const evenements = [PLUS_ANCIEN];
+    const apres = avecChapitre(contexteDe({ memoire, cours, evenements }), CHAPITRE_2);
+    rendreDansLeCours(<Heute />, apres);
+
+    const ouvert = duChapitre(apres, CHAPITRE_2);
+    expect(fileDe(memoire).length).toBeGreaterThan(0);
+    expect(fileDe(memoire).every((id) => ouvert.has(id))).toBe(true);
+  });
+
+  it('une_seance_entamee_ne_se_recompose_pas_quand_une_etape_s_ouvre', () => {
+    const cours = coursAvec({ planning: SEMAINES });
+    const memoire = new Map<string, unknown>();
+    const contexte = contexteDe({ memoire, cours });
+    amorcer(contexte, memoire, [HERZ, LEBER]);
+    rendreDansLeCours(<Heute />, contexte);
+    cliquer(t.cartes_retourner);
+    cliquer(t.cartes_su);
+    const garde = etatGarde(memoire);
+    cleanup();
+
+    rendreDansLeCours(<Heute />, contexteDe({ memoire, cours, evenements: [PLUS_ANCIEN] }));
+
+    expect(etatGarde(memoire)).toBe(garde);
+    expect(fileDe(memoire)).toEqual([LEBER]);
+  });
+
+  it('un_planning_illisible_vaut_pas_de_planning', () => {
+    const [sans, illisible] = [undefined, 42].map((planning) => {
+      const memoire = new Map<string, unknown>();
+      const cours = coursAvec({ planning });
+      rendreDansLeCours(<Heute />, avecChapitre(contexteDe({ memoire, cours }), CHAPITRE_2));
+      const file = fileDe(memoire);
+      cleanup();
+      return file;
+    });
+
+    expect(illisible.length).toBeGreaterThan(0);
+    expect(illisible).toEqual(sans);
+  });
+
+  it.each([
+    ['dix_jours', '2026-10-27', 'Noch 10 Tage bis zur Prüfung'],
+    ['un_jour', '2026-10-18', 'Noch 1 Tag bis zur Prüfung'],
+    ['le_jour_meme', '2026-10-17', 'Heute ist die Prüfung'],
+  ])('le_compte_a_rebours_%s_se_dit_sur_chacun_des_trois_ecrans', (_nom, examen, texte) => {
+    for (const ecran of Object.values(ECRANS)) {
+      ecran(coursAvec({ memoire: memoireAvecExamen(examen) }));
+      expect(screen.getAllByText(texte)).toHaveLength(1);
+      cleanup();
+    }
+  });
+
+  it.each([
+    ['sans_examen', coursAvec({})],
+    ['le_lendemain_de_l_examen', coursAvec({ memoire: memoireAvecExamen('2026-10-16') })],
+  ])('le_compte_a_rebours_est_absent_%s_sur_chacun_des_trois_ecrans', (_nom, cours) => {
+    for (const ecran of Object.values(ECRANS)) {
+      ecran(cours);
+      expect(screen.queryByText(COMPTE_A_REBOURS)).toBeNull();
+      cleanup();
+    }
   });
 });

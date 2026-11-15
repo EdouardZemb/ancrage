@@ -20,7 +20,7 @@ export interface DerniereReponse {
  * La dernière réponse de chaque unité, avec son moment, dans l'ordre du journal et sans doublon,
  * comme `etatsDesUnites` : le premier événement d'un `id` fait foi. Un examen n'y compte pas. C'est
  * le seul parcours du journal : le verdict, le score, l'état et la vue des résultats en viennent
- * (F3-D2).
+ * (F3-D2). Les pré-tests y sont : seuls des éléments de fiche y sont lus (B-D9).
  */
 export function dernieresReponsesDatees(
   evenements: readonly Evenement[],

@@ -208,18 +208,34 @@ describe('POST puis GET /api/cours/:id/journal', () => {
       resultat: { juste: false, mode: 'corrigee' },
     } as Evenement;
     const sansMode = reponseDeTest(ID_SOURCE, 2);
+    // Un pré-test (ADR-0014), juste comme faux : rangé et relu tel quel.
+    const pretestJuste = {
+      ...reponseDeTest(ID_SOURCE, 3),
+      resultat: { juste: true, mode: 'pretest' },
+    } as Evenement;
+    const pretestFaux = {
+      ...reponseDeTest(ID_SOURCE, 4, false),
+      resultat: { juste: false, mode: 'pretest' },
+    } as Evenement;
 
-    const envoi = await envoyer(app, ID_SOURCE, { evenements: [avecMode, sansMode] }, alice.jeton);
+    const envoi = await envoyer(
+      app,
+      ID_SOURCE,
+      { evenements: [avecMode, sansMode, pretestJuste, pretestFaux] },
+      alice.jeton,
+    );
 
     expect(envoi.statusCode).toBe(200);
-    expect(envoi.json()).toStrictEqual({ acceptes: 2 });
+    expect(envoi.json()).toStrictEqual({ acceptes: 4 });
     const rangees = base.sqlite.prepare('select resultat from evenement order by rang').all();
     expect(rangees).toStrictEqual([
       { resultat: '{"juste":false,"mode":"corrigee"}' },
       { resultat: '{"juste":true}' },
+      { resultat: '{"juste":true,"mode":"pretest"}' },
+      { resultat: '{"juste":false,"mode":"pretest"}' },
     ]);
     const lus = ((await lire(app, ID_SOURCE, alice.jeton)).json() as Page).evenements;
-    expect(lus).toStrictEqual([avecMode, sansMode]);
+    expect(lus).toStrictEqual([avecMode, sansMode, pretestJuste, pretestFaux]);
     expect(lus[1].resultat).not.toHaveProperty('mode');
   });
 

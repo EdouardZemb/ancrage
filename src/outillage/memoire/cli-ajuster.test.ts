@@ -9,6 +9,7 @@ import {
   journalSimule,
   POIDS_SIMULES,
   passerEnWal,
+  reponseInventee,
 } from './ecrire-journal.fixture.js';
 
 const dossierDuTest = installerDossierTemporaire();
@@ -156,4 +157,41 @@ test('un_journal_assez_long_rend_0_le_bloc_yaml_et_la_qualite_sans_nommer_person
   // La copie n'a pas bougé, et rien n'est apparu à côté.
   expect(fs.readFileSync(base()).equals(avant)).toBe(true);
   expect(fs.readdirSync(dossierDuTest())).toEqual(['copie.sqlite']);
+}, 60_000);
+
+test('le_message_nomme_les_pretests_parmi_les_reponses_ecartees', async () => {
+  const [premiere = ''] = cartesDe(CHAPITRE_FSRS);
+  const pretests = Array.from({ length: 3 }, (_, k) =>
+    reponseInventee(Date.UTC(2026, 0, 1, 10, k), 800_000 + k, premiere, k === 0, COURS, 'pretest'),
+  );
+  ecrireJournal(base(), [
+    [...journalDeCartes(41, { unites: 18, passages: 45 }), ...pretests],
+    journalDeCartes(42, { unites: 18, passages: 45 }),
+  ]);
+
+  const resultat = await lancer(...arguments_());
+
+  expect(resultat.code).toBe(0);
+  // Trois réponses à des cartes du chapitre gardé, écartées parce que ce sont des pré-tests.
+  expect(resultat.sortie).toContain('3 réponse(s) écartée(s)');
+  expect(resultat.sortie).toContain('pré-tests');
+  // Avec deux chapitres demandés : les mêmes pré-tests sont écartés et nommés.
+  // La branche « tout le cours » (un contenu en `fsrs`) reste hors test.
+  const toutLeCours = await lancer(
+    ...arguments_('--chapitre', CHAPITRE_FSRS, '--chapitre', AUTRES_CHAPITRES[0] ?? ''),
+  );
+  expect(toutLeCours.sortie).toContain('pré-tests');
+}, 60_000);
+
+test('trop_peu_de_revisions_le_message_nomme_aussi_les_pretests', async () => {
+  const [premiere = ''] = cartesDe(CHAPITRE_FSRS);
+  const pretests = Array.from({ length: 3 }, (_, k) =>
+    reponseInventee(Date.UTC(2026, 0, 1, 10, k), 810_000 + k, premiere, k === 0, COURS, 'pretest'),
+  );
+  ecrireJournal(base(), [[...journalDeCartes(61, { unites: 18, passages: 12 }), ...pretests]]);
+
+  const resultat = await lancer(...arguments_());
+
+  expect(resultat.code).toBe(2);
+  expect(resultat.erreurs).toContain('3 réponse(s) écartée(s), pré-tests compris');
 }, 60_000);

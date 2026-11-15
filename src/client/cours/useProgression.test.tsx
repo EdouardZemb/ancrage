@@ -210,6 +210,23 @@ describe('useProgression', () => {
     expect(evenements.find(({ type }) => type === 'examen')?.resultat).not.toHaveProperty('mode');
   });
 
+  it('enregistrer_un_pretest_range_un_evenement_valide_que_aucun_etat_ne_compte', async () => {
+    const base = await afficher();
+    let rangee = false;
+
+    await act(async () => {
+      rangee = await progression().enregistrer('c1000001', false, 'pretest');
+    });
+
+    expect(rangee).toBe(true);
+    const [evenement] = await evenementsDuCours(base, ALICE, ID);
+    expect(schemaEvenement.safeParse(evenement).success).toBe(true);
+    expect(evenement.resultat).toEqual({ juste: false, mode: 'pretest' });
+    // Le journal le garde et l'envoie, mais l'état ne le voit pas.
+    expect(progression().enAttente).toBe(1);
+    expect(progression().etats.has('c1000001')).toBe(false);
+  });
+
   it('rangement_echoue_rend_faux_et_signale_l_erreur', async () => {
     const base = await afficher();
     expect(progression().erreurEnregistrement).toBe(false);

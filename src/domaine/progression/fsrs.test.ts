@@ -1,9 +1,9 @@
 import { FSRS6_DEFAULT_WEIGHTS } from 'ts-fsrs/models/fsrs-6';
 import { expect, it } from 'vitest';
-import { examenRemisDeTest, reponseDeTest } from '../evenements.fixture.js';
+import { examenRemisDeTest, pretestDeTest, reponseDeTest } from '../evenements.fixture.js';
 import type { Evenement } from '../journal/evenement.js';
 import { ajouterJours } from '../journal/temps.js';
-import { boiteDeStabilite, etatsFsrs } from './fsrs.js';
+import { boiteDeStabilite, etatsFsrs, revuesDuJournal } from './fsrs.js';
 
 /*
  * NE PAS METTRE DE `describe` DANS CE FICHIER : voir le commentaire de `../acces.test.ts` (Stryker
@@ -370,4 +370,43 @@ it('des poids donnés changent les échéances', () => {
   expect(ajuste?.echeance).not.toBe(par_defaut?.echeance);
   expect((ajuste?.echeance ?? '') > (par_defaut?.echeance ?? '')).toBe(true);
   expect(ajuste?.justes).toBe(4);
+});
+
+it('revues_du_journal_saute_une_reponse_de_pretest', () => {
+  const journal = [
+    pretestDeTest(1, 'u1', false, `${J0}T09:00:00.000+01:00`),
+    repAMidi(2, 'u1', true, J0),
+    pretestDeTest(3, 'u2', true, `${J0}T13:00:00.000+01:00`),
+    pretestDeTest(4, 'u1', false, `${J0}T14:00:00.000+01:00`),
+    repAMidi(5, 'u1', false, ajouterJours(J0, 2)),
+  ];
+
+  // Une unité répondue en pré-test seulement (`u2`) n'a pas de suite de révisions.
+  expect(revuesDuJournal(journal)).toEqual([
+    { unite: 'u1', jours: [J0, ajouterJours(J0, 2)], justes: [true, false] },
+  ]);
+});
+
+it('l_etat_fsrs_d_un_journal_avec_pretests_est_celui_du_meme_journal_sans_eux', () => {
+  const vrai = [
+    repAMidi(1, 'u1', true, J0),
+    repAMidi(2, 'u2', false, J0),
+    repAMidi(3, 'u1', true, ajouterJours(J0, 4)),
+    repAMidi(4, 'u2', true, ajouterJours(J0, 4)),
+  ];
+  const avecPretests = [
+    pretestDeTest(10, 'u1', false, `${ajouterJours(J0, -1)}T12:00:00.000+01:00`),
+    vrai[0],
+    vrai[1],
+    pretestDeTest(11, 'u1', false, `${ajouterJours(J0, 1)}T12:00:00.000+01:00`),
+    pretestDeTest(12, 'u3', true, `${ajouterJours(J0, 2)}T12:00:00.000+01:00`),
+    vrai[2],
+    vrai[3],
+    pretestDeTest(13, 'u2', false, `${ajouterJours(J0, 5)}T12:00:00.000+01:00`),
+  ];
+
+  const etats = etatsFsrs(avecPretests, { retention: 0.9 });
+
+  expect(etats).toEqual(etatsFsrs(vrai, { retention: 0.9 }));
+  expect(etats.has('u3')).toBe(false);
 });

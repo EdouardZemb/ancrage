@@ -33,8 +33,16 @@ const deCours = TEXTES_COURS.de;
 const TAILLE_DE_SEANCE = 20;
 /** Le plafond de cartes neuves par jour du cours d'exemple (`nouvelles_par_seance`, M2-P9). */
 const NOUVELLES_PAR_JOUR = 15;
-/** Les unités du premier chapitre du cours d'exemple, le choix par défaut de Karteikarten (M2-P10) : 9 cartes, chacune dans les deux sens. */
+/**
+ * Les unités du premier chapitre du cours d'exemple, seul module ouvert en semaine 1 de son
+ * planning (M4, B-D2) : 9 cartes, chacune dans les deux sens.
+ */
 const UNITES_DU_PREMIER_CHAPITRE = 18;
+/**
+ * Les jours d'aujourd'hui, compris, à l'ouverture de la semaine 2, exclue : l'horizon du rythme
+ * d'un planning relatif, le premier jour (B-D4).
+ */
+const JOURS_JUSQU_A_LA_SEMAINE_2 = 7;
 /** Les essais pour tomber sur une faute, quand une réponse choisie à l'aveugle se trouve juste. */
 const ESSAIS_DE_FAUTE = 12;
 
@@ -43,8 +51,9 @@ const EXAMEN_DE_L_EXEMPLE = [2030, 6, 30] as const;
 
 /**
  * Le compte à rebours que « Heute » dit (A1-D8). Le test lit l'horloge réelle contre l'examen
- * inventé, lointain : il tient jusqu'au 28/06/2030 inclus (à un jour et le jour même, l'onglet
- * prend un autre libellé), et le calcul est celui du jour local, comme l'onglet.
+ * inventé, lointain : il tient jusqu'au 24/06/2030 inclus : ensuite l'examen devient l'horizon du
+ * rythme (B-D4), et le nombre de cartes neuves change. Le calcul est celui du jour local, comme
+ * l'onglet.
  */
 function compteARebours(): string {
   const [annee, mois, jour] = EXAMEN_DE_L_EXEMPLE;
@@ -55,7 +64,7 @@ function compteARebours(): string {
     maintenant.getDate(),
   );
   const jours = Math.round((Date.UTC(annee, mois - 1, jour) - aujourdhui) / 86_400_000);
-  if (jours < 2) throw new Error('l’examen inventé de l’exemple arrive : en reculer la date');
+  if (jours < 6) throw new Error('l’examen inventé de l’exemple arrive : en reculer la date');
   return formater(deCours.heute_examen_n, { n: jours });
 }
 
@@ -139,21 +148,27 @@ test('la_seance_du_jour_mele_les_types', async ({ page }) => {
 
   let file = 0;
   await test.step('3. « Heute » compte les fautes pour dues, et pose des cartes neuves', async () => {
+    // En tête : le garde de la date de l'examen précède l'assertion du nombre de cartes neuves.
+    const aRebours = compteARebours();
     await ouvrirOnglet(page, 'heute');
     await expect(page).toHaveURL(/\/cours\/[0-9a-z]{8}\/heute$/);
     const compte = await compteDeHeute(page);
     expect(compte.dues, 'unités dues').toBe(fautes);
-    // Le plafond du jour moins la découverte, dans le premier chapitre moins cette même carte.
-    const neuves = Math.min(
-      NOUVELLES_PAR_JOUR - decouvertes,
-      UNITES_DU_PREMIER_CHAPITRE - decouvertes,
+    // Le rythme du premier jour (B-D3, B-D4) : les 18 unités du premier chapitre, ouvert seul,
+    // réparties sur les 7 jours d'ici la semaine 2, sous le plafond. La carte découverte dans
+    // Karteikarten compte dans ces 18 et dans le rythme : elle en retire une des neuves du jour ;
+    // le plafond, lui, en retire aussi une.
+    const rythme = Math.min(
+      NOUVELLES_PAR_JOUR,
+      Math.ceil(UNITES_DU_PREMIER_CHAPITRE / JOURS_JUSQU_A_LA_SEMAINE_2),
     );
+    const neuves = Math.min(NOUVELLES_PAR_JOUR - decouvertes, rythme - decouvertes);
     expect(compte.neues, 'cartes neuves').toBe(neuves);
     expect(compte.faites).toBe(0);
     file = compte.restantes;
     expect(file, 'file de la séance').toBe(Math.min(TAILLE_DE_SEANCE, fautes + neuves));
     // Le compte à rebours, sur l'écran de la séance : l'exemple a un `examen`.
-    await expect(page.locator('.cours .examenline', { hasText: compteARebours() })).toBeVisible();
+    await expect(page.locator('.cours .examenline', { hasText: aRebours })).toBeVisible();
   });
 
   const genres = new Set<GenreDeHeute>();

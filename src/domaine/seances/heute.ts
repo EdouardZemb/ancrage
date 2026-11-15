@@ -4,16 +4,17 @@ import type { CoursPrepare, ModuleServiDe } from '../cours/prepare.js';
 import { type Hasard, melanger } from '../hasard.js';
 import type { Evenement } from '../journal/evenement.js';
 import { jourDe } from '../journal/temps.js';
-import { type EtatUnite, estDue, etatDe, journalSansDoublon } from '../progression/etat.js';
+import { type EtatUnite, estDue, etatDe, journalDesRevisions } from '../progression/etat.js';
 import { type ElementFerme, elementsTirables, GENRES_FERMES, idDeLElement } from './feuilles.js';
 
 /*
  * La séance du jour, « Heute » (M2) : une file qui mêle tout ce qui est dû aujourd'hui, quel que
- * soit le type de l'unité, puis quelques cartes neuves. Les neuves viennent du choix fait dans
- * Karteikarten (M2-P10), et `nouvelles_par_seance` y est un plafond par jour (M2-P9) : le quota de
- * la séance est ce que ce plafond laisse après les cartes déjà découvertes aujourd'hui
- * (`decouvertesLe`). Le domaine ne lit ni l'horloge ni le hasard : le jour, l'état de chaque unité
- * (que rend l'ordonnanceur du cours), les candidates, le quota et le hasard sont des paramètres.
+ * soit le type de l'unité, puis quelques cartes neuves. Les neuves, et leur quota, viennent de
+ * `neuvesDuJour` (`rythme.ts`) : sans planning, du choix fait dans Karteikarten (M2-P10) et du
+ * plafond `nouvelles_par_seance` moins les cartes déjà découvertes aujourd'hui (M2-P9,
+ * `decouvertesLe`) ; avec un planning, des modules ouverts, à un rythme (M4, B-D2 et B-D3). Le
+ * domaine ne lit ni l'horloge ni le hasard : le jour, l'état de chaque unité (que rend
+ * l'ordonnanceur du cours), les candidates, le quota et le hasard sont des paramètres.
  */
 
 /** Le plafond d'une séance du jour. */
@@ -78,8 +79,9 @@ export function cartesNeuves(
 /**
  * Les cartes de `cartes` découvertes le `jour` (M2-P9) : celles dont la première réponse du journal
  * est de ce jour (local), où qu'elle ait été donnée. La première est la plus ancienne, dans l'ordre
- * du journal sans doublon, et non la première arrivée. Une réponse à une autre unité, ou un
- * événement d'examen, ne compte pas.
+ * du journal sans doublon, et non la première arrivée. Une réponse à une autre unité, un
+ * événement d'examen ou une réponse de pré-test (ADR-0014) ne compte pas : la première vraie
+ * réponse d'une carte pré-testée est sa découverte.
  */
 export function decouvertesLe(
   evenements: readonly Evenement[],
@@ -88,7 +90,7 @@ export function decouvertesLe(
 ): number {
   const vues = new Set<string>();
   let decouvertes = 0;
-  for (const evenement of journalSansDoublon(evenements)) {
+  for (const evenement of journalDesRevisions(evenements)) {
     if (evenement.type !== 'reponse' || !cartes.has(evenement.unite)) continue;
     if (vues.has(evenement.unite)) continue;
     vues.add(evenement.unite);
@@ -97,11 +99,18 @@ export function decouvertesLe(
   return decouvertes;
 }
 
-/** Les cartes neuves d'une séance du jour : les candidates (le choix de Karteikarten) et le quota. */
+/**
+ * Les cartes neuves d'une séance du jour : les candidates et le quota, que rend `neuvesDuJour`
+ * (`rythme.ts`) : le choix de Karteikarten sans planning, les premières unités neuves des modules
+ * ouverts avec un planning.
+ */
 export interface NeuvesDuJour {
-  /** Les posables de genre `carte` du choix ; seules celles en boîte 0 entrent dans la séance. */
+  /** Les posables de genre `carte` candidats ; seules celles en boîte 0 entrent dans la séance. */
   candidates: readonly Posable[];
-  /** Le plafond du jour moins les cartes découvertes aujourd'hui, au moins 0. */
+  /**
+   * Le nombre de cartes neuves au plus : le plafond moins les cartes découvertes aujourd'hui et,
+   * avec un planning, le rythme moins celles du planning (B-D3) ; jamais négatif.
+   */
   quota: number;
 }
 

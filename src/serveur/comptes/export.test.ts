@@ -203,13 +203,23 @@ it('export_rend_le_mode_d_une_reponse', () => {
     ...reponseDeTest(COURS_A, 1),
     resultat: { juste: true, mode: 'saisie' },
   } as Evenement;
-  creerDepotJournal(base).ajouter(lernende.id, [avecMode, reponseDeTest(COURS_A, 2)], RECU_A);
+  // Un pré-test (ADR-0014) est rendu avec son mode, comme toute réponse : la personne le reçoit.
+  const pretest = {
+    ...reponseDeTest(COURS_A, 3, false),
+    resultat: { juste: false, mode: 'pretest' },
+  } as Evenement;
+  creerDepotJournal(base).ajouter(
+    lernende.id,
+    [avecMode, reponseDeTest(COURS_A, 2), pretest],
+    RECU_A,
+  );
 
   const [cours] = exporter(lernende.id, [{ id: COURS_A, titre: TITRE_A }]).cours;
 
   expect(cours.evenements.map((e) => e.resultat)).toEqual([
     { juste: true, mode: 'saisie' },
     { juste: true },
+    { juste: false, mode: 'pretest' },
   ]);
 });
 

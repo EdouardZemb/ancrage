@@ -6,13 +6,13 @@ import {
 import { FSRS6_DEFAULT_WEIGHTS, FSRS6Model } from 'ts-fsrs/models/fsrs-6';
 import type { Evenement } from '../journal/evenement.js';
 import { ajouterJours, jourDe, joursEntre } from '../journal/temps.js';
-import { ETAT_NEUF, type EtatUnite, journalSansDoublon } from './etat.js';
+import { ETAT_NEUF, type EtatUnite, journalDesRevisions } from './etat.js';
 
 /*
  * L'état d'apprentissage dérivé du journal par FSRS-6 (ADR-0012, M1-D2 à M1-D4), à côté de la
  * méthode de Leitner d'`etat.ts` : même journal, même type `EtatUnite`, rien de stocké (ADR-0004,
- * invariant 5). Chaque appel rejoue le journal sans doublon (`journalSansDoublon`), dans l'ordre
- * que `trierEvenements` fixe : deux appareils qui ont les mêmes événements aboutissent au même état.
+ * invariant 5). Chaque appel rejoue le journal sans doublon et sans pré-test
+ * (`journalDesRevisions`), dans l'ordre que `trierEvenements` fixe : deux appareils qui ont les mêmes événements aboutissent au même état.
  *
  * Ce qui fixe le calcul, et ne doit jamais dépendre d'un défaut de la bibliothèque :
  * - le modèle est nommé (`FSRS6Model`, ses poids par défaut ou, s'il les porte, ceux du manifeste),
@@ -88,7 +88,7 @@ export function revuesDuJournal(
   evenements: readonly Evenement[],
 ): { unite: string; jours: string[]; justes: boolean[] }[] {
   const revues = new Map<string, { unite: string; jours: string[]; justes: boolean[] }>();
-  for (const evenement of journalSansDoublon(evenements)) {
+  for (const evenement of journalDesRevisions(evenements)) {
     if (evenement.type !== 'reponse') continue;
     const suite = revues.get(evenement.unite) ?? { unite: evenement.unite, jours: [], justes: [] };
     revues.set(evenement.unite, suite);

@@ -26,9 +26,9 @@ export const VERSION_EVENEMENT = 1;
  * l'application), `corrigee` (saisie jugée fausse, puis déclarée juste par la personne), `choix`
  * (une proposition parmi plusieurs), `assemblage` (tuiles d'un mot), `pointage` (un point touché
  * sur un dessin), `association` (appariement, classement), `montree` (réponse montrée puis jugée
- * par la personne), `lecture` (le bilan d'un texte).
+ * par la personne), `lecture` (le bilan d'un texte). Ce sont les modes d'une révision.
  */
-export const MODES_DE_REPONSE = [
+export const MODES_DE_REVISION = [
   'retournee',
   'saisie',
   'corrigee',
@@ -40,7 +40,16 @@ export const MODES_DE_REPONSE = [
   'lecture',
 ] as const;
 
+/** Le mode d'une réponse de pré-test (ADR-0014) : un choix, donné avant d'avoir appris. */
+export const MODE_PRETEST = 'pretest';
+
+/** Tous les modes qu'une réponse peut porter : les gestes d'une révision, puis `pretest`. */
+export const MODES_DE_REPONSE = [...MODES_DE_REVISION, MODE_PRETEST] as const;
+
 export type ModeDeReponse = (typeof MODES_DE_REPONSE)[number];
+
+/** Les modes d'une révision : tous, sauf `pretest`. */
+export type ModeDeRevision = (typeof MODES_DE_REVISION)[number];
 
 export interface ResultatReponse {
   juste: boolean;
@@ -80,6 +89,11 @@ interface Commun {
 export type Evenement =
   | (Commun & { type: 'reponse'; resultat: ResultatReponse })
   | (Commun & { type: 'examen'; resultat: ResultatExamen });
+
+/** Une réponse de pré-test : rien de ce qui se dérive du journal ne la compte (B-D9, ADR-0014). */
+export function estPretest(evenement: Evenement): boolean {
+  return evenement.type === 'reponse' && evenement.resultat.mode === MODE_PRETEST;
+}
 
 const SUFFIXE_INVERSE = ':inverse';
 

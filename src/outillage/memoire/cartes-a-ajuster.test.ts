@@ -76,3 +76,30 @@ test('les_reponses_hors_des_chapitres_choisis_sont_ecartees_et_comptees', () => 
   expect(resultat.ecartees).toBe(3);
   expect(resultat.journaux.map((j) => j.length)).toEqual([1, 0]);
 });
+
+test('une_reponse_de_pretest_est_ecartee_et_comptee_avec_des_chapitres_comme_sans', () => {
+  const duModule = (module: string) =>
+    parChapitre.unites.find((unite) => unite.module === module)?.id ?? '';
+  const reponse = (rang: number, unite: string, mode?: 'pretest') =>
+    reponseInventee(Date.UTC(2026, 0, 1, 10, rang), rang, unite, true, parChapitre.cours.id, mode);
+  const journal = [
+    reponse(1, duModule(PREMIER)),
+    reponse(2, duModule(PREMIER), 'pretest'),
+    reponse(3, duModule(PREMIER), 'pretest'),
+    reponse(4, duModule(SECOND)),
+  ];
+
+  // Avec des chapitres : le pré-test d'une carte d'un chapitre gardé est écarté ; la carte d'un
+  // autre chapitre l'est comme avant.
+  const avecChapitres = garderLesCartes([journal], parChapitre, new Set([PREMIER]));
+  expect(avecChapitres.ecartees).toBe(3);
+  expect(avecChapitres.journaux[0]).toHaveLength(1);
+
+  // Sans chapitre (`null`) : seuls les pré-tests sont écartés, et comptés.
+  const toutLeCours = garderLesCartes([journal, [journal[1]]], parChapitre, null);
+  expect(toutLeCours.ecartees).toBe(3);
+  expect(toutLeCours.journaux.map((j) => j.length)).toEqual([2, 0]);
+  expect(
+    toutLeCours.journaux[0].every((e) => e.type === 'reponse' && e.resultat.mode !== 'pretest'),
+  ).toBe(true);
+});

@@ -47,3 +47,17 @@ export function reponseDeTest(
     v: 1,
   };
 }
+
+/** Une réponse de pré-test (ADR-0014) à l'unité, donnée à l'instant `reponduA`. */
+export function pretestDeTest(
+  n: number,
+  unite: string,
+  juste: boolean,
+  reponduA: string,
+): Evenement {
+  return {
+    ...reponseDeTest(n, unite, juste, reponduA),
+    type: 'reponse',
+    resultat: { juste, mode: 'pretest' },
+  };
+}

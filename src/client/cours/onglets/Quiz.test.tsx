@@ -2,7 +2,13 @@
 import { cleanup, fireEvent, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { UniteDeCarte } from '../../../domaine/cartes/unites.js';
-import { CHAPITRE_1, CHAPITRE_2, coursServiDeTest } from '../../../domaine/cours/cours.fixture.js';
+import {
+  CHAPITRE_1,
+  CHAPITRE_2,
+  coursAvecChapitreAuManuelInconnu,
+  coursAvecManuels,
+  coursServiDeTest,
+} from '../../../domaine/cours/cours.fixture.js';
 import type { CoursServi } from '../../../domaine/cours/servi.js';
 import { hasardScripte } from '../../../domaine/hasard.fixture.js';
 import {
@@ -14,7 +20,14 @@ import {
 import type { ContexteCours } from '../contexte-cours.js';
 import type { Preferences } from '../preferences.js';
 import { TEXTES_COURS } from '../textes-cours.js';
-import { boutons, progression, texteDe, touche } from './onglets.fixture.js';
+import {
+  boutons,
+  groupesDe,
+  optionsHorsGroupes,
+  progression,
+  texteDe,
+  touche,
+} from './onglets.fixture.js';
 import { Quiz } from './Quiz.js';
 
 afterEach(cleanup);
@@ -334,5 +347,47 @@ describe('Quiz', () => {
 
     expect(contexte.enregistrer).toHaveBeenCalledWith('fb000008', true, 'choix');
     expect(progression()).toBe('1 / 1 richtig');
+  });
+});
+
+describe('Quiz par manuel', () => {
+  it('quiz_sans_manuel_le_choix_est_celui_d_aujourd_hui', () => {
+    rendreDansUnCoursVivant(<Quiz />, contexteDe(['c1000001', 'c2000001']));
+
+    expect((document.querySelector('select') as HTMLElement).outerHTML).toBe(
+      '<select aria-label="Kapitel"><option value="mc000001">1 · Anfangskapitel</option>' +
+        '<option value="mc000002">2 · Vorsilben</option><option value="tous">Alle Kapitel</option>' +
+        '<option value="feuilles">Arbeitsblätter</option></select>',
+    );
+  });
+
+  it('quiz_par_manuel_un_optgroup_puis_les_choix_hors_groupes', () => {
+    const contexte = contexteDeTest({ cours: coursAvecManuels() });
+    rendreDansUnCoursVivant(<Quiz />, contexte);
+
+    const choix = screen.getByLabelText(t.choix_chapitre) as HTMLSelectElement;
+    expect(groupesDe(choix)).toEqual([['Lehrbuch Beta', ['1 · Vorsilben', '2 · Anfangskapitel']]]);
+    expect(optionsHorsGroupes(choix)).toEqual([
+      ['tous', 'Alle Kapitel'],
+      ['feuilles', 'Arbeitsblätter'],
+    ]);
+    expect(choix.value).toBe(CHAPITRE_1);
+
+    fireEvent.change(choix, { target: { value: CHAPITRE_2 } });
+
+    expect(contexte.changerPreferences).toHaveBeenLastCalledWith({
+      ...contexte.preferences,
+      quiz: { chapitre: CHAPITRE_2, sens: 'mix' },
+    });
+  });
+
+  it('quiz_par_manuel_un_chapitre_au_manuel_inconnu_est_dans_les_uebungen', () => {
+    rendreDansUnCoursVivant(
+      <Quiz />,
+      contexteDeTest({ cours: coursAvecChapitreAuManuelInconnu() }),
+    );
+
+    const choix = screen.getByLabelText(t.choix_chapitre) as HTMLSelectElement;
+    expect(groupesDe(choix).map(([nom]) => nom)).toEqual(['Lehrbuch Beta', t.division_uebungen]);
   });
 });

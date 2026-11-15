@@ -7,6 +7,13 @@
  */
 import type { ComponentChildren } from 'preact';
 import type { UniteDeCarte } from '../../domaine/cartes/unites.js';
+import {
+  type Division,
+  divisionsDuCours,
+  numeroAffiche,
+  numeroDeLUnite,
+} from '../../domaine/cours/manuels.js';
+import type { Chapitre } from '../../domaine/cours/prepare.js';
 import { FAUX, VRAI } from '../../domaine/feuilles/correction.js';
 import type { SensChoisi } from '../../domaine/seances/cartes.js';
 import { useCours } from './contexte-cours.js';
@@ -20,11 +27,29 @@ export function classeDeLaQuestion(question: string): string {
   return question.length > LONGUEUR_D_UNE_QUESTION_COURTE ? 'front long' : 'front';
 }
 
+/** Le titre d'une division : celui de son manuel, ou « Übungen » pour la dernière (A2-D5). */
+export function titreDeDivision(division: Division, t: Record<CleTexteCours, string>): string {
+  return division.manuel?.titre ?? t.division_uebungen;
+}
+
+/** Une option par chapitre, « {n} · {titre} », que les deux modes du choix partagent (A2-D10). */
+function OptionsDeChapitres(props: { chapitres: readonly Chapitre[] }) {
+  return props.chapitres.map((chapitre) => (
+    <option key={chapitre.id} value={chapitre.id}>
+      {numeroAffiche(chapitre)} · {chapitre.titre}
+    </option>
+  ));
+}
+
 const SENS: readonly SensChoisi[] = ['mix', 'direct', 'inverse'];
 
 /**
  * Les deux listes en tête d'un onglet de cartes : un chapitre (ou tous) et un sens (ou les deux).
  * Elles rendent les deux `select` à la suite, pour la ligne `controls` de l'onglet.
+ *
+ * Un cours qui range ses chapitres par manuel (A2-D10) les groupe en `optgroup`, dans l'ordre de
+ * chaque division ; sinon la liste est plate, dans l'ordre du cours. La valeur d'une option est
+ * toujours l'identifiant du module : les préférences gardées n'en savent rien.
  */
 export function ChoixDeCartes(props: {
   chapitre: string | 'tous';
@@ -40,6 +65,7 @@ export function ChoixDeCartes(props: {
     direct: t.sens_direct,
     inverse: t.sens_inverse,
   };
+  const divisions = divisionsDuCours(cours);
   return (
     <>
       <select
@@ -47,11 +73,20 @@ export function ChoixDeCartes(props: {
         value={props.chapitre}
         onChange={(e) => props.choisir({ chapitre: e.currentTarget.value })}
       >
-        {cours.chapitres.map((chapitre) => (
-          <option key={chapitre.id} value={chapitre.id}>
-            {chapitre.numero} · {chapitre.titre}
-          </option>
-        ))}
+        {divisions === undefined ? (
+          <OptionsDeChapitres chapitres={cours.chapitres} />
+        ) : (
+          divisions
+            .filter((division) => division.chapitres.length > 0)
+            .map((division) => (
+              <optgroup
+                key={division.manuel?.id ?? 'uebungen'}
+                label={titreDeDivision(division, t)}
+              >
+                <OptionsDeChapitres chapitres={division.chapitres} />
+              </optgroup>
+            ))
+        )}
         <option value="tous">{t.choix_tous_chapitres}</option>
         {props.avecFeuilles === true && <option value="feuilles">{t.onglet_feuilles}</option>}
       </select>
@@ -106,7 +141,9 @@ export function Enonce(props: { unite: UniteDeCarte; avecChapitre: boolean }) {
   const etiquette = [
     cours.cours.typesDeCarte[unite.type],
     unite.sens === 'direct' ? t.sens_direct : t.sens_inverse,
-    ...(props.avecChapitre ? [formater(t.carte_chapitre, { n: unite.numero })] : []),
+    ...(props.avecChapitre
+      ? [formater(t.carte_chapitre, { n: numeroDeLUnite(cours, unite) })]
+      : []),
   ].join(' · ');
   return (
     <>

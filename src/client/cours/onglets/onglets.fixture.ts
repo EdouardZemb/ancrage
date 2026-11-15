@@ -35,3 +35,19 @@ export function choisirDans(groupe: string, option: string): void {
 export function touche(key: string): void {
   fireEvent.keyDown(window, { key });
 }
+
+/** Les groupes d'un `select` : le nom de chaque `optgroup` et le texte de ses options. */
+export function groupesDe(choix: HTMLSelectElement): [string, (string | null)[]][] {
+  return Array.from(choix.querySelectorAll('optgroup')).map((groupe) => [
+    groupe.label,
+    Array.from(groupe.querySelectorAll('option')).map((option) => option.textContent),
+  ]);
+}
+
+/** Les options d'un `select` qui ne sont dans aucun groupe : leur valeur et leur texte. */
+export function optionsHorsGroupes(choix: HTMLSelectElement): [string, string | null][] {
+  return Array.from(choix.querySelectorAll(':scope > option')).map((option) => [
+    (option as HTMLOptionElement).value,
+    option.textContent,
+  ]);
+}

@@ -239,6 +239,7 @@ const de = {
   examen_punkte: '{points} von {questions} Punkten ({pourcent} %) · {minutes} Min.',
   examen_nach_kapitel: 'Nach Kapitel',
   examen_kapitel: 'Kapitel {n}',
+  examen_kapitel_manuel: 'Kapitel {n} · {manuel}',
   examen_richtig: '{justes} / {total} richtig',
   examen_fehler: 'Fehler ({n})',
   examen_keine_fehler: 'Keine Fehler – ausgezeichnet!',

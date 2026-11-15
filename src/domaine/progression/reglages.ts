@@ -3,10 +3,18 @@ import * as z from 'zod';
 import type { ReglagesMemoire } from '../contenu/modele.js';
 
 /*
- * Les règles de la clé `memoire` du manifeste qui ne regardent que sa valeur : les poids de FSRS-6
- * et la date de l'examen. L'analyse du contenu (`contenu/schemas.ts`) les applique en strict, et le
- * client les applique en tolérant (`lireReglagesDeMemoire`) : un seul texte de règle pour les deux.
+ * Les règles du manifeste qui ne regardent que leur valeur : pour la clé `memoire`, les poids de
+ * FSRS-6 et la date de l'examen ; pour la clé `planning`, la borne d'une semaine (`SEMAINE_MAX`).
+ * L'analyse du contenu (`contenu/schemas.ts`) les applique en strict, et le client les applique en
+ * tolérant (`lireReglagesDeMemoire`, `lirePlanning`) : un seul texte de règle pour les deux.
  */
+
+/**
+ * La dernière semaine d'un planning relatif : une borne large, dix ans, qui tient `ajouterJours`
+ * loin de l'an 10 000, où `toISOString` écrit l'année avec un signe et où la comparaison des jours
+ * en chaînes ne tient plus.
+ */
+export const SEMAINE_MAX = 520;
 
 /** Une date qui existe, `AAAA-MM-JJ`. */
 export function estDateIso(texte: string): boolean {

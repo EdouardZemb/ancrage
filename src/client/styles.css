@@ -701,7 +701,8 @@ header.top {
   font-size: 0.92rem;
 }
 
-.progressline {
+.progressline,
+.examenline {
   font: 500 0.8rem var(--f-mono);
   color: var(--muted);
 }

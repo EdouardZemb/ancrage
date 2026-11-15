@@ -33,6 +33,8 @@ export interface CoursServi {
   leitner: ReglagesLeitner;
   /** Absent : le cours n'a pas écrit son algorithme de mémoire. À lire par `memoireDuCours`. */
   memoire?: unknown;
+  /** Absent : le cours n'a pas de planning. À lire par `planningDuCours`. */
+  planning?: unknown;
   /** Dans l'ordre de `cours.yaml`. */
   modules: ModuleServi[];
 }
@@ -314,6 +316,7 @@ export function versCoursServi(cours: Cours): CoursServi {
     typesDeCarte: cours.typesDeCarte,
     leitner: cours.leitner,
     ...(cours.memoire === undefined ? {} : { memoire: cours.memoire }),
+    ...(cours.planning === undefined ? {} : { planning: cours.planning }),
     modules: cours.modules.map(moduleServi),
   };
 }

@@ -2,7 +2,7 @@ import { FSRS6_DEFAULT_WEIGHTS } from 'ts-fsrs/models/fsrs-6';
 import { describe, expect, it } from 'vitest';
 import { analyserContenus } from '../../domaine/contenu/analyse.js';
 import { exempleDeCours, REGLAGES_DE_L_EXAMEN } from '../../domaine/contenu/exemple.fixture.js';
-import type { Cours } from '../../domaine/contenu/modele.js';
+import type { Cours, Planning } from '../../domaine/contenu/modele.js';
 import { calculerReference } from './reference.js';
 
 function coursDe(fichiers: Map<string, string>): Cours {
@@ -348,6 +348,41 @@ describe('calculerReference', () => {
       'leitner',
       'memoire',
     ]);
+  });
+
+  it('planning_ecrit_apres_memoire_et_rien_sans_lui', () => {
+    const cours = coursDe(exempleDeCours());
+    const sans = calculerReference(cours);
+    expect(sans.cours).not.toHaveProperty('planning');
+
+    const planning = {
+      etapes: [{ titre: 'Woche 1', semaine: 1, genre: 'cours' as const, modules: ['aaaaaaaa'] }],
+    };
+    const memoire = { algorithme: 'fsrs' as const, retention: 0.85 };
+    const { cours: avec } = calculerReference({ ...cours, memoire, planning });
+    expect(avec.planning).toStrictEqual(planning);
+    expect(Object.keys(avec.planning?.etapes[0] ?? {})).toEqual([
+      'titre',
+      'semaine',
+      'genre',
+      'modules',
+    ]);
+    expect(Object.keys(avec).slice(-2)).toEqual(['memoire', 'planning']);
+  });
+
+  it('etape_de_planning_recopiee_champ_par_champ_dans_l_ordre', () => {
+    const etape = {
+      modules: ['aaaaaaaa'],
+      genre: 'revision' as const,
+      seance: '2030-03-04',
+      titre: 'Woche 1',
+      en_trop: 'x',
+    };
+    const planning = { etapes: [etape] } as unknown as Planning;
+    const { cours } = calculerReference({ ...coursDe(exempleDeCours()), planning });
+    const ecrite = cours.planning?.etapes[0] ?? {};
+    expect(Object.keys(ecrite)).toEqual(['titre', 'seance', 'genre', 'modules']);
+    expect(ecrite).not.toHaveProperty('en_trop');
   });
 
   it('memoire_par_chapitre_ecrite_en_entier_dans_la_reference', () => {

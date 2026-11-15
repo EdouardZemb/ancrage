@@ -1,5 +1,5 @@
 import * as z from 'zod';
-import { estDateIso, poidsFsrsValides } from '../progression/reglages.js';
+import { estDateIso, poidsFsrsValides, SEMAINE_MAX } from '../progression/reglages.js';
 import type { ErreurContenu } from './erreurs.js';
 import { estIdentifiant, REGLE_IDENTIFIANT } from './identifiants.js';
 import type { Statut } from './modele.js';
@@ -523,6 +523,86 @@ const reglagesMemoire = z
     }
   });
 
+const MESSAGE_DE_SEMAINE = `Attendu un nombre entier entre 1 et ${SEMAINE_MAX}.`;
+
+const etapeDePlanning = z
+  .strictObject({
+    titre: z.string().refine((texte) => texte.trim() !== '', { error: 'Le titre est vide.' }),
+    seance: date.optional(),
+    semaine: z
+      .int()
+      .min(1, { error: MESSAGE_DE_SEMAINE })
+      .max(SEMAINE_MAX, { error: MESSAGE_DE_SEMAINE })
+      .optional(),
+    genre: z.enum(['cours', 'revision']).default('cours'),
+    modules: z.array(identifiant),
+  })
+  .superRefine((etape, ctx) => {
+    const signaler = (cle: string, message: string) =>
+      ctx.addIssue({ code: 'custom', path: [cle], message });
+    if (etape.seance === undefined && etape.semaine === undefined) {
+      signaler('seance', 'Attendu « seance » ou « semaine » : une date, ou un numéro de semaine.');
+    } else if (etape.seance !== undefined && etape.semaine !== undefined) {
+      signaler('semaine', 'Une étape porte « seance » ou « semaine », pas les deux.');
+    }
+    if (etape.genre === 'cours' && etape.modules.length === 0) {
+      signaler(
+        'modules',
+        "Attendu au moins un module : seule une étape « revision » peut n'en citer aucun.",
+      );
+    }
+  });
+
+const MESSAGE_AVANT = "Sa séance (ou sa semaine) précède celle de l'étape d'avant.";
+
+const aUneForme = (etape: { seance?: string; semaine?: number }) =>
+  (etape.seance === undefined) !== (etape.semaine === undefined);
+const semaineValide = (semaine: number | undefined): semaine is number =>
+  semaine !== undefined && Number.isInteger(semaine) && semaine >= 1 && semaine <= SEMAINE_MAX;
+
+const reglagesPlanning = z
+  .strictObject({
+    etapes: z.array(etapeDePlanning).min(1, { error: 'Attendu au moins une étape.' }),
+  })
+  .superRefine((planning, ctx) => {
+    const signaler = (rang: number, cle: string, message: string) =>
+      ctx.addIssue({ code: 'custom', path: ['etapes', rang, cle], message });
+    // Une étape sans exactement une des deux formes est déjà signalée : elle ne sert ni de
+    // référence, ni de point de comparaison.
+    const relatif = planning.etapes.find(aUneForme)?.semaine !== undefined;
+    const premiere = planning.etapes[0];
+    if (
+      premiere !== undefined &&
+      aUneForme(premiere) &&
+      semaineValide(premiere.semaine) &&
+      premiere.semaine > 1
+    ) {
+      signaler(0, 'semaine', 'Un planning en semaines commence en semaine 1.');
+    }
+    // La dernière valeur valide d'avant, de la forme de référence.
+    let avant: string | number | undefined;
+    planning.etapes.forEach((etape, rang) => {
+      if (!aUneForme(etape)) return;
+      const cle = etape.seance === undefined ? 'semaine' : 'seance';
+      if ((etape.semaine !== undefined) !== relatif) {
+        signaler(
+          rang,
+          cle,
+          'Toutes les étapes ont la même forme : toutes datées, ou toutes en semaines.',
+        );
+        return;
+      }
+      const valeur = etape.seance ?? etape.semaine;
+      if (
+        valeur === undefined ||
+        (relatif ? !semaineValide(etape.semaine) : !estDateIso(`${valeur}`))
+      )
+        return;
+      if (avant !== undefined && valeur < avant) signaler(rang, cle, MESSAGE_AVANT);
+      avant = valeur;
+    });
+  });
+
 export const schemaDeCours = z.strictObject({
   format: z.literal(1),
   id: identifiant,
@@ -531,6 +611,7 @@ export const schemaDeCours = z.strictObject({
   types_de_carte: z.record(z.string(), z.string()),
   leitner: reglagesLeitner,
   memoire: reglagesMemoire.optional(),
+  planning: reglagesPlanning.optional(),
   derogation_diffusion: derogationDiffusion.optional(),
   modules: z.array(z.string()),
 });

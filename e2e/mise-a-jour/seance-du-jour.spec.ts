@@ -9,7 +9,7 @@
  * lance son propre serveur, sur sa propre base, et sert la version A.
  */
 import { expect, type Page } from '@playwright/test';
-import { TEXTES_COURS } from '../../src/client/cours/textes-cours.js';
+import { formater, TEXTES_COURS } from '../../src/client/cours/textes-cours.js';
 import { textes } from '../../src/client/textes.js';
 import {
   compteDeHeute,
@@ -37,6 +37,27 @@ const NOUVELLES_PAR_JOUR = 15;
 const UNITES_DU_PREMIER_CHAPITRE = 18;
 /** Les essais pour tomber sur une faute, quand une réponse choisie à l'aveugle se trouve juste. */
 const ESSAIS_DE_FAUTE = 12;
+
+/** L'examen inventé du cours d'exemple (`memoire.examen`, `exemple-contenu/kueche/cours.yaml`). */
+const EXAMEN_DE_L_EXEMPLE = [2030, 6, 30] as const;
+
+/**
+ * Le compte à rebours que « Heute » dit (A1-D8). Le test lit l'horloge réelle contre l'examen
+ * inventé, lointain : il tient jusqu'au 28/06/2030 inclus (à un jour et le jour même, l'onglet
+ * prend un autre libellé), et le calcul est celui du jour local, comme l'onglet.
+ */
+function compteARebours(): string {
+  const [annee, mois, jour] = EXAMEN_DE_L_EXEMPLE;
+  const maintenant = new Date();
+  const aujourdhui = Date.UTC(
+    maintenant.getFullYear(),
+    maintenant.getMonth(),
+    maintenant.getDate(),
+  );
+  const jours = Math.round((Date.UTC(annee, mois - 1, jour) - aujourdhui) / 86_400_000);
+  if (jours < 2) throw new Error('l’examen inventé de l’exemple arrive : en reculer la date');
+  return formater(deCours.heute_examen_n, { n: jours });
+}
 
 let serveur: VersionServie | undefined;
 
@@ -131,6 +152,8 @@ test('la_seance_du_jour_mele_les_types', async ({ page }) => {
     expect(compte.faites).toBe(0);
     file = compte.restantes;
     expect(file, 'file de la séance').toBe(Math.min(TAILLE_DE_SEANCE, fautes + neuves));
+    // Le compte à rebours, sur l'écran de la séance : l'exemple a un `examen`.
+    await expect(page.locator('.cours .examenline', { hasText: compteARebours() })).toBeVisible();
   });
 
   const genres = new Set<GenreDeHeute>();
@@ -149,6 +172,8 @@ test('la_seance_du_jour_mele_les_types', async ({ page }) => {
   await test.step('5. la fin dit le résultat', async () => {
     const resultat = await resultatDeHeute(page);
     expect(resultat, deCours.heute_resultat).toBeDefined();
+    // Et sur l'écran de fin.
+    await expect(page.locator('.cours .examenline', { hasText: compteARebours() })).toBeVisible();
     const { justes, faites } = resultat ?? { justes: 0, faites: 0 };
     // Le résultat compte des éléments : chaque élément de la file est passé une fois, qu'une faute
     // l'ait fait revenir ou non.

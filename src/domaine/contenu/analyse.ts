@@ -39,6 +39,7 @@ import type {
   ModuleTexteAnnote,
   Morpheme,
   Mot,
+  Planning,
   PointDeSchema,
   Question,
   ResultatContenus,
@@ -271,6 +272,8 @@ function analyserCours(
   const references = new Set([fichierCours]);
   const modulesCites = new Set<string>();
   const modules: Module[] = [];
+  /** Les identifiants des modules lus, résolus ou non. */
+  const identifiantsLus = new Set<string>();
   /** Faux si un module n'a pas pu être lu : ce qu'il cite, et son identifiant, sont inconnus. */
   let toutLu = true;
 
@@ -293,6 +296,7 @@ function analyserCours(
       toutLu = false;
       return;
     }
+    identifiantsLus.add(module.id);
     const resolu = resoudreModule(analyse, fichier, module, ecrit, references);
     if (resolu) modules.push(resolu);
   });
@@ -302,6 +306,7 @@ function analyserCours(
   if (toutLu) {
     controlerChapitres(analyse, modules);
     controlerChapitresDeMemoire(analyse, fichierCours, ecrit.memoire?.chapitres, modules);
+    controlerModulesDuPlanning(analyse, fichierCours, ecrit.planning, identifiantsLus);
     for (const chemin of chemins) {
       if (!references.has(chemin)) {
         signaler(
@@ -337,6 +342,19 @@ function analyserCours(
             ...(ecrit.memoire.chapitres === undefined
               ? {}
               : { chapitres: [...ecrit.memoire.chapitres] }),
+          },
+        }),
+    ...(ecrit.planning === undefined
+      ? {}
+      : {
+          planning: {
+            etapes: ecrit.planning.etapes.map((etape) => ({
+              titre: etape.titre,
+              ...(etape.seance === undefined ? {} : { seance: etape.seance }),
+              ...(etape.semaine === undefined ? {} : { semaine: etape.semaine }),
+              genre: etape.genre,
+              modules: [...etape.modules],
+            })),
           },
         }),
     ...(ecrit.derogation_diffusion === undefined
@@ -830,6 +848,32 @@ function controlerChapitresDeMemoire(
       );
     }
     vus.add(id);
+  });
+}
+
+/** Les modules du planning sont des modules du cours, quel que soit leur type, chacun une fois. */
+function controlerModulesDuPlanning(
+  analyse: Analyse,
+  fichierCours: string,
+  planning: Planning | undefined,
+  connus: ReadonlySet<string>,
+) {
+  const vus = new Set<string>();
+  planning?.etapes.forEach((etape, rang) => {
+    etape.modules.forEach((id, place) => {
+      const lieu = `planning.etapes[${rang}].modules[${place}]`;
+      if (vus.has(id))
+        signaler(analyse, fichierCours, lieu, 'Module cité deux fois dans le planning.');
+      else if (!connus.has(id)) {
+        signaler(
+          analyse,
+          fichierCours,
+          lieu,
+          'Cet identifiant ne désigne aucun module de ce cours.',
+        );
+      }
+      vus.add(id);
+    });
   });
 }
 

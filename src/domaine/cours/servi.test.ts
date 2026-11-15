@@ -2,6 +2,7 @@ import { FSRS6_DEFAULT_WEIGHTS } from 'ts-fsrs/models/fsrs-6';
 import { describe, expect, it } from 'vitest';
 import { analyserContenus } from '../contenu/analyse.js';
 import { exempleDeCours, modifier } from '../contenu/exemple.fixture.js';
+import { planningDuCours } from '../seances/planning.js';
 import { coursSans, coursServiDeTest, coursServiParLaV030 } from './cours.fixture.js';
 import type { CoursServi } from './servi.js';
 import { coursServiUtilisable, memoireDuCours, versCoursServi } from './servi.js';
@@ -247,6 +248,22 @@ describe('versCoursServi', () => {
     expect(coursServiUtilisable(JSON.parse(JSON.stringify(servi)))).toBe(true);
   });
 
+  it('planning_servi_tel_quel_absent_sans_lui_et_jamais_bloquant', () => {
+    const [cours] = analyserContenus(exempleDeCours()).cours;
+    expect(versCoursServi(cours)).not.toHaveProperty('planning');
+
+    const planning = {
+      etapes: [{ titre: 'Woche 1', semaine: 1, genre: 'cours' as const, modules: ['aaaaaaaa'] }],
+    };
+    const servi = versCoursServi({ ...cours, planning });
+    expect(servi.planning).toEqual(planning);
+    expect(coursServiUtilisable(JSON.parse(JSON.stringify(servi)))).toBe(true);
+
+    // Un planning que ce client ne comprend pas ne rend pas le cours inutilisable (A1-D9).
+    const illisible = { ...coursServiDeTest(), planning: 42 };
+    expect(coursServiUtilisable(JSON.parse(JSON.stringify(illisible)))).toBe(true);
+  });
+
   // Les trois clés nouvelles, du manifeste à ce que lit le client : une liste blanche qui en oublierait
   // une la perdrait sans erreur, et le cours resterait en Leitner.
   it('memoire_par_chapitre_traverse_du_yaml_au_client', () => {
@@ -270,6 +287,34 @@ describe('versCoursServi', () => {
     });
     expect(coursServiUtilisable(servi)).toBe(true);
     expect(memoireDuCours(servi)).toEqual(servi.memoire);
+  });
+
+  it('planning_traverse_du_yaml_au_client', () => {
+    const planning = [
+      'planning:',
+      '  etapes:',
+      '    - titre: "Woche 1"',
+      '      semaine: 1',
+      '      modules: ["epas79zz"]',
+      '    - titre: "Wiederholung"',
+      '      semaine: 2',
+      '      genre: "revision"',
+      '      modules: []',
+      'modules:',
+      '',
+    ].join('\n');
+    const fichiers = modifier(exempleDeCours(), 'essai/cours.yaml', 'modules:\n', planning);
+    const { cours, erreurs } = analyserContenus(fichiers);
+    expect(erreurs).toEqual([]);
+
+    const servi = JSON.parse(JSON.stringify(versCoursServi(cours[0]))) as CoursServi;
+    expect(coursServiUtilisable(servi)).toBe(true);
+    expect(planningDuCours(servi)).toStrictEqual({
+      etapes: [
+        { titre: 'Woche 1', semaine: 1, genre: 'cours', modules: ['epas79zz'] },
+        { titre: 'Wiederholung', semaine: 2, genre: 'revision', modules: [] },
+      ],
+    });
   });
 
   it('cours_sans_memoire_servi_comme_avant', () => {

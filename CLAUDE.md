@@ -294,8 +294,9 @@ Sur le poste, `pnpm` s'appelle par `corepack pnpm …` ; en CI, `corepack enable
   de propriétaire, que le parcours de compte consomme.
 - `corepack pnpm mutation` : tests de mutation (Stryker) de `src/domaine/acces.ts`, de
   `src/domaine/journal/*.ts` (tests exclus), de `src/domaine/progression/etat.ts`, `fsrs.ts`, `ordonnanceur.ts` et `reglages.ts`, de
-  `src/domaine/feuilles/deroulement.ts` et `correction.ts`, de `src/domaine/seances/feuilles.ts` et `heute.ts`, de
-  `src/domaine/notice.ts` et, côté serveur, de `src/serveur/acces/index.ts` (la moitié serveur du
+  `src/domaine/feuilles/deroulement.ts` et `correction.ts`, de
+  `src/domaine/seances/feuilles.ts`, `heute.ts` et `planning.ts`, de `src/domaine/notice.ts` et,
+  côté serveur, de `src/serveur/acces/index.ts` (la moitié serveur du
   module `acces`, ADR-0001), de `src/serveur/comptes/export.ts`, `purge.ts` et `suppression.ts`.
   Échoue sous un score de 90 % ; rapport dans `reports/mutation/`. Les tests de ces fichiers n'ont
   pas de `describe` (Stryker ne retrouve pas un test placé dans une suite). En CI, la passe se fait

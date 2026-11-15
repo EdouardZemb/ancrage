@@ -22,7 +22,7 @@ const LONGUEUR_EXTRAIT = 40;
  * `LONGUEUR_MINIMALE_TEXTE` caractères, une fois les espaces de bord retirés, sans doublon. Le
  * dessin des schémas est exclu : c'est du SVG, pas du texte. Les titres de tous les modules, celui
  * de l'examen compris, les descriptions des modules qui en ont une et la consigne des textes
- * annotés sont cherchés, comme tout texte d'une feuille.
+ * annotés sont cherchés, comme tout texte d'une feuille ; les titres des étapes du planning aussi.
  */
 export function textesDuCours(cours: Cours): string[] {
   const textes = new Set<string>();
@@ -33,6 +33,7 @@ export function textesDuCours(cours: Cours): string[] {
 
   ajouter(cours.titre);
   Object.values(cours.typesDeCarte).forEach(ajouter);
+  for (const etape of cours.planning?.etapes ?? []) ajouter(etape.titre);
 
   for (const module of cours.modules) {
     ajouter(module.titre);

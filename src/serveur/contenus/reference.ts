@@ -14,6 +14,7 @@ import type {
   ModuleMorphologie,
   ModuleSchema,
   ModuleTexteAnnote,
+  Planning,
   ReglagesLeitner,
   ReglagesMemoire,
   Tache,
@@ -53,6 +54,8 @@ export interface Reference {
     leitner: ReglagesLeitner;
     /** Présent seulement si le cours l'écrit : l'instantané d'un cours sans lui ne change pas. */
     memoire?: ReglagesMemoire;
+    /** Présent seulement si le cours l'écrit, après `memoire`. */
+    planning?: Planning;
   };
   /**
    * L'état de relecture du cours : `aVerifier` s'il a au moins un élément « à vérifier », sa
@@ -220,6 +223,19 @@ export function calculerReference(cours: Cours): Reference {
               ...(cours.memoire.chapitres === undefined
                 ? {}
                 : { chapitres: [...cours.memoire.chapitres] }),
+            },
+          }),
+      ...(cours.planning === undefined
+        ? {}
+        : {
+            planning: {
+              etapes: cours.planning.etapes.map((etape) => ({
+                titre: etape.titre,
+                ...(etape.seance === undefined ? {} : { seance: etape.seance }),
+                ...(etape.semaine === undefined ? {} : { semaine: etape.semaine }),
+                genre: etape.genre,
+                modules: [...etape.modules],
+              })),
             },
           }),
     },

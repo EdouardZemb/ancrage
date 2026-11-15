@@ -24,19 +24,37 @@ export interface PretestPropose {
   etape: EtapeDePlanning;
   /** Les unités directes neuves de l'étape, dans l'ordre du cours. */
   neuves: UniteDeCarte[];
-  /** Les unités directes des modules de l'étape : le pool des options. */
+  /** Les unités directes des modules que l'étape ouvre : le pool des options. */
   pool: UniteDeCarte[];
 }
 
-/** Le journal porte une réponse `pretest` à une unité d'un module de l'étape (B-D12). */
+/**
+ * Les modules que l'étape ouvre : ceux qu'aucune étape ouverte avant elle ne cite. À ouverture
+ * égale, l'étape placée avant dans le planning l'emporte (B-D12).
+ */
+function modulesOuverts(etape: EtapeDePlanning, planning: Planning, depart: string): string[] {
+  const rang = planning.etapes.indexOf(etape);
+  const ouverture = ouvertureDe(etape, depart);
+  const dejaCites = new Set<string>();
+  planning.etapes.forEach((autre, i) => {
+    const quand = ouvertureDe(autre, depart);
+    if (quand < ouverture || (quand === ouverture && i < rang)) {
+      for (const module of autre.modules) dejaCites.add(module);
+    }
+  });
+  return etape.modules.filter((module) => !dejaCites.has(module));
+}
+
+/** Le journal porte une réponse `pretest` à une unité d'un module que l'étape ouvre (B-D12). */
 export function pretestFait(
   etape: EtapeDePlanning,
+  planning: Planning,
+  depart: string,
   unites: readonly UniteDeCarte[],
   evenements: readonly Evenement[],
 ): boolean {
-  const ids = new Set(
-    unites.filter(({ module }) => etape.modules.includes(module)).map(({ id }) => id),
-  );
+  const ouverts = modulesOuverts(etape, planning, depart);
+  const ids = new Set(unites.filter(({ module }) => ouverts.includes(module)).map(({ id }) => id));
   return evenements.some((evenement) => estPretest(evenement) && ids.has(evenement.unite));
 }
 
@@ -53,14 +71,13 @@ export function pretestDuJour(
     if (etape.genre !== 'cours') continue;
     const jours = joursEntre(aujourdhui, ouvertureDe(etape, depart));
     if (jours < 1 || jours > FENETRE_DU_PRETEST) continue;
-    const pool = unites.filter(
-      ({ module, sens }) => sens === 'direct' && etape.modules.includes(module),
-    );
+    const ouverts = modulesOuverts(etape, planning, depart);
+    const pool = unites.filter(({ module, sens }) => sens === 'direct' && ouverts.includes(module));
     // `optionsQcm` écarte les réponses égales à la bonne : il faut deux réponses distinctes.
     if (new Set(pool.map(({ reponse }) => reponse)).size < 2) continue;
     const neuves = pool.filter(({ id }) => etatDe(etats, id).boite === 0);
     if (neuves.length === 0) continue;
-    if (pretestFait(etape, unites, evenements)) continue;
+    if (pretestFait(etape, planning, depart, unites, evenements)) continue;
     return { etape, neuves, pool };
   }
   return undefined;

@@ -99,7 +99,7 @@ it('pretest_d_une_etape_relative_sur_son_ouverture_calculee', () => {
   expect(resultat?.etape.titre).toBe('Woche 2');
   expect(idsDe(resultat?.neuves)).toStrictEqual(DIRECTES_2);
   // La semaine 1 est ouverte dès le départ : jamais de pré-test.
-  expect(propose({ etapes: [planning.etapes[0] as never] })).toBeUndefined();
+  expect(propose({ etapes: planning.etapes.slice(0, 1) })).toBeUndefined();
 });
 
 it('pas_de_pretest_avant_une_etape_revision', () => {
@@ -137,29 +137,25 @@ it('pas_de_pretest_sans_unite_directe_neuve', () => {
 
 it('pretest_fait_des_une_reponse_pretest_a_un_de_ses_modules', () => {
   const cours = leCours();
-  const premiere = dans(2).etapes[0] as Planning['etapes'][number];
-  expect(pretestFait(premiere, cours.unites, [])).toBe(false);
-  expect(pretestFait(premiere, cours.unites, [pretestDeTest(1, 'c1000003', false, A_10H)])).toBe(
-    true,
-  );
-  expect(
-    pretestFait(premiere, cours.unites, [pretestDeTest(1, 'c1000003:inverse', true, A_10H)]),
-  ).toBe(true);
+  const planning = dans(2);
+  const premiere = planning.etapes[0] as Planning['etapes'][number];
+  const fait = (evenements: Evenement[]) =>
+    pretestFait(premiere, planning, AUJOURDHUI, cours.unites, evenements);
+  expect(fait([])).toBe(false);
+  expect(fait([pretestDeTest(1, 'c1000003', false, A_10H)])).toBe(true);
+  expect(fait([pretestDeTest(1, 'c1000003:inverse', true, A_10H)])).toBe(true);
 });
 
 it('une_reponse_ordinaire_ou_un_pretest_d_une_autre_etape_ne_le_fait_pas', () => {
   const cours = leCours();
-  const premiere = dans(2).etapes[0] as Planning['etapes'][number];
-  expect(pretestFait(premiere, cours.unites, [reponseDeTest(1, 'c1000003', true, A_10H)])).toBe(
-    false,
-  );
-  expect(pretestFait(premiere, cours.unites, [pretestDeTest(1, 'c2000001', true, A_10H)])).toBe(
-    false,
-  );
+  const planning = dans(2);
+  const premiere = planning.etapes[0] as Planning['etapes'][number];
+  const fait = (evenements: Evenement[]) =>
+    pretestFait(premiere, planning, AUJOURDHUI, cours.unites, evenements);
+  expect(fait([reponseDeTest(1, 'c1000003', true, A_10H)])).toBe(false);
+  expect(fait([pretestDeTest(1, 'c2000001', true, A_10H)])).toBe(false);
   // Une unité que le cours ne connaît pas ne le fait pas non plus.
-  expect(pretestFait(premiere, cours.unites, [pretestDeTest(1, 'zzzzzzzz', true, A_10H)])).toBe(
-    false,
-  );
+  expect(fait([pretestDeTest(1, 'zzzzzzzz', true, A_10H)])).toBe(false);
 });
 
 it('deux_etapes_dans_la_fenetre_la_premiere_qui_n_est_pas_faite', () => {
@@ -235,7 +231,145 @@ it('questions_meme_tirage_pour_le_meme_hasard', () => {
   const cours = leCours();
   const a = questions(cours, dans(2), 9);
   expect(questions(cours, dans(2), 9)).toStrictEqual(a);
-  // Un autre hasard tire autrement : le tirage passe bien par lui.
+  // Un autre hasard tire autrement : les cartes, leur ordre et les options ne sont pas figés.
   const autres = [1, 2, 3, 4, 5, 6, 7].map((graine) => questions(cours, dans(2), graine));
   expect(autres.some((q) => JSON.stringify(q) !== JSON.stringify(a))).toBe(true);
+});
+
+const A_LA_FIN = '2026-10-10T10:00:00.000+02:00';
+const APPRIS = '2026-10-16T10:00:00.000+02:00';
+
+function planningPartage(): Planning {
+  return {
+    etapes: [
+      etape('Woche A', { seance: '2026-10-12' }, [CHAPITRE_1]),
+      etape('Woche B', { seance: '2026-10-19' }, [CHAPITRE_1, CHAPITRE_2]),
+    ],
+  };
+}
+
+it('un_pretest_de_l_etape_precedente_ne_fait_pas_l_etape_qui_partage_un_module', () => {
+  const journal = [pretestDeTest(1, 'c1000001', false, A_LA_FIN)];
+  const resultat = propose(planningPartage(), journal);
+  expect(resultat?.etape.titre).toBe('Woche B');
+  expect(idsDe(resultat?.neuves)).toStrictEqual(DIRECTES_2);
+  expect(idsDe(resultat?.pool)).toStrictEqual(DIRECTES_2);
+});
+
+it('les_neuves_d_une_etape_n_ont_aucune_carte_d_un_module_deja_ouvert', () => {
+  const resultat = propose(planningPartage());
+  expect(resultat?.etape.titre).toBe('Woche B');
+  expect(idsDe(resultat?.neuves)).toStrictEqual(DIRECTES_2);
+});
+
+it('a_ouverture_egale_l_etape_placee_avant_ouvre_le_module_partage', () => {
+  const planning: Planning = {
+    etapes: [
+      etape('Woche A', { seance: '2026-10-19' }, [CHAPITRE_1]),
+      etape('Woche B', { seance: '2026-10-19' }, [CHAPITRE_1, CHAPITRE_2]),
+    ],
+  };
+  expect(propose(planning)?.etape.titre).toBe('Woche A');
+  const faitA = [pretestDeTest(1, 'c1000001', true, A_10H)];
+  const suite = propose(planning, faitA);
+  expect(suite?.etape.titre).toBe('Woche B');
+  expect(idsDe(suite?.pool)).toStrictEqual(DIRECTES_2);
+});
+
+it('une_etape_qui_n_ouvre_aucun_module_n_a_pas_de_pretest_et_la_suivante_se_propose', () => {
+  const planning: Planning = {
+    etapes: [
+      etape('Woche A', { seance: '2026-10-18' }, [CHAPITRE_1]),
+      etape('Woche B', { seance: '2026-10-19' }, [CHAPITRE_1]),
+      etape('Woche C', { seance: '2026-10-20' }, [CHAPITRE_2]),
+    ],
+  };
+  const faitA = [pretestDeTest(1, 'c1000001', true, A_10H)];
+  expect(propose(planning, faitA)?.etape.titre).toBe('Woche C');
+  const cours = leCours();
+  const sansModule = planning.etapes.slice(1, 2)[0] as Planning['etapes'][number];
+  expect(pretestFait(sansModule, planning, AUJOURDHUI, cours.unites, faitA)).toBe(false);
+});
+
+it('questions_options_tirees_du_pool_entier_et_non_des_seules_neuves', () => {
+  const apprises = DIRECTES_1.slice(0, 6).map((id, i) => reponseDeTest(i + 1, id, true, APPRIS));
+  const cours = leCours();
+  const resultat = propose(dans(2), apprises, cours);
+  if (resultat === undefined) throw new Error('pas de pré-test');
+  expect(idsDe(resultat.neuves)).toStrictEqual(['c1000007', 'c1000008']);
+  const lesQuestions = questionsDuPretest(resultat, cours.index, hasardDeterministe(3));
+  expect(lesQuestions).toHaveLength(2);
+  for (const { unite, options } of lesQuestions) {
+    expect(options).toHaveLength(4);
+    expect(options).toContain(unite.reponse);
+  }
+});
+
+it('questions_le_hasard_choisit_les_cinq_cartes_parmi_les_neuves', () => {
+  const cours = leCours();
+  const resultat = propose(dans(2), [], cours);
+  if (resultat === undefined) throw new Error('pas de pré-test');
+  const choix = [1, 2, 3, 4, 5, 6, 7].map((graine) =>
+    questionsDuPretest(resultat, cours.index, hasardDeterministe(graine))
+      .map(({ unite }) => unite.id)
+      .sort()
+      .join(','),
+  );
+  expect(new Set(choix).size).toBeGreaterThan(1);
+});
+
+it('une_directe_repondue_seulement_faux_n_est_pas_neuve', () => {
+  const fautes = DIRECTES_2.map((id, i) => reponseDeTest(i + 1, id, false, APPRIS));
+  expect(propose(dans(2, [CHAPITRE_2]), fautes)).toBeUndefined();
+});
+
+it('une_etape_de_deux_modules_qu_elle_ouvre_a_le_pool_des_deux_et_se_fait_par_le_second', () => {
+  const planning = dans(2, [CHAPITRE_1, CHAPITRE_2]);
+  const cours = leCours();
+  const resultat = propose(planning);
+  expect(idsDe(resultat?.pool)).toStrictEqual([...DIRECTES_1, ...DIRECTES_2]);
+  const faitParLeSecond = [pretestDeTest(1, 'c2000003', true, A_10H)];
+  const premiere = planning.etapes[0] as Planning['etapes'][number];
+  expect(pretestFait(premiere, planning, AUJOURDHUI, cours.unites, faitParLeSecond)).toBe(true);
+});
+
+const WOCHE_B = etape('Woche B', { seance: '2026-10-19' }, [CHAPITRE_2]);
+
+it('une_etape_revision_dans_la_fenetre_n_arrete_pas_la_recherche', () => {
+  const revision = etape('Wiederholung', { seance: '2026-10-18' }, [CHAPITRE_1], 'revision');
+  expect(propose({ etapes: [revision, WOCHE_B] })?.etape.titre).toBe('Woche B');
+});
+
+it('une_etape_sans_deux_reponses_distinctes_n_arrete_pas_la_recherche', () => {
+  const base = coursServiDeTest();
+  const premier = base.modules[0];
+  if (premier?.type !== 'cartes') throw new Error('fixture');
+  const cartes = [
+    carte('c1000001', 'b', 'Herz', 'Organ'),
+    carte('c1000002', 'b', 'Leber', 'Organ'),
+  ];
+  const cours = preparerCours({
+    ...base,
+    modules: [{ ...premier, cartes }, ...base.modules.slice(1)],
+  });
+  const planning = { etapes: [etape('Woche A', { seance: '2026-10-18' }, [CHAPITRE_1]), WOCHE_B] };
+  expect(propose(planning, [], cours)?.etape.titre).toBe('Woche B');
+});
+
+it('une_etape_sans_neuve_n_arrete_pas_la_recherche', () => {
+  const toutes = DIRECTES_1.map((id, i) => reponseDeTest(i + 1, id, true, APPRIS));
+  const planning = { etapes: [etape('Woche A', { seance: '2026-10-18' }, [CHAPITRE_1]), WOCHE_B] };
+  expect(propose(planning, toutes)?.etape.titre).toBe('Woche B');
+});
+
+it('une_etape_placee_avant_mais_ouverte_apres_n_ouvre_pas_le_module_partage', () => {
+  const planning: Planning = {
+    etapes: [
+      etape('Woche A', { seance: '2026-10-21' }, [CHAPITRE_1]),
+      etape('Woche B', { seance: '2026-10-19' }, [CHAPITRE_1, CHAPITRE_2]),
+    ],
+  };
+  const resultat = propose(planning);
+  expect(resultat?.etape.titre).toBe('Woche B');
+  expect(idsDe(resultat?.pool)).toStrictEqual([...DIRECTES_1, ...DIRECTES_2]);
 });

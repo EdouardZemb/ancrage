@@ -242,6 +242,13 @@ const REFUS: [string, () => Map<string, string>, string, string, string][] = [
     'Attendu un nombre entier positif.',
   ],
   [
+    'unit en texte',
+    () => modifier(coursAvecManuels(), CARTES_1, 'unit: 1', 'unit: "2"'),
+    CARTES_1,
+    'unit',
+    'Attendu un nombre, trouvé un texte.',
+  ],
+  [
     'unit décimale',
     () => modifier(coursAvecManuels(), CARTES_1, 'unit: 1', 'unit: 2.5'),
     CARTES_1,
@@ -287,6 +294,17 @@ const REFUS: [string, () => Map<string, string>, string, string, string][] = [
 
 it.each(REFUS)('manuels_refus_%s', (_nom, fichiers, fichier, lieu, message) => {
   expect(erreurs(fichiers())).toEqual(uneErreur(fichier, lieu, message));
+});
+
+it('manuels_deux_modules_sans_chapitre_n_ont_pas_de_double', () => {
+  const fichiers = modifier(coursAvecManuels(), CARTES_1, 'chapitre: 2\n', '');
+  modifier(fichiers, CARTES_2, 'chapitre: 1\n', '');
+  modifier(fichiers, CARTES_2, `manuel: "${BETA}"`, `manuel: "${ALPHA}"`);
+  const absente = 'Champ obligatoire absent : cours.yaml nomme ses manuels.';
+  expect(erreurs(fichiers)).toEqual([
+    { fichier: CARTES_1, lieu: 'chapitre', message: absente },
+    { fichier: CARTES_2, lieu: 'chapitre', message: absente },
+  ]);
 });
 
 it('manuels_un_manuel_que_aucun_module_ne_cite_est_admis', () => {

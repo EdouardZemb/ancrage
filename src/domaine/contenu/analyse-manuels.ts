@@ -57,7 +57,10 @@ export function controlerManuels(
     if (manuels === undefined || module.manuel === undefined) continue;
     if (!connus.has(module.manuel)) {
       signaler(analyse, module.fichier, 'manuel', MESSAGE_INCONNU);
-    } else if (module.type === 'cartes' && module.chapitre !== undefined) {
+      // Stryker disable next-line ConditionalExpression: équivalent, un schéma n'a jamais de
+      // `chapitre` : il sortirait aussitôt par la ligne suivante.
+    } else if (module.type === 'cartes') {
+      if (module.chapitre === undefined) continue;
       const cle = `${module.manuel} ${module.chapitre}`;
       const premier = chapitres.get(cle);
       if (premier === undefined) {

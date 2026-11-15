@@ -548,12 +548,17 @@ const etapeDePlanning = z
     if (etape.genre === 'cours' && etape.modules.length === 0) {
       signaler(
         'modules',
-        'Attendu au moins un module : une étape de révision seule peut en être sans.',
+        "Attendu au moins un module : seule une étape « revision » peut n'en citer aucun.",
       );
     }
   });
 
-const MESSAGE_AVANT = "Une étape ne vient pas avant celle de l'étape précédente.";
+const MESSAGE_AVANT = "Sa séance (ou sa semaine) précède celle de l'étape d'avant.";
+
+const aUneForme = (etape: { seance?: string; semaine?: number }) =>
+  (etape.seance === undefined) !== (etape.semaine === undefined);
+const semaineValide = (semaine: number | undefined): semaine is number =>
+  semaine !== undefined && Number.isInteger(semaine) && semaine >= 1 && semaine <= 520;
 
 const reglagesPlanning = z
   .strictObject({
@@ -562,14 +567,22 @@ const reglagesPlanning = z
   .superRefine((planning, ctx) => {
     const signaler = (rang: number, cle: string, message: string) =>
       ctx.addIssue({ code: 'custom', path: ['etapes', rang, cle], message });
+    // Une étape sans exactement une des deux formes est déjà signalée : elle ne sert ni de
+    // référence, ni de point de comparaison.
+    const relatif = planning.etapes.find(aUneForme)?.semaine !== undefined;
     const premiere = planning.etapes[0];
-    const relatif = premiere?.semaine !== undefined;
-    if (premiere?.semaine !== undefined && premiere.semaine > 1) {
+    if (
+      premiere !== undefined &&
+      aUneForme(premiere) &&
+      semaineValide(premiere.semaine) &&
+      premiere.semaine > 1
+    ) {
       signaler(0, 'semaine', 'Un planning en semaines commence en semaine 1.');
     }
+    // La dernière valeur valide d'avant, de la forme de référence.
+    let avant: string | number | undefined;
     planning.etapes.forEach((etape, rang) => {
-      // Une étape sans exactement une des deux formes est déjà signalée.
-      if ((etape.seance === undefined) === (etape.semaine === undefined)) return;
+      if (!aUneForme(etape)) return;
       const cle = etape.seance === undefined ? 'semaine' : 'seance';
       if ((etape.semaine !== undefined) !== relatif) {
         signaler(
@@ -579,12 +592,14 @@ const reglagesPlanning = z
         );
         return;
       }
-      const avant = planning.etapes[rang - 1];
       const valeur = etape.seance ?? etape.semaine;
-      const valeurAvant = avant?.seance ?? avant?.semaine;
-      if (valeurAvant !== undefined && valeur !== undefined && valeur < valeurAvant) {
-        signaler(rang, cle, MESSAGE_AVANT);
-      }
+      if (
+        valeur === undefined ||
+        (relatif ? !semaineValide(etape.semaine) : !estDateIso(`${valeur}`))
+      )
+        return;
+      if (avant !== undefined && valeur < avant) signaler(rang, cle, MESSAGE_AVANT);
+      avant = valeur;
     });
   });
 

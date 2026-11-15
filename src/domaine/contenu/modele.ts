@@ -324,7 +324,7 @@ export interface EtapeDePlanning {
   titre: string;
   /** Le jour de l'étape, `AAAA-MM-JJ`. Exclusif avec `semaine`. */
   seance?: string;
-  /** La semaine de l'étape, de 1 à 520, comptée depuis la première réponse. Exclusif avec `seance`. */
+  /** La semaine de l'étape, de 1 à 520, comptée depuis le premier événement du journal. Exclusif avec `seance`. */
   semaine?: number;
   genre: 'cours' | 'revision';
   modules: string[];

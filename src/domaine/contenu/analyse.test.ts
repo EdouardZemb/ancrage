@@ -616,6 +616,8 @@ describe('analyserContenus', () => {
       [520, 'cours'],
     ]);
     expect(cours[0].planning?.etapes[0]).not.toHaveProperty('seance');
+    const datee = analyserContenus(avecDerogation(date, 'planning')).cours[0].planning?.etapes[0];
+    expect(datee).not.toHaveProperty('semaine');
   });
 
   const UNE_ETAPE = etape(`${TITRE}\nsemaine: 1\nmodules: ["${CHAPITRE_1}"]`);
@@ -690,7 +692,7 @@ describe('analyserContenus', () => {
         etape(`${TITRE}\nseance: "2030-03-04"\nmodules: ["${CHAPITRE_2}"]`),
       ),
       'planning.etapes[1].seance',
-      /avant celle de l'étape précédente/,
+      /précède celle de l'étape d'avant/,
     ],
     [
       'semaine décroissante',
@@ -700,7 +702,55 @@ describe('analyserContenus', () => {
         etape(`${TITRE}\nsemaine: 2\nmodules: ["${MORPHOLOGIE_ID}"]`),
       ),
       'planning.etapes[2].semaine',
-      /avant celle de l'étape précédente/,
+      /précède celle de l'étape d'avant/,
+    ],
+    [
+      'semaine hors bornes avant une valeur valide',
+      DEUX_SEMAINES(521, 2),
+      'planning.etapes[0].semaine',
+      /entre 1 et 520/,
+    ],
+    [
+      'date inexistante avant une date valide',
+      planning(
+        etape(`${TITRE}
+seance: "2030-13-01"
+modules: ["${CHAPITRE_1}"]`),
+        etape(`${TITRE}
+seance: "2030-03-04"
+modules: ["${CHAPITRE_2}"]`),
+      ),
+      'planning.etapes[0].seance',
+      /Date invalide/,
+    ],
+    [
+      'étape sans forme avant deux semaines',
+      planning(
+        etape(`${TITRE}
+modules: ["${CHAPITRE_1}"]`),
+        etape(`${TITRE}
+semaine: 1
+modules: ["${CHAPITRE_2}"]`),
+        etape(`${TITRE}
+semaine: 2
+modules: ["${MORPHOLOGIE_ID}"]`),
+      ),
+      'planning.etapes[0].seance',
+      /« seance » ou « semaine »/,
+    ],
+    [
+      'séance et semaine avant une séance',
+      planning(
+        etape(`${TITRE}
+seance: "2030-03-04"
+semaine: 1
+modules: ["${CHAPITRE_1}"]`),
+        etape(`${TITRE}
+seance: "2030-03-11"
+modules: ["${CHAPITRE_2}"]`),
+      ),
+      'planning.etapes[0].semaine',
+      /pas les deux/,
     ],
     [
       'premier planning relatif hors semaine 1',
@@ -733,6 +783,23 @@ describe('analyserContenus', () => {
       /aucun module de ce cours/,
     ],
   ];
+
+  it('planning_un_module_lu_mais_non_resolu_n_est_pas_inconnu', () => {
+    const { modules } = analyserContenus(exempleDeCours()).cours[0];
+    const schema = moduleDe(modules, SCHEMA, 'schema').id;
+    const sansDessin = modifier(
+      exempleDeCours(),
+      SCHEMA,
+      'dessin: "muster.svg"',
+      'dessin: "herz.svg"',
+    );
+    const bloc = planning(etape(`${TITRE}\nsemaine: 1\nmodules: ["${schema}"]`));
+    const { erreurs } = analyserContenus(
+      modifier(sansDessin, COURS, 'modules:\n', `planning:\n${bloc}modules:\n`),
+    );
+    expect(erreurs.length).toBeGreaterThan(0);
+    expect(erreurs.some((e) => /aucun module de ce cours/.test(e.message))).toBe(false);
+  });
 
   it.each(REFUS_DE_PLANNING)('planning_refuse_%s', (_nom, bloc, lieu, message) => {
     expect(erreursAvecDerogation(bloc, 'planning')).toEqual([erreur(COURS, lieu, message)]);

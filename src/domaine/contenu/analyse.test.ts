@@ -26,6 +26,17 @@ const TEXTES = 'essai/textes.yaml';
 const EXERCICES = 'essai/exercices.yaml';
 const FEUILLE = 'essai/feuille.yaml';
 const EXAMEN = 'essai/examen.yaml';
+const MORPHOLOGIE_ID = 'v1xmwpyr';
+const TITRE = 'titre: "Woche 1"';
+
+/** Une étape de planning écrite en YAML : `lignes` sont ses champs, un par ligne. */
+function etape(lignes: string): string {
+  return `    - ${lignes.split('\n').join('\n      ')}\n`;
+}
+
+function planning(...etapes: string[]): string {
+  return `  etapes:\n${etapes.join('')}`;
+}
 
 function erreursApres(chemin: string, avant: string, apres: string) {
   return analyserContenus(modifier(exempleDeCours(), chemin, avant, apres)).erreurs;
@@ -565,6 +576,166 @@ describe('analyserContenus', () => {
 
   it('memoire_absente_le_cours_n_a_pas_la_cle', () => {
     expect('memoire' in analyserContenus(exempleDeCours()).cours[0]).toBe(false);
+  });
+
+  it('planning_absent_le_cours_n_a_pas_la_cle', () => {
+    expect('planning' in analyserContenus(exempleDeCours()).cours[0]).toBe(false);
+  });
+
+  it('planning_date_ou_relatif_accepte_et_recopie', () => {
+    const date = planning(
+      etape(`${TITRE}\nseance: "2030-03-04"\nmodules: ["${CHAPITRE_1}", "${MORPHOLOGIE_ID}"]`),
+      etape(`titre: "Woche 2"\nseance: "2030-03-04"\ngenre: "revision"\nmodules: []`),
+    );
+    expect(analyserContenus(avecDerogation(date, 'planning'))).toMatchObject({
+      erreurs: [],
+      cours: [
+        {
+          planning: {
+            etapes: [
+              {
+                titre: 'Woche 1',
+                seance: '2030-03-04',
+                genre: 'cours',
+                modules: [CHAPITRE_1, MORPHOLOGIE_ID],
+              },
+              { titre: 'Woche 2', seance: '2030-03-04', genre: 'revision', modules: [] },
+            ],
+          },
+        },
+      ],
+    });
+    const relatif = planning(
+      etape(`${TITRE}\nsemaine: 1\nmodules: ["${CHAPITRE_1}"]`),
+      etape(`titre: "Woche 2"\nsemaine: 520\nmodules: ["${CHAPITRE_2}"]`),
+    );
+    const { cours, erreurs } = analyserContenus(avecDerogation(relatif, 'planning'));
+    expect(erreurs).toEqual([]);
+    expect(cours[0].planning?.etapes.map((e) => [e.semaine, e.genre])).toEqual([
+      [1, 'cours'],
+      [520, 'cours'],
+    ]);
+    expect(cours[0].planning?.etapes[0]).not.toHaveProperty('seance');
+  });
+
+  const UNE_ETAPE = etape(`${TITRE}\nsemaine: 1\nmodules: ["${CHAPITRE_1}"]`);
+  const DEUX_SEMAINES = (a: number, b: number) =>
+    planning(
+      etape(`${TITRE}\nsemaine: ${a}\nmodules: ["${CHAPITRE_1}"]`),
+      etape(`${TITRE}\nsemaine: ${b}\nmodules: ["${CHAPITRE_2}"]`),
+    );
+  const DEUX_MODULES = (a: string, b: string) =>
+    planning(etape(`${TITRE}\nsemaine: 1\nmodules: ["${a}", "${b}"]`));
+  const REFUS_DE_PLANNING: [string, string, string, RegExp][] = [
+    ['sans étape', '  etapes: []\n', 'planning.etapes', /au moins une étape/],
+    ['clé inconnue', `${planning(UNE_ETAPE)}  duree: 3\n`, 'planning.duree', /Clé inconnue/],
+    [
+      'clé inconnue dans une étape',
+      planning(etape(`${TITRE}\nsemaine: 1\nnote: "x"\nmodules: ["${CHAPITRE_1}"]`)),
+      'planning.etapes[0].note',
+      /Clé inconnue/,
+    ],
+    [
+      'titre vide',
+      planning(etape(`titre: "  "\nsemaine: 1\nmodules: ["${CHAPITRE_1}"]`)),
+      'planning.etapes[0].titre',
+      /titre.*vide/i,
+    ],
+    [
+      'ni séance ni semaine',
+      planning(etape(`${TITRE}\nmodules: ["${CHAPITRE_1}"]`)),
+      'planning.etapes[0].seance',
+      /« seance » ou « semaine »/,
+    ],
+    [
+      'séance et semaine',
+      planning(etape(`${TITRE}\nseance: "2030-03-04"\nsemaine: 1\nmodules: ["${CHAPITRE_1}"]`)),
+      'planning.etapes[0].semaine',
+      /pas les deux/,
+    ],
+    [
+      'formes mêlées',
+      planning(UNE_ETAPE, etape(`${TITRE}\nseance: "2030-03-04"\nmodules: ["${CHAPITRE_2}"]`)),
+      'planning.etapes[1].seance',
+      /même forme/,
+    ],
+    [
+      'semaine nulle',
+      planning(etape(`${TITRE}\nsemaine: 0\nmodules: ["${CHAPITRE_1}"]`)),
+      'planning.etapes[0].semaine',
+      /entre 1 et 520/,
+    ],
+    [
+      'semaine au-delà de 520',
+      DEUX_SEMAINES(1, 521),
+      'planning.etapes[1].semaine',
+      /entre 1 et 520/,
+    ],
+    [
+      'semaine en texte',
+      planning(etape(`${TITRE}\nsemaine: "2"\nmodules: ["${CHAPITRE_1}"]`)),
+      'planning.etapes[0].semaine',
+      /Attendu un nombre, trouvé un texte/,
+    ],
+    [
+      'date inexistante',
+      planning(etape(`${TITRE}\nseance: "2030-02-30"\nmodules: ["${CHAPITRE_1}"]`)),
+      'planning.etapes[0].seance',
+      /Date invalide/,
+    ],
+    [
+      'séance avant la précédente',
+      planning(
+        etape(`${TITRE}\nseance: "2030-03-11"\nmodules: ["${CHAPITRE_1}"]`),
+        etape(`${TITRE}\nseance: "2030-03-04"\nmodules: ["${CHAPITRE_2}"]`),
+      ),
+      'planning.etapes[1].seance',
+      /avant celle de l'étape précédente/,
+    ],
+    [
+      'semaine décroissante',
+      planning(
+        etape(`${TITRE}\nsemaine: 1\nmodules: ["${CHAPITRE_1}"]`),
+        etape(`${TITRE}\nsemaine: 3\nmodules: ["${CHAPITRE_2}"]`),
+        etape(`${TITRE}\nsemaine: 2\nmodules: ["${MORPHOLOGIE_ID}"]`),
+      ),
+      'planning.etapes[2].semaine',
+      /avant celle de l'étape précédente/,
+    ],
+    [
+      'premier planning relatif hors semaine 1',
+      DEUX_SEMAINES(2, 3),
+      'planning.etapes[0].semaine',
+      /commence en semaine 1/,
+    ],
+    [
+      'étape de cours sans module',
+      planning(etape(`${TITRE}\nsemaine: 1\nmodules: []`)),
+      'planning.etapes[0].modules',
+      /au moins un module/,
+    ],
+    [
+      'module cité deux fois dans une étape',
+      DEUX_MODULES(CHAPITRE_1, CHAPITRE_1),
+      'planning.etapes[0].modules[1]',
+      /deux fois/,
+    ],
+    [
+      'module cité dans deux étapes',
+      DEUX_SEMAINES(1, 2).replace(`"${CHAPITRE_2}"`, `"${CHAPITRE_1}"`),
+      'planning.etapes[1].modules[0]',
+      /deux fois/,
+    ],
+    [
+      'module qui n’est pas du cours',
+      DEUX_MODULES(CHAPITRE_1, 'abcd2345'),
+      'planning.etapes[0].modules[1]',
+      /aucun module de ce cours/,
+    ],
+  ];
+
+  it.each(REFUS_DE_PLANNING)('planning_refuse_%s', (_nom, bloc, lieu, message) => {
+    expect(erreursAvecDerogation(bloc, 'planning')).toEqual([erreur(COURS, lieu, message)]);
   });
 
   it('derogation_diffusion_acceptee', () => {

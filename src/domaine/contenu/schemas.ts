@@ -523,6 +523,71 @@ const reglagesMemoire = z
     }
   });
 
+const MESSAGE_DE_SEMAINE = 'Attendu un nombre entier entre 1 et 520.';
+
+const etapeDePlanning = z
+  .strictObject({
+    titre: z.string().refine((texte) => texte.trim() !== '', { error: 'Le titre est vide.' }),
+    seance: date.optional(),
+    semaine: z
+      .int()
+      .min(1, { error: MESSAGE_DE_SEMAINE })
+      .max(520, { error: MESSAGE_DE_SEMAINE })
+      .optional(),
+    genre: z.enum(['cours', 'revision']).default('cours'),
+    modules: z.array(identifiant),
+  })
+  .superRefine((etape, ctx) => {
+    const signaler = (cle: string, message: string) =>
+      ctx.addIssue({ code: 'custom', path: [cle], message });
+    if (etape.seance === undefined && etape.semaine === undefined) {
+      signaler('seance', 'Attendu « seance » ou « semaine » : une date, ou un numéro de semaine.');
+    } else if (etape.seance !== undefined && etape.semaine !== undefined) {
+      signaler('semaine', 'Une étape porte « seance » ou « semaine », pas les deux.');
+    }
+    if (etape.genre === 'cours' && etape.modules.length === 0) {
+      signaler(
+        'modules',
+        'Attendu au moins un module : une étape de révision seule peut en être sans.',
+      );
+    }
+  });
+
+const MESSAGE_AVANT = "Une étape ne vient pas avant celle de l'étape précédente.";
+
+const reglagesPlanning = z
+  .strictObject({
+    etapes: z.array(etapeDePlanning).min(1, { error: 'Attendu au moins une étape.' }),
+  })
+  .superRefine((planning, ctx) => {
+    const signaler = (rang: number, cle: string, message: string) =>
+      ctx.addIssue({ code: 'custom', path: ['etapes', rang, cle], message });
+    const premiere = planning.etapes[0];
+    const relatif = premiere?.semaine !== undefined;
+    if (premiere?.semaine !== undefined && premiere.semaine > 1) {
+      signaler(0, 'semaine', 'Un planning en semaines commence en semaine 1.');
+    }
+    planning.etapes.forEach((etape, rang) => {
+      // Une étape sans exactement une des deux formes est déjà signalée.
+      if ((etape.seance === undefined) === (etape.semaine === undefined)) return;
+      const cle = etape.seance === undefined ? 'semaine' : 'seance';
+      if ((etape.semaine !== undefined) !== relatif) {
+        signaler(
+          rang,
+          cle,
+          'Toutes les étapes ont la même forme : toutes datées, ou toutes en semaines.',
+        );
+        return;
+      }
+      const avant = planning.etapes[rang - 1];
+      const valeur = etape.seance ?? etape.semaine;
+      const valeurAvant = avant?.seance ?? avant?.semaine;
+      if (valeurAvant !== undefined && valeur !== undefined && valeur < valeurAvant) {
+        signaler(rang, cle, MESSAGE_AVANT);
+      }
+    });
+  });
+
 export const schemaDeCours = z.strictObject({
   format: z.literal(1),
   id: identifiant,
@@ -531,6 +596,7 @@ export const schemaDeCours = z.strictObject({
   types_de_carte: z.record(z.string(), z.string()),
   leitner: reglagesLeitner,
   memoire: reglagesMemoire.optional(),
+  planning: reglagesPlanning.optional(),
   derogation_diffusion: derogationDiffusion.optional(),
   modules: z.array(z.string()),
 });

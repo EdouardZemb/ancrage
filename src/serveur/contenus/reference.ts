@@ -7,6 +7,7 @@ import {
 import type {
   Cours,
   Etat,
+  Manuel,
   ModuleCartes,
   ModuleExamen,
   ModuleExercices,
@@ -56,6 +57,8 @@ export interface Reference {
     memoire?: ReglagesMemoire;
     /** Présent seulement si le cours l'écrit, après `memoire`. */
     planning?: Planning;
+    /** Présent seulement si le cours l'écrit, après `planning`. */
+    manuels?: Manuel[];
   };
   /**
    * L'état de relecture du cours : `aVerifier` s'il a au moins un élément « à vérifier », sa
@@ -72,7 +75,15 @@ export interface Reference {
     derogation: { motif: string; date: string } | null;
     statuts: ({ module: string } & CompteDesStatuts)[];
   };
-  chapitres: { module: string; numero: number; titre: string }[];
+  /** `manuel`, `chapitre` et `unit` ne sont écrits que si le module les porte. */
+  chapitres: {
+    module: string;
+    numero: number;
+    titre: string;
+    manuel?: string;
+    chapitre?: number;
+    unit?: number;
+  }[];
   /** `acceptees` est triée. */
   unites: {
     id: string;
@@ -93,6 +104,8 @@ export interface Reference {
   schemas: {
     id: string;
     titre: string;
+    /** Présent seulement si le schéma le dit. */
+    manuel?: string;
     viewbox: string;
     dessin: string;
     note: string;
@@ -238,6 +251,9 @@ export function calculerReference(cours: Cours): Reference {
               })),
             },
           }),
+      ...(cours.manuels === undefined
+        ? {}
+        : { manuels: cours.manuels.map(({ id, titre }) => ({ id, titre })) }),
     },
     diffusion: {
       // La règle même de l'invariant 9, que le module `acces` applique à chaque requête.
@@ -255,6 +271,9 @@ export function calculerReference(cours: Cours): Reference {
       module: module.id,
       numero: module.numero,
       titre: module.titre,
+      ...(module.manuel === undefined ? {} : { manuel: module.manuel }),
+      ...(module.chapitre === undefined ? {} : { chapitre: module.chapitre }),
+      ...(module.unit === undefined ? {} : { unit: module.unit }),
     })),
     unites: unites.map((unite) => ({
       id: unite.id,
@@ -287,6 +306,7 @@ export function calculerReference(cours: Cours): Reference {
     schemas: modules.schemas.map((schema) => ({
       id: schema.id,
       titre: schema.titre,
+      ...(schema.manuel === undefined ? {} : { manuel: schema.manuel }),
       viewbox: schema.viewbox,
       dessin: schema.dessin,
       note: schema.note,

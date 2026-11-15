@@ -1,7 +1,13 @@
 import { FSRS6_DEFAULT_WEIGHTS } from 'ts-fsrs/models/fsrs-6';
 import { describe, expect, it } from 'vitest';
 import { analyserContenus } from '../contenu/analyse.js';
-import { exempleDeCours, modifier } from '../contenu/exemple.fixture.js';
+import {
+  exempleAvecManuels,
+  exempleDeCours,
+  ID_MANUEL_ALPHA,
+  ID_MANUEL_BETA,
+  modifier,
+} from '../contenu/exemple.fixture.js';
 import { planningDuCours } from '../seances/planning.js';
 import { coursSans, coursServiDeTest, coursServiParLaV030 } from './cours.fixture.js';
 import type { CoursServi } from './servi.js';
@@ -315,6 +321,49 @@ describe('versCoursServi', () => {
         { titre: 'Wiederholung', semaine: 2, genre: 'revision', modules: [] },
       ],
     });
+  });
+
+  it('manuels_servis_et_cles_des_modules_sans_leur_fichier', () => {
+    const [sans] = analyserContenus(exempleDeCours()).cours;
+    expect(versCoursServi(sans)).not.toHaveProperty('manuels');
+
+    const { cours, erreurs } = analyserContenus(exempleAvecManuels());
+    expect(erreurs).toEqual([]);
+    const servi = versCoursServi(cours[0]);
+    expect(servi.manuels).toStrictEqual([
+      { id: ID_MANUEL_ALPHA, titre: 'Lehrbuch Alpha' },
+      { id: ID_MANUEL_BETA, titre: 'Lehrbuch Beta' },
+    ]);
+    expect(servi.modules).toStrictEqual(
+      cours[0].modules.map(({ fichier: _fichier, ...module }) => module),
+    );
+    const cartes = servi.modules.filter((module) => module.type === 'cartes');
+    expect(cartes.map((module) => [module.manuel, module.chapitre, module.unit])).toEqual([
+      [ID_MANUEL_ALPHA, 2, 1],
+      [ID_MANUEL_BETA, 1, 2],
+    ]);
+    const schema = servi.modules.find((module) => module.type === 'schema');
+    expect(schema).toHaveProperty('manuel', ID_MANUEL_ALPHA);
+    // Un module sans ces clés ne les sert pas, même `undefined`.
+    for (const module of versCoursServi(sans).modules) {
+      for (const cle of ['manuel', 'chapitre', 'unit']) expect(module).not.toHaveProperty(cle);
+    }
+  });
+
+  it('manuels_et_cles_bien_ou_mal_formes_ne_bloquent_jamais_le_client', () => {
+    const { cours } = analyserContenus(exempleAvecManuels());
+    const servi = JSON.parse(JSON.stringify(versCoursServi(cours[0])));
+    expect(coursServiUtilisable(servi)).toBe(true);
+
+    const mal = {
+      ...servi,
+      manuels: 42,
+      modules: servi.modules.map((module: Record<string, unknown>) => {
+        if (module.type === 'cartes') return { ...module, manuel: 7, chapitre: 'x', unit: [] };
+        return module.type === 'schema' ? { ...module, manuel: [] } : module;
+      }),
+    };
+    expect(coursServiUtilisable(mal)).toBe(true);
   });
 
   it('cours_sans_memoire_servi_comme_avant', () => {

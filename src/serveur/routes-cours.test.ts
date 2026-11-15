@@ -298,14 +298,11 @@ describe('GET /api/cours/:id', () => {
       expect(reponse.statusCode).toBe(200);
       expect(reponse.headers['cache-control']).toBe('no-store');
       const corps = reponse.json() as Record<string, unknown> & { modules: object[] };
-      expect(Object.keys(corps).sort()).toEqual([
-        'id',
-        'langue',
-        'leitner',
-        'modules',
-        'titre',
-        'typesDeCarte',
-      ]);
+      expect(Object.keys(corps).sort()).toEqual(
+        cours === COURS_SOURCE
+          ? ['id', 'langue', 'leitner', 'manuels', 'modules', 'titre', 'typesDeCarte']
+          : ['id', 'langue', 'leitner', 'modules', 'titre', 'typesDeCarte'],
+      );
       expect(corps.leitner).toStrictEqual({
         intervalles: [0, 1, 2, 4, 8, 16],
         nouvellesParSeance: 15,
@@ -340,10 +337,13 @@ describe('GET /api/cours/:id', () => {
         'cartes[].type',
         'cartes[].verifieLe',
         'cartes[].verso',
+        'chapitre',
         'id',
+        'manuel',
         'numero',
         'titre',
         'type',
+        'unit',
       ],
       morphologie: [
         'chapitres',
@@ -372,6 +372,7 @@ describe('GET /api/cours/:id', () => {
         'description',
         'dessin',
         'id',
+        'manuel',
         'note',
         'points',
         'points[].id',

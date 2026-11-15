@@ -25,6 +25,45 @@ export function exempleDeCours(): Map<string, string> {
   ]);
 }
 
+/** Les identifiants des deux manuels de `exempleAvecManuels`, inventés. */
+export const ID_MANUEL_ALPHA = 'b7k2m9qd';
+export const ID_MANUEL_BETA = 'c8n3p5rt';
+
+/**
+ * L'exemple dont le cours nomme deux manuels, « Lehrbuch Alpha » et « Lehrbuch Beta » : chaque
+ * module de cartes dit son manuel, son chapitre et sa Unit, le schéma dit son manuel, et les deux
+ * identifiants sont dans `ids.lock`.
+ */
+export function exempleAvecManuels(): Map<string, string> {
+  const fichiers = exempleDeCours();
+  const ajouter = (chemin: string, apres: string, cles: string[]) =>
+    modifier(fichiers, chemin, `${apres}\n`, `${apres}\n${cles.join('\n')}\n`);
+  const manuels = [
+    [ID_MANUEL_ALPHA, 'Alpha'],
+    [ID_MANUEL_BETA, 'Beta'],
+  ].map(([id, nom]) => `  - id: "${id}"\n    titre: "Lehrbuch ${nom}"\n`);
+  modifier(fichiers, 'essai/cours.yaml', 'modules:\n', `manuels:\n${manuels.join('')}modules:\n`);
+  ajouter('essai/cartes/01-grundbegriffe.yaml', 'numero: 1', [
+    `manuel: "${ID_MANUEL_ALPHA}"`,
+    'chapitre: 2',
+    'unit: 1',
+  ]);
+  ajouter('essai/cartes/02-vorsilben.yaml', 'numero: 2', [
+    `manuel: "${ID_MANUEL_BETA}"`,
+    'chapitre: 1',
+    'unit: 2',
+  ]);
+  ajouter('essai/schemas/muster.yaml', 'titre: "Das Musterorgan"', [
+    `manuel: "${ID_MANUEL_ALPHA}"`,
+  ]);
+  return modifier(
+    fichiers,
+    'ids.lock',
+    'j5by5stz\n',
+    `j5by5stz\n${ID_MANUEL_ALPHA}\n${ID_MANUEL_BETA}\n`,
+  );
+}
+
 /** Les valeurs de la notice de l'exemple, telles que l'analyse les rend (S1-D7). */
 export function valeursDeNoticeDExemple(): ValeursDeNotice {
   const { notice } = analyserContenus(exempleDeCours());

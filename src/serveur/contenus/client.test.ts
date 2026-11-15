@@ -46,6 +46,20 @@ function dossierServi(fichiers: Record<string, string>): string {
 }
 
 describe('textesDuCours', () => {
+  it('prend_les_titres_des_etapes_du_planning', () => {
+    const [cours] = analyserContenus(exempleDeCours()).cours;
+    const planning = {
+      etapes: [
+        { titre: 'Erfundene Etappe eins', semaine: 1, genre: 'cours' as const, modules: [] },
+        { titre: 'Kurz', semaine: 2, genre: 'revision' as const, modules: [] },
+      ],
+    };
+    const textes = textesDuCours({ ...cours, planning });
+    expect(textes).toContain('Erfundene Etappe eins');
+    expect(textes).not.toContain('Kurz'); // sous le seuil de longueur
+    expect(textesDuCours(cours)).not.toContain('Erfundene Etappe eins');
+  });
+
   it('prend_les_textes_de_douze_caracteres_ou_plus', () => {
     const textes = textesDeLExemple();
 

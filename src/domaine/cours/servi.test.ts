@@ -247,6 +247,22 @@ describe('versCoursServi', () => {
     expect(coursServiUtilisable(JSON.parse(JSON.stringify(servi)))).toBe(true);
   });
 
+  it('planning_servi_tel_quel_absent_sans_lui_et_jamais_bloquant', () => {
+    const [cours] = analyserContenus(exempleDeCours()).cours;
+    expect(versCoursServi(cours)).not.toHaveProperty('planning');
+
+    const planning = {
+      etapes: [{ titre: 'Woche 1', semaine: 1, genre: 'cours' as const, modules: ['aaaaaaaa'] }],
+    };
+    const servi = versCoursServi({ ...cours, planning });
+    expect(servi.planning).toEqual(planning);
+    expect(coursServiUtilisable(JSON.parse(JSON.stringify(servi)))).toBe(true);
+
+    // Un planning que ce client ne comprend pas ne rend pas le cours inutilisable (A1-D9).
+    const illisible = { ...coursServiDeTest(), planning: 42 };
+    expect(coursServiUtilisable(JSON.parse(JSON.stringify(illisible)))).toBe(true);
+  });
+
   // Les trois clés nouvelles, du manifeste à ce que lit le client : une liste blanche qui en oublierait
   // une la perdrait sans erreur, et le cours resterait en Leitner.
   it('memoire_par_chapitre_traverse_du_yaml_au_client', () => {

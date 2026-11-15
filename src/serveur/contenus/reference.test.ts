@@ -350,6 +350,24 @@ describe('calculerReference', () => {
     ]);
   });
 
+  it('planning_ecrit_apres_memoire_et_rien_sans_lui', () => {
+    const cours = coursDe(exempleDeCours());
+    const sans = calculerReference(cours);
+    expect(sans.cours).not.toHaveProperty('planning');
+    // Sans planning, la sérialisation est celle d'avant : aucune clé de plus.
+    expect(JSON.stringify(calculerReference({ ...cours, planning: undefined }))).toBe(
+      JSON.stringify(sans),
+    );
+
+    const planning = {
+      etapes: [{ titre: 'Woche 1', semaine: 1, genre: 'cours' as const, modules: ['aaaaaaaa'] }],
+    };
+    const memoire = { algorithme: 'fsrs' as const, retention: 0.85 };
+    const { cours: avec } = calculerReference({ ...cours, memoire, planning });
+    expect(avec.planning).toStrictEqual(planning);
+    expect(Object.keys(avec).slice(-2)).toEqual(['memoire', 'planning']);
+  });
+
   it('memoire_par_chapitre_ecrite_en_entier_dans_la_reference', () => {
     const poids = [...FSRS6_DEFAULT_WEIGHTS];
     const fichiers = exempleDeCours();

@@ -33,6 +33,7 @@ export function textesDuCours(cours: Cours): string[] {
 
   ajouter(cours.titre);
   Object.values(cours.typesDeCarte).forEach(ajouter);
+  for (const etape of cours.planning?.etapes ?? []) ajouter(etape.titre);
 
   for (const module of cours.modules) {
     ajouter(module.titre);

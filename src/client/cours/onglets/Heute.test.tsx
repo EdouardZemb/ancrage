@@ -746,6 +746,8 @@ describe('Heute', () => {
 
     expect(fileDe(memoire).length).toBeGreaterThan(0);
     expect(etatGarde(memoire).cle).toBe(cleDe(contexte));
+    // `cleDe` appelle `neuvesDuJour` : l'empreinte figée d'avant (compte neuf) la contrôle de dehors.
+    expect(empreinte(etatGarde(memoire).cle)).toBe('d9b0d46df168');
     expect(progression()).toContain(formater(t.heute_compte, { dues: 0, neues: 15 }));
     expect(screen.queryByText(COMPTE_A_REBOURS)).toBeNull();
   });

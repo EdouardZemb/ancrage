@@ -107,7 +107,7 @@ export function neuvesDuJour(
   );
   const cartes = new Map(posables.map((p): [string, Posable] => [p.id, p]));
   const enPosables = (unites: readonly { id: string }[]): Posable[] =>
-    unites.flatMap(({ id }) => cartes.get(id) ?? []);
+    unites.map(({ id }) => cartes.get(id)).filter((p): p is Posable => p !== undefined);
 
   if (planning === undefined) {
     const candidates = cartesNeuves(

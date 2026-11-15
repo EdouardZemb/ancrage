@@ -12,8 +12,9 @@ import { type ElementFerme, elementsTirables, GENRES_FERMES, idDeLElement } from
  * soit le type de l'unité, puis quelques cartes neuves. Les neuves, et leur quota, viennent de
  * `neuvesDuJour` (`rythme.ts`) : sans planning, du choix fait dans Karteikarten (M2-P10) et du
  * plafond `nouvelles_par_seance` moins les cartes déjà découvertes aujourd'hui (M2-P9,
- * `decouvertesLe`) ; avec un planning, des modules ouverts, à un rythme (M4, B-D2 et B-D3). Le domaine ne lit ni l'horloge ni le hasard : le jour, l'état de chaque unité
- * (que rend l'ordonnanceur du cours), les candidates, le quota et le hasard sont des paramètres.
+ * `decouvertesLe`) ; avec un planning, des modules ouverts, à un rythme (M4, B-D2 et B-D3). Le
+ * domaine ne lit ni l'horloge ni le hasard : le jour, l'état de chaque unité (que rend
+ * l'ordonnanceur du cours), les candidates, le quota et le hasard sont des paramètres.
  */
 
 /** Le plafond d'une séance du jour. */
@@ -106,7 +107,10 @@ export function decouvertesLe(
 export interface NeuvesDuJour {
   /** Les posables de genre `carte` candidats ; seules celles en boîte 0 entrent dans la séance. */
   candidates: readonly Posable[];
-  /** Le nombre de cartes neuves au plus : le plafond du jour et, avec un planning, le rythme. */
+  /**
+   * Le nombre de cartes neuves au plus : le plafond moins les cartes découvertes aujourd'hui et,
+   * avec un planning, le rythme moins celles du planning (B-D3) ; jamais négatif.
+   */
   quota: number;
 }
 

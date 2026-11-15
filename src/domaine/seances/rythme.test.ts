@@ -216,6 +216,9 @@ it('horizon_apres_la_derniere_ouverture_sept_jours', () => {
   // La dernière ouverture, même dans le désordre, est la plus tardive.
   const desordre = datees(['2026-10-12', []], ['2026-10-01', []]);
   expect(horizonDuRythme(desordre, AUJOURDHUI, AUJOURDHUI, undefined)).toBe('2026-10-19');
+  // Plus de sept jours après la dernière ouverture : l'horizon est déjà passé.
+  const ancien = datees(['2026-10-01', []], ['2026-10-05', []]);
+  expect(horizonDuRythme(ancien, AUJOURDHUI, AUJOURDHUI, undefined)).toBe('2026-10-12');
 });
 
 it('horizon_une_etape_revision_compte', () => {
@@ -280,9 +283,14 @@ it('neuves_du_jour_sans_planning_comme_avant', () => {
   const journal = [reponseDeTest(1, 'c1000001', true, A_10H)];
   const tous = neuves(journal, TOUS);
   expect(tous.quota).toBe(14);
-  // Les cartes neuves du choix, dans l'ordre du cours : 25 unités moins la découverte.
-  expect(tous.ids).toHaveLength(24);
-  expect(tous.ids[0]).toBe('c1000001:inverse');
+  // Les cartes neuves du choix, dans l'ordre du cours : 25 unités moins la découverte. Cet ordre
+  // fait la clé du jour d'un cours sans planning : il est écrit en toutes lettres.
+  expect(tous.ids).toEqual([
+    'c1000001:inverse',
+    ...[2, 3, 4, 5, 6, 7].flatMap((n) => [`c100000${n}`, `c100000${n}:inverse`]),
+    'c1000008',
+    ...[1, 2, 3, 4, 5].flatMap((n) => [`c200000${n}`, `c200000${n}:inverse`]),
+  ]);
   const un = neuves(journal, { chapitre: CHAPITRE_1, sens: 'mix' });
   expect(un).toEqual({ quota: 14, ids: tous.ids.filter((id) => id.startsWith('c1')) });
   expect(un.ids).toHaveLength(14);
@@ -326,12 +334,12 @@ it('neuves_du_jour_au_sens_choisi', () => {
 });
 
 it('neuves_du_jour_les_decouvertes_du_planning_ne_changent_pas_le_rythme', () => {
-  // Deux cartes découvertes aujourd'hui : R = 13 neuves + 2 découvertes = 15, rythme 4 ; quota 4 - 2.
-  const journal = ['c1000001', 'c1000002'].map((id, i) => reponseDeTest(i + 1, id, true, A_10H));
-  expect(neuves(journal, TOUS, SEMAINES_DU_14)).toEqual({
-    quota: 2,
-    ids: ['c1000003', 'c1000004'],
-  });
+  // Trois cartes découvertes aujourd'hui : R = 12 neuves + 3 découvertes = 15 sur 4 jours, rythme 4 ;
+  // quota 4 - 3 = 1. Sans les découvertes dans R, le rythme serait ⌈12 / 4⌉ = 3 et le quota 0.
+  const journal = ['c1000001', 'c1000002', 'c1000003'].map((id, i) =>
+    reponseDeTest(i + 1, id, true, A_10H),
+  );
+  expect(neuves(journal, TOUS, SEMAINES_DU_14)).toEqual({ quota: 1, ids: ['c1000004'] });
 });
 
 it('neuves_du_jour_une_decouverte_hors_planning_ne_pese_que_sur_le_plafond', () => {

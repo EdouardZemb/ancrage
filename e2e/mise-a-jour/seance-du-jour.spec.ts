@@ -43,8 +43,8 @@ const EXAMEN_DE_L_EXEMPLE = [2030, 6, 30] as const;
 
 /**
  * Le compte à rebours que « Heute » dit (A1-D8). Le test lit l'horloge réelle contre l'examen
- * inventé, lointain : il tient tant que la date de l'examen n'est pas passée (30/06/2030), et le
- * calcul est celui du jour local, comme l'onglet.
+ * inventé, lointain : il tient jusqu'au 28/06/2030 inclus (à un jour et le jour même, l'onglet
+ * prend un autre libellé), et le calcul est celui du jour local, comme l'onglet.
  */
 function compteARebours(): string {
   const [annee, mois, jour] = EXAMEN_DE_L_EXEMPLE;
@@ -55,7 +55,7 @@ function compteARebours(): string {
     maintenant.getDate(),
   );
   const jours = Math.round((Date.UTC(annee, mois - 1, jour) - aujourdhui) / 86_400_000);
-  if (jours < 0) throw new Error('l’examen inventé de l’exemple est passé : en reculer la date');
+  if (jours < 2) throw new Error('l’examen inventé de l’exemple arrive : en reculer la date');
   return formater(deCours.heute_examen_n, { n: jours });
 }
 

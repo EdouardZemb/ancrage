@@ -167,7 +167,8 @@ memoire:
 - `examen` : une date `AAAA-MM-JJ` qui existe, entre guillemets doubles. Facultatif. Une réponse
   donnée `n` jours avant elle reçoit une échéance d'au plus la moitié de `n` jours (arrondie vers le
   bas, un jour au moins) ; le jour de l'examen et après, rien ne la plafonne. Admis avec `fsrs` et
-  `par-chapitre`, refusé avec `leitner`.
+  `par-chapitre`, refusé avec `leitner`. « Heute » en tire aussi un compte à rebours (voir « Le
+  planning »).
 - `chapitres` : une liste d'identifiants de modules de cartes du cours, sans doublon. Obligatoire et
   non vide avec `par-chapitre`, refusée avec tout autre algorithme. Un identifiant qui n'est pas celui
   d'un module de cartes du cours est refusé, avec le fichier et la clé dans le message.
@@ -243,7 +244,8 @@ autres onglets proposent tout le cours.
 
 **Le compte à rebours** ne dépend pas du planning : « Heute » dit « Noch {n} Tage bis zur Prüfung »
 dès que `memoire.examen` est écrit, sur la séance, sur l'écran de fin et sur « Heute ist nichts
-fällig », tant qu'il reste zéro jour ou plus (le jour même : « Heute ist die Prüfung »). Après
+fällig », tant qu'il reste zéro jour ou plus (à un jour : « Noch 1 Tag bis zur Prüfung » ; le jour
+même : « Heute ist die Prüfung »). Après
 l'examen, rien ne s'affiche. Un cours en `leitner` n'a pas d'`examen`, donc pas de compte à rebours.
 
 **Sans `planning`**, la clé est absente du cours analysé, de la forme servie et de l'instantané de

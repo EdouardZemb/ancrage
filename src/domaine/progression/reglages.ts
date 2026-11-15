@@ -3,9 +3,10 @@ import * as z from 'zod';
 import type { ReglagesMemoire } from '../contenu/modele.js';
 
 /*
- * Les règles de la clé `memoire` du manifeste qui ne regardent que sa valeur : les poids de FSRS-6
- * la date de l'examen et la borne du planning (`SEMAINE_MAX`). L'analyse du contenu (`contenu/schemas.ts`) les applique en strict, et le
- * client les applique en tolérant (`lireReglagesDeMemoire`) : un seul texte de règle pour les deux.
+ * Les règles du manifeste qui ne regardent que leur valeur : pour la clé `memoire`, les poids de
+ * FSRS-6 et la date de l'examen ; pour la clé `planning`, la borne d'une semaine (`SEMAINE_MAX`).
+ * L'analyse du contenu (`contenu/schemas.ts`) les applique en strict, et le client les applique en
+ * tolérant (`lireReglagesDeMemoire`, `lirePlanning`) : un seul texte de règle pour les deux.
  */
 
 /**

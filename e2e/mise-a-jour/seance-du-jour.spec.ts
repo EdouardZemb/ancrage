@@ -33,8 +33,16 @@ const deCours = TEXTES_COURS.de;
 const TAILLE_DE_SEANCE = 20;
 /** Le plafond de cartes neuves par jour du cours d'exemple (`nouvelles_par_seance`, M2-P9). */
 const NOUVELLES_PAR_JOUR = 15;
-/** Les unités du premier chapitre du cours d'exemple, le choix par défaut de Karteikarten (M2-P10) : 9 cartes, chacune dans les deux sens. */
+/**
+ * Les unités du premier chapitre du cours d'exemple, seul module ouvert en semaine 1 de son
+ * planning (M4, B-D2) : 9 cartes, chacune dans les deux sens.
+ */
 const UNITES_DU_PREMIER_CHAPITRE = 18;
+/**
+ * Les jours d'aujourd'hui, compris, à l'ouverture de la semaine 2, exclue : l'horizon du rythme d'un
+ * planning relatif, le premier jour (B-D4).
+ */
+const JOURS_JUSQU_A_LA_SEMAINE_2 = 7;
 /** Les essais pour tomber sur une faute, quand une réponse choisie à l'aveugle se trouve juste. */
 const ESSAIS_DE_FAUTE = 12;
 
@@ -143,11 +151,15 @@ test('la_seance_du_jour_mele_les_types', async ({ page }) => {
     await expect(page).toHaveURL(/\/cours\/[0-9a-z]{8}\/heute$/);
     const compte = await compteDeHeute(page);
     expect(compte.dues, 'unités dues').toBe(fautes);
-    // Le plafond du jour moins la découverte, dans le premier chapitre moins cette même carte.
-    const neuves = Math.min(
-      NOUVELLES_PAR_JOUR - decouvertes,
-      UNITES_DU_PREMIER_CHAPITRE - decouvertes,
+    // Le rythme du premier jour (B-D3, B-D4) : les 18 unités du premier chapitre, ouvert seul,
+    // réparties sur les 7 jours d'ici la semaine 2, sous le plafond. La carte découverte dans
+    // Karteikarten compte dans ces 18 et dans le rythme : elle en retire une des neuves du jour ;
+    // le plafond, lui, en retire aussi une.
+    const rythme = Math.min(
+      NOUVELLES_PAR_JOUR,
+      Math.ceil(UNITES_DU_PREMIER_CHAPITRE / JOURS_JUSQU_A_LA_SEMAINE_2),
     );
+    const neuves = Math.min(NOUVELLES_PAR_JOUR - decouvertes, rythme - decouvertes);
     expect(compte.neues, 'cartes neuves').toBe(neuves);
     expect(compte.faites).toBe(0);
     file = compte.restantes;

@@ -138,8 +138,10 @@ refusée.
 - `nouvelles_par_seance` : un entier de 1 à 100. Dans Karteikarten, c'est la taille d'une série de
   cartes neuves. Dans la séance du jour (« Heute »), c'est un plafond par jour : les cartes déjà
   découvertes aujourd'hui, c'est-à-dire dont la première réponse date d'aujourd'hui, où qu'elle ait
-  été donnée, en sont retirées. Les neuves y viennent du choix fait dans Karteikarten, dans la place
-  que laissent les dues : les dues passent d'abord, la séance en garde 20 au plus.
+  été donnée, en sont retirées. Sans planning, les neuves y viennent du choix fait dans Karteikarten ;
+  avec un planning, elles viennent des modules ouverts, à un rythme que ce plafond borne (voir « Le
+  planning »). Elles prennent la place que laissent les dues : les dues passent d'abord, la séance
+  en garde 20 au plus.
 
 Le cours de terminologie reprend ceux du prototype : `[0, 1, 2, 4, 8, 16]` et 15.
 
@@ -240,10 +242,63 @@ avancer si les premières réponses sont abandonnées à une déconnexion.
 **Quand un module est ouvert.** Dès qu'une étape ouverte le cite, ou qu'aucune étape ne le cite.
 Sinon il est fermé. Rien n'est gardé : tout se dérive du manifeste, du journal et du jour.
 
-**Ce que « Heute » en fait.** Les cartes neuves viennent du choix fait dans Karteikarten, sans les
-cartes d'un module fermé ; si le chapitre choisi est fermé, il n'y a pas de carte neuve. Ce qui est
-dû reste dû, même d'un module fermé. Aucun autre onglet ne change : Karteikarten, le quiz et les
-autres onglets proposent tout le cours.
+**Ce que « Heute » en fait.** Ce qui est dû reste dû, même d'un module fermé. Pour les cartes
+neuves, la règle dépend du planning.
+
+- **Sans planning** (ou avec un planning que le client ne comprend pas), rien ne change : les cartes
+  neuves viennent du choix fait dans Karteikarten, chapitre et sens, et leur nombre est le plafond
+  `nouvelles_par_seance` moins les cartes découvertes aujourd'hui.
+- **Avec un planning**, elles viennent des modules ouverts, dans l'ordre du planning : les modules des
+  étapes ouvertes, étape après étape et dans l'ordre où chacune les cite, puis les modules qu'aucune
+  étape ne nomme, dans l'ordre du cours. Dans un module, les cartes dans le sens direct d'abord, dans
+  l'ordre du cours, puis les mêmes dans le sens inverse : à un rythme bas, les deux sens d'une carte ne
+  tombent pas le même jour. Le sens choisi dans Karteikarten joue encore dans « Heute » ; le chapitre
+  qu'on y choisit n'y joue plus, il garde son rôle dans Karteikarten et dans le quiz. La séance
+  mélange ses cartes neuves : l'ordre ne vaut qu'au grain du nombre du jour, les premières de cet
+  ordre étant celles qu'elle retient.
+
+Aucun autre onglet ne change : Karteikarten, le quiz et les autres onglets proposent tout le cours.
+
+**Le rythme.** Avec un planning, « Heute » ne pose pas toutes les cartes neuves que le plafond
+admet : il répartit ce qui est ouvert sur les jours qui restent.
+
+- `R`, les cartes neuves du matin : celles des modules ouverts que l'ordonnanceur laisse en boîte 0,
+  plus celles de ces modules découvertes aujourd'hui (la première réponse date d'aujourd'hui). `R` ne
+  bouge pas quand on répond dans la journée : le rythme compte les cartes du jour, pas celles d'une
+  séance.
+- `J`, le nombre de jours d'aujourd'hui, compris, à l'horizon, exclu ; un jour au moins.
+- Le rythme est `min(nouvelles_par_seance, ⌈R / J⌉)`, arrondi vers le haut : à ce pas, tout ce qui
+  est ouvert est vu avant l'horizon, une carte au moins par jour tant qu'il en reste.
+- Le nombre de cartes neuves du jour est le plus petit de deux restes : le plafond moins toutes les
+  cartes du cours découvertes aujourd'hui, où qu'elles l'aient été, et le rythme moins les cartes
+  découvertes aujourd'hui dans les modules ouverts. Il n'est jamais négatif.
+
+**L'horizon** est la première ouverture d'une étape, de tout genre, strictement après aujourd'hui. Il
+n'y en a plus : la dernière ouverture, plus sept jours, le pas d'un planning relatif. Si `memoire.examen`
+tombe après aujourd'hui et avant cet horizon, c'est l'examen. Un horizon d'aujourd'hui ou passé vaut
+un jour. Une étape relative suit la même règle, sur ses ouvertures calculées depuis le départ : l'horizon
+bouge avec lui, dans la limite dite plus haut. Une étape `revision` compte comme une autre pour
+l'horizon, et ses modules comme ceux de toute étape ouverte ; ce qu'elle mêle d'autre à la séance n'est
+pas encore décidé. Pendant un trou du planning (aucune étape ne s'ouvre avant longtemps), `J` est
+grand et le rythme bas, et rien ne s'ouvre de plus.
+
+**Le retard** n'a pas de calcul à lui : ce qui reste neuf dans une étape ouverte avant la dernière
+ouverture passée est dans `R`, se répartit sur les jours qui restent jusqu'à l'horizon, et passe en
+tête de la séance, puisque l'ordre met les modules des étapes les plus anciennes d'abord. Un jour
+manqué relève donc le rythme des jours qui restent ; à la veille d'une ouverture, il peut atteindre le
+plafond, jamais le dépasser. Les modules qu'aucune étape ne nomme sont ouverts depuis le premier jour
+et comptent dans `R` dès lors : un cours dont de gros modules ne sont nommés par aucune étape est au
+plafond dès le premier jour, et le reste jusqu'à ce qu'ils soient vus.
+
+**Un exemple**, sur le cours d'exemple (planning relatif, plafond de 15) et un compte neuf, au jour 1 :
+seul le premier module de cartes est ouvert, avec ses 9 cartes dans les deux sens, soit 18 unités ;
+la semaine 2 s'ouvre dans 7 jours, donc `R = 18`, `J = 7`, et le rythme est `⌈18 / 7⌉ = 3` cartes
+neuves ce jour-là, à comparer aux 15 d'avant le rythme. Si l'apprenante a découvert une carte dans
+Karteikarten, le même jour, il en reste 2 pour « Heute ».
+
+**La clé du jour** de la séance ne change pas : le rythme y entre par les cartes neuves et leur nombre,
+qu'elle porte déjà. Avant le premier geste du jour, une clé qui change recompose la séance ; après, la
+séance ne bouge plus.
 
 **Le compte à rebours** ne dépend pas du planning : « Heute » dit « Noch {n} Tage bis zur Prüfung »
 dès que `memoire.examen` est écrit, sur la séance, sur l'écran de fin et sur « Heute ist nichts

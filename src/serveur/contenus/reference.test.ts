@@ -2,7 +2,7 @@ import { FSRS6_DEFAULT_WEIGHTS } from 'ts-fsrs/models/fsrs-6';
 import { describe, expect, it } from 'vitest';
 import { analyserContenus } from '../../domaine/contenu/analyse.js';
 import { exempleDeCours, REGLAGES_DE_L_EXAMEN } from '../../domaine/contenu/exemple.fixture.js';
-import type { Cours } from '../../domaine/contenu/modele.js';
+import type { Cours, Planning } from '../../domaine/contenu/modele.js';
 import { calculerReference } from './reference.js';
 
 function coursDe(fichiers: Map<string, string>): Cours {
@@ -368,6 +368,21 @@ describe('calculerReference', () => {
       'modules',
     ]);
     expect(Object.keys(avec).slice(-2)).toEqual(['memoire', 'planning']);
+  });
+
+  it('etape_de_planning_recopiee_champ_par_champ_dans_l_ordre', () => {
+    const etape = {
+      modules: ['aaaaaaaa'],
+      genre: 'revision' as const,
+      seance: '2030-03-04',
+      titre: 'Woche 1',
+      en_trop: 'x',
+    };
+    const planning = { etapes: [etape] } as unknown as Planning;
+    const { cours } = calculerReference({ ...coursDe(exempleDeCours()), planning });
+    const ecrite = cours.planning?.etapes[0] ?? {};
+    expect(Object.keys(ecrite)).toEqual(['titre', 'seance', 'genre', 'modules']);
+    expect(ecrite).not.toHaveProperty('en_trop');
   });
 
   it('memoire_par_chapitre_ecrite_en_entier_dans_la_reference', () => {

@@ -57,12 +57,14 @@ export function planningDuCours(cours: CoursServi): Planning | undefined {
 export function departDuPlanning(evenements: readonly Evenement[], aujourdhui: string): string {
   const premier = journalSansDoublon(evenements)[0];
   if (premier === undefined) return aujourdhui;
-  const jour = jourDe(premier.repondu_a);
-  // Stryker disable next-line EqualityOperator: à égalité, `jour` et `aujourdhui` sont la même chaîne.
-  return jour < aujourdhui ? jour : aujourdhui;
+  // Le plus petit des deux jours : des dates `AAAA-MM-JJ` se comparent comme des chaînes.
+  return [jourDe(premier.repondu_a), aujourdhui].sort()[0] ?? aujourdhui;
 }
 
-/** Le jour où l'étape s'ouvre (A1-D4, A1-D5). */
+/**
+ * Le jour où l'étape s'ouvre (A1-D4, A1-D5). Une étape sans `seance` ni `semaine`, que le type
+ * permet mais que ni le serveur ni `lirePlanning` ne laissent passer, s'ouvre au départ.
+ */
 export function ouvertureDe(etape: EtapeDePlanning, depart: string): string {
   if (etape.seance !== undefined) return etape.seance;
   return ajouterJours(depart, 7 * ((etape.semaine ?? 1) - 1));

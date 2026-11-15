@@ -128,10 +128,16 @@ it('depart_est_le_jour_du_premier_evenement_du_journal', () => {
   const second = reponduLe(2, '2030-03-06T10:00:00.000+02:00');
   expect(departDuPlanning([premier], AUJOURDHUI)).toBe('2030-03-04');
   expect(departDuPlanning([second, premier], AUJOURDHUI)).toBe('2030-03-04');
-  expect(departDuPlanning([premier, premier, second], AUJOURDHUI)).toBe('2030-03-04');
   expect(departDuPlanning([reponduLe(3, `${AUJOURDHUI}T09:00:00.000+02:00`)], AUJOURDHUI)).toBe(
     AUJOURDHUI,
   );
+});
+
+it('depart_d_un_doublon_est_celui_de_la_premiere_copie', () => {
+  const premiere = reponduLe(1, '2030-03-06T10:00:00.000+02:00');
+  const seconde = { ...premiere, repondu_a: '2030-03-04T10:00:00.000+02:00' };
+  const autre = reponduLe(2, '2030-03-08T10:00:00.000+02:00');
+  expect(departDuPlanning([premiere, seconde, autre], AUJOURDHUI)).toBe('2030-03-06');
 });
 
 it('depart_compte_un_evenement_de_tout_genre', () => {
@@ -166,6 +172,11 @@ it('ouverture_d_une_etape_datee_et_d_une_etape_relative', () => {
     const relative: EtapeDePlanning = { titre: 'a', semaine, genre: 'cours', modules: [] };
     expect(ouvertureDe(relative, DEPART), `semaine ${semaine}`).toBe(jour);
   }
+});
+
+it('une_etape_sans_seance_ni_semaine_s_ouvre_au_depart', () => {
+  const sans = { titre: 'a', genre: 'cours', modules: [] } satisfies EtapeDePlanning;
+  expect(ouvertureDe(sans, DEPART)).toBe(DEPART);
 });
 
 const PLANNING_DATE: Planning = {

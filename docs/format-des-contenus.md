@@ -94,6 +94,11 @@ leitner:                   # obligatoire : voir « Réglages de Leitner »
 memoire:                   # facultative : voir « Réglage de la mémoire »
   algorithme: "fsrs"
   retention: 0.9
+planning:                  # facultative : voir « Le planning »
+  etapes:
+    - titre: "Woche 1"
+      semaine: 1
+      modules: ["<identifiant d'un module>"]
 derogation_diffusion:      # facultative : voir « Dérogation de diffusion »
   motif: "<pourquoi>"
   date: "2026-10-16"
@@ -192,6 +197,65 @@ service, refuserait un manifeste qui porte une clé qu'elle ignore (invariant 8)
 cette version refuse donc de démarrer sur un manifeste qui porte `parametres`, `examen`, `chapitres`
 ou `par-chapitre` : après le premier manifeste neuf, on ne redescend plus sous la version qui les
 connaît. Exception : le cours d'exemple vit dans l'image, et l'image précédente garde le sien.
+
+### Le planning
+
+La clé `planning` ouvre les modules d'un cours par étapes : « Heute » ne tire ses cartes neuves que
+des modules ouverts. Elle est facultative, et toute autre clé que celles ci-dessous est refusée,
+dans `planning` comme dans une étape.
+
+```yaml
+planning:
+  etapes:
+    - titre: "Woche 1"
+      semaine: 1             # ou seance: "2030-03-04"
+      genre: "cours"         # facultatif : "cours" (défaut) ou "revision"
+      modules: ["<identifiant d'un module>"]
+```
+
+- `etapes` : au moins une étape, écrites dans l'ordre : une séance ou une semaine n'est jamais avant
+  celle de l'étape d'avant (l'égalité est admise).
+- `titre` : un texte non vide. C'est un texte du cours : il n'entre jamais dans le client construit.
+- `seance` ou `semaine`, jamais les deux ni aucun, et toutes les étapes d'un planning de la même
+  forme. `seance` est une date `AAAA-MM-JJ` qui existe, entre guillemets doubles. `semaine` est un
+  entier de 1 à 520, sans guillemets (`"2"` est un texte, refusé). La première étape d'un planning
+  relatif est en semaine 1.
+- `genre` : `cours` (défaut) ou `revision`.
+- `modules` : des identifiants de modules du cours, de tout type. Vide pour une étape `revision`
+  seulement, jamais pour une étape `cours`. Un module est cité une fois au plus dans tout le
+  planning. Les `modules` d'une étape `revision` sont ceux qu'on y révise : ils s'ouvrent avec elle,
+  comme ceux d'une étape `cours`, et rien d'autre ne les distingue pour « Heute ».
+
+**Quand une étape est ouverte.** Une étape datée s'ouvre le jour de sa séance (`seance` au plus
+égale à aujourd'hui). Une étape relative s'ouvre au jour `départ + 7 × (semaine − 1)`. Le départ est
+le jour, sur l'appareil, du premier événement du journal du cours, quel que soit son genre ; il n'est
+jamais après aujourd'hui, et sans événement c'est aujourd'hui : la semaine 1 est donc toujours
+ouverte. Limite : le départ peut bouger d'un jour entre deux appareils de fuseaux différents, et
+avancer si les premières réponses sont abandonnées à une déconnexion.
+
+**Quand un module est ouvert.** Dès qu'une étape ouverte le cite, ou qu'aucune étape ne le cite.
+Sinon il est fermé. Rien n'est gardé : tout se dérive du manifeste, du journal et du jour.
+
+**Ce que « Heute » en fait.** Les cartes neuves viennent du choix fait dans Karteikarten, sans les
+cartes d'un module fermé ; si le chapitre choisi est fermé, il n'y a pas de carte neuve. Ce qui est
+dû reste dû, même d'un module fermé. Aucun autre onglet ne change : Karteikarten, le quiz et les
+autres onglets proposent tout le cours.
+
+**Le compte à rebours** ne dépend pas du planning : « Heute » dit « Noch {n} Tage bis zur Prüfung »
+dès que `memoire.examen` est écrit, sur la séance, sur l'écran de fin et sur « Heute ist nichts
+fällig », tant qu'il reste zéro jour ou plus (le jour même : « Heute ist die Prüfung »). Après
+l'examen, rien ne s'affiche. Un cours en `leitner` n'a pas d'`examen`, donc pas de compte à rebours.
+
+**Sans `planning`**, la clé est absente du cours analysé, de la forme servie et de l'instantané de
+référence : tout est ouvert, comme avant. Le client qui reçoit un planning qu'il ne comprend pas (un
+genre inconnu, une semaine hors bornes, une date mal formée) l'ignore : tout est ouvert, et le cours
+reste utilisable.
+
+**Un cours monté ne reçoit `planning` qu'à partir de la version qui suit la `v0.16.0`.** Le schéma du
+manifeste est strict : l'image précédente, que le retour arrière remet en service, refuserait un
+manifeste qui porte une clé qu'elle ignore (invariant 8). Exception : le cours d'exemple vit dans
+l'image, et l'image précédente garde le sien. Le cours d'exemple a un planning relatif : son premier
+module de cartes en semaine 1, le deuxième en semaine 2, le troisième en semaine 3.
 
 ### Dérogation de diffusion
 

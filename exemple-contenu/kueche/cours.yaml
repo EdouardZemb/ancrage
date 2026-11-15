@@ -14,6 +14,17 @@ memoire:
   retention: 0.9
   examen: "2030-06-30"
   chapitres: ["n0sq3hfm"]
+planning:
+  etapes:
+    - titre: "Woche 1 – Küchengeräte"
+      semaine: 1
+      modules: ["n0sq3hfm"]
+    - titre: "Woche 2 – Zutaten"
+      semaine: 2
+      modules: ["7dty0tg7"]
+    - titre: "Woche 3 – Zubereitung"
+      semaine: 3
+      modules: ["cntctqb2"]
 derogation_diffusion:
   motif: "Cours d'exemple, inventé pour le poste et la CI : il n'a rien à relire."
   date: "2026-11-04"

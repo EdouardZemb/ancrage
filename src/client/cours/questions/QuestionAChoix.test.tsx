@@ -23,10 +23,11 @@ function question(choisie: number | null = null): QuestionDeChoix {
   };
 }
 
-function poser(q: QuestionDeChoix, onChoix = vi.fn(), onSuivante = vi.fn()) {
+function poser(q: QuestionDeChoix, onChoix = vi.fn(), onSuivante = vi.fn(), sansFaute = false) {
   rendreDansLeCours(
     <QuestionAChoix
       question={q}
+      sansFaute={sansFaute}
       libelleSuivante="Weiter"
       onChoix={onChoix}
       onSuivante={onSuivante}
@@ -63,6 +64,18 @@ describe('QuestionAChoix', () => {
     expect(screen.queryByText(t.quiz_touches)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Weiter' }));
     expect(onSuivante).toHaveBeenCalledTimes(1);
+  });
+
+  it('un_mauvais_choix_est_rouge_sans_sansFaute_et_neutre_avec', () => {
+    poser(question(0));
+    expect(boutons().map((b) => b.className)).toEqual(['wrong', 'right', '']);
+    cleanup();
+    poser(question(0), vi.fn(), vi.fn(), true);
+    expect(boutons().map((b) => b.className)).toEqual(['sel', 'right', '']);
+    cleanup();
+    // Un bon choix reste vert, et une question sans réponse n'a aucune classe.
+    poser(question(1), vi.fn(), vi.fn(), true);
+    expect(boutons().map((b) => b.className)).toEqual(['', 'right', '']);
   });
 
   it('questionDeLElement_reprend_l_id_la_reponse_et_les_options_de_l_element', () => {

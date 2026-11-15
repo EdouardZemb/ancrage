@@ -4,6 +4,7 @@ import {
   examenEnCours,
   feuilleEnCours,
   heuteEnCours,
+  pretestEnCours,
   serieCommencee,
   tacheEntamee,
   texteEnCours,
@@ -32,6 +33,17 @@ describe('seances-en-cours', () => {
     // La file est vide : la séance est finie.
     expect(heuteEnCours({ seance: { faites: 3, file: [] }, repondue: null })).toBe(false);
     expect(heuteEnCours({ seance: { faites: 0, file: [] }, repondue: true })).toBe(false);
+  });
+
+  it('pretest_en_cours_apres_une_reponse_tant_qu_une_question_reste', () => {
+    const questions = ['a', 'b', 'c'];
+    expect(pretestEnCours(null)).toBe(false);
+    expect(pretestEnCours({ faites: 0, rang: 0, questions })).toBe(false);
+    expect(pretestEnCours({ faites: 1, rang: 0, questions })).toBe(true);
+    // La dernière question répondue, avant « Weiter » : la question reste encore à l'écran.
+    expect(pretestEnCours({ faites: 3, rang: 2, questions })).toBe(true);
+    // À la fin.
+    expect(pretestEnCours({ faites: 3, rang: 3, questions })).toBe(false);
   });
 
   it('examen_remis_n_est_plus_une_seance', () => {

@@ -35,6 +35,17 @@ const de = {
   heute_examen_1: 'Noch 1 Tag bis zur Prüfung',
   heute_examen_0: 'Heute ist die Prüfung',
 
+  // Le pré-test d'une étape, trois jours avant son ouverture (M4, B-D15). Une erreur n'y est pas
+  // une faute : aucun compte de justes.
+  heute_pretest_angebot: 'Bald beginnt «{etape}». Ein kurzer Vortest, bevor du die Karten lernst?',
+  heute_pretest_warum:
+    'Wer vor dem Lernen rät, merkt sich danach mehr – auch falsch geratene Antworten helfen dabei und zählen nicht als Fehler.',
+  heute_pretest_starten: 'Vortest starten',
+  heute_pretest_frage: 'Vortest · Frage {i} von {n}',
+  heute_pretest_danach: 'Jetzt kennst du die Antwort.',
+  heute_pretest_fertig: 'Vortest geschafft. Die Karten kommen, sobald «{etape}» beginnt.',
+  heute_pretest_zurueck: 'Zur Tagesrunde',
+
   // L'état de la synchronisation, en tête du cours (H:197, H:1595-1605).
   synchro_en_cours: 'Speichere …',
   synchro_a_jour: 'Gespeichert in deinem Konto',

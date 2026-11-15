@@ -56,11 +56,13 @@ export function QuestionAChoix(props: {
   question: QuestionDeChoix;
   /** Le texte du bouton de suite. */
   libelleSuivante: string;
+  /** Un mauvais choix n'est pas montré comme une faute (le pré-test, B-D14). */
+  sansFaute?: boolean;
   /** Le choix de l'option `i`, jugé : appelé une fois, tant que la question n'est pas répondue. */
   onChoix(i: number, juste: boolean, mode: ModeDeReponse): void;
   onSuivante(): void;
 }) {
-  const { question, libelleSuivante, onChoix, onSuivante } = props;
+  const { question, libelleSuivante, sansFaute, onChoix, onSuivante } = props;
   const { t } = useCours();
 
   const repondre = (i: number) => {
@@ -88,6 +90,7 @@ export function QuestionAChoix(props: {
       <Options
         options={question.options.map(libelle)}
         choisir={repondre}
+        sansFaute={sansFaute}
         repondu={
           question.choisie === null
             ? undefined

@@ -720,6 +720,20 @@ header.top {
   text-align: center;
 }
 
+.pretest {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.pretest p {
+  margin: 0;
+}
+
 .card.flip {
   cursor: pointer;
   user-select: none;

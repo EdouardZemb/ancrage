@@ -206,18 +206,22 @@ export function libelleDOption(option: string, t: Record<CleTexteCours, string>)
  * `choisir`.
  *
  * Avec `repondu`, la question est répondue et ses boutons ne répondent plus : la bonne réponse est
- * en vert (`right`) et un mauvais choix en rouge (`wrong`), comme dans le Quiz (H:1836-1859).
+ * en vert (`right`) et un mauvais choix en rouge (`wrong`), comme dans le Quiz (H:1836-1859). Avec
+ * `sansFaute` (le pré-test, B-D14), un mauvais choix prend le style neutre d'un choix (`sel`) : une
+ * erreur de pré-test n'est pas une faute.
  */
 export function Options(props: {
   options: readonly string[];
   choisir(i: number): void;
   repondu?: { choisie: number; reponse: string };
+  sansFaute?: boolean;
 }) {
   const { repondu } = props;
   const classe = (option: string, i: number): string | undefined => {
     if (repondu === undefined) return undefined;
     if (option === repondu.reponse) return 'right';
-    return i === repondu.choisie ? 'wrong' : undefined;
+    if (i !== repondu.choisie) return undefined;
+    return props.sansFaute === true ? 'sel' : 'wrong';
   };
   return (
     <div class="options">

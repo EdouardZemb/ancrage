@@ -26,7 +26,7 @@ import {
   rendreDansUnCoursVivant,
   reponseDeTest,
 } from '../contexte-cours.fixture.js';
-import type { ContexteCours } from '../contexte-cours.js';
+import { type ContexteCours, ContexteDuCours } from '../contexte-cours.js';
 import { heuteEnCours } from '../seances-en-cours.js';
 import { formater, TEXTES_COURS } from '../textes-cours.js';
 import { cleDuJour, type EtatDeHeute, Heute, questionDe } from './Heute.js';
@@ -721,12 +721,19 @@ describe('Heute', () => {
     ['le_module_ferme', CHAPITRE_2],
   ])('aucune_carte_neuve_d_un_module_ferme_quand_le_choix_est_%s', (_nom, choix) => {
     const memoire = new Map<string, unknown>();
-    const cours = coursAvec({ planning: SEMAINES });
+    // Un plafond de 20 : sans le filtre, des cartes du chapitre fermé entreraient dans la séance.
+    const cours = { ...coursAvecNouvelles(20), planning: SEMAINES };
     const contexte = avecChapitre(contexteDe({ memoire, cours }), choix);
     rendreDansLeCours(<Heute />, contexte);
     const ferme = duChapitre(contexte, CHAPITRE_2);
 
     expect(fileDe(memoire).some((id) => ferme.has(id))).toBe(false);
+    if (choix === 'tous') {
+      const ouvertes = duChapitre(contexte, 'tous').size - ferme.size;
+      expect(ouvertes + 5, 'au moins cinq cartes fermées sans le filtre').toBeLessThanOrEqual(20);
+      expect(fileDe(memoire)).toHaveLength(ouvertes);
+      expect(progression()).toContain(formater(t.heute_compte, { dues: 0, neues: ouvertes }));
+    }
     if (choix === CHAPITRE_2) {
       expect(fileDe(memoire)).toEqual([]);
       expect(screen.getByRole('heading', { name: t.heute_rien })).toBeTruthy();
@@ -749,7 +756,7 @@ describe('Heute', () => {
     expect(progression()).toContain(formater(t.heute_compte, { dues: 1, neues: 0 }));
   });
 
-  it('le_lendemain_de_la_seance_de_l_etape_ses_cartes_neuves_arrivent', () => {
+  it('le_jour_de_la_seance_de_l_etape_ses_cartes_neuves_arrivent', () => {
     const cours = coursAvec({ planning: SEANCES });
     const veille = new Map<string, unknown>();
     rendreDansLeCours(<Heute />, avecChapitre(contexteDe({ memoire: veille, cours }), CHAPITRE_2));
@@ -768,14 +775,21 @@ describe('Heute', () => {
   it('une_etape_qui_s_ouvre_avant_le_premier_geste_recompose_la_seance', () => {
     const cours = coursAvec({ planning: SEMAINES });
     const memoire = new Map<string, unknown>();
-    rendreDansLeCours(<Heute />, avecChapitre(contexteDe({ memoire, cours }), CHAPITRE_2));
+    const vue = rendreDansLeCours(
+      <Heute />,
+      avecChapitre(contexteDe({ memoire, cours }), CHAPITRE_2),
+    );
     expect(fileDe(memoire)).toEqual([]);
-    cleanup();
 
-    // Un événement plus ancien arrive : le départ recule d'une semaine, la semaine 2 s'ouvre.
+    // Un événement plus ancien arrive, dans la même vue : le départ recule d'une semaine, la
+    // semaine 2 s'ouvre. Sans `cleanup`, les dépendances des `useMemo` sont éprouvées.
     const evenements = [PLUS_ANCIEN];
     const apres = avecChapitre(contexteDe({ memoire, cours, evenements }), CHAPITRE_2);
-    rendreDansLeCours(<Heute />, apres);
+    vue.rerender(
+      <ContexteDuCours.Provider value={apres}>
+        <Heute />
+      </ContexteDuCours.Provider>,
+    );
 
     const ouvert = duChapitre(apres, CHAPITRE_2);
     expect(fileDe(memoire).length).toBeGreaterThan(0);
@@ -785,7 +799,8 @@ describe('Heute', () => {
   it('une_seance_entamee_ne_se_recompose_pas_quand_une_etape_s_ouvre', () => {
     const cours = coursAvec({ planning: SEMAINES });
     const memoire = new Map<string, unknown>();
-    const contexte = contexteDe({ memoire, cours });
+    // Le choix « tous » : la clé change quand la semaine 2 s'ouvre.
+    const contexte = avecChapitre(contexteDe({ memoire, cours }), 'tous');
     amorcer(contexte, memoire, [HERZ, LEBER]);
     rendreDansLeCours(<Heute />, contexte);
     cliquer(t.cartes_retourner);
@@ -793,14 +808,19 @@ describe('Heute', () => {
     const garde = etatGarde(memoire);
     cleanup();
 
-    rendreDansLeCours(<Heute />, contexteDe({ memoire, cours, evenements: [PLUS_ANCIEN] }));
+    const apres = avecChapitre(contexteDe({ memoire, cours, evenements: [PLUS_ANCIEN] }), 'tous');
+    expect(cleDe(apres)).not.toBe(garde.cle);
+    rendreDansLeCours(<Heute />, apres);
 
     expect(etatGarde(memoire)).toBe(garde);
     expect(fileDe(memoire)).toEqual([LEBER]);
   });
 
   it('un_planning_illisible_vaut_pas_de_planning', () => {
-    const [sans, illisible] = [undefined, 42].map((planning) => {
+    // Le même planning que `SEMAINES`, qu'un seul champ rend illisible : il fermerait le chapitre 2.
+    const [premiere, seconde] = SEMAINES.etapes;
+    const illisible = { etapes: [premiere, { ...seconde, genre: 'inconnu' }] };
+    const [sans, lu] = [undefined, illisible].map((planning) => {
       const memoire = new Map<string, unknown>();
       const cours = coursAvec({ planning });
       rendreDansLeCours(<Heute />, avecChapitre(contexteDe({ memoire, cours }), CHAPITRE_2));
@@ -809,8 +829,9 @@ describe('Heute', () => {
       return file;
     });
 
-    expect(illisible.length).toBeGreaterThan(0);
-    expect(illisible).toEqual(sans);
+    // Rien n'est fermé : le chapitre 2, choisi, donne ses cartes neuves.
+    expect(lu.length).toBeGreaterThan(0);
+    expect(lu).toEqual(sans);
   });
 
   it.each([

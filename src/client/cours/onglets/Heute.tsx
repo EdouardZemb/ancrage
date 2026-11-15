@@ -14,6 +14,10 @@
  * (M2-P6) ; après la première réponse,
  * elle ne suit plus le journal, comme une séance de cartes.
  *
+ * Le planning du cours (M4) ne ferme que les cartes neuves : celles d'un module fermé ne sont pas
+ * candidates, et ce qui est dû reste dû (A1-D7). Le compte à rebours avant l'examen se dit sur les
+ * trois écrans de l'onglet, sans lien avec le planning (A1-D8).
+ *
  * Un geste, une écriture (M2-P7) : la réponse et le verdict, ou la suite et la question d'après,
  * s'écrivent d'un seul bloc.
  */
@@ -134,7 +138,7 @@ function ligneDExamen(jours: number | undefined, t: Record<CleTexteCours, string
       : jours === 1
         ? t.heute_examen_1
         : formater(t.heute_examen_n, { n: jours });
-  return <span class="progressline">{texte}</span>;
+  return <span class="examenline">{texte}</span>;
 }
 
 export function Heute() {
@@ -160,7 +164,11 @@ export function Heute() {
   // Le planning ne ferme que les cartes neuves : ce qui est dû reste dû (A1-D7). Le départ relit
   // tout le journal, il ne se refait que si le journal ou le jour change.
   const planning = useMemo(() => planningDuCours(cours.cours), [cours]);
-  const depart = useMemo(() => departDuPlanning(evenements, aujourdhui), [evenements, aujourdhui]);
+  const depart = useMemo(
+    () => (planning === undefined ? aujourdhui : departDuPlanning(evenements, aujourdhui)),
+    [planning, evenements, aujourdhui],
+  );
+  const examen = useMemo(() => memoireDuCours(cours.cours)?.examen, [cours]);
   // Les candidates sont les cartes du choix de Karteikarten (M2-P10), des modules ouverts.
   const candidates = useMemo(() => {
     const fermes =
@@ -250,10 +258,7 @@ export function Heute() {
   const encore = () => setCourante(composer());
 
   const neuves = cartesNeuves(seance.file, etats).length;
-  const compteARebours = ligneDExamen(
-    joursAvantExamen(memoireDuCours(cours.cours)?.examen, aujourdhui),
-    t,
-  );
+  const compteARebours = ligneDExamen(joursAvantExamen(examen, aujourdhui), t);
   // À l'écran de fin : les dues que la séance n'a pas déjà réussies, le journal pouvant être en retard.
   const restantes = dues.filter(({ id }) => !reussis.current.has(id)).length;
 

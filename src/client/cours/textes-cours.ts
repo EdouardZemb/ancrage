@@ -72,6 +72,8 @@ const de = {
   apercu_legende_fach: 'Fach {n}',
   apercu_legende_sicher: 'Fach {n} · sicher',
   apercu_weitere: 'Weitere Übungen',
+  division_uebungen: 'Übungen',
+  apercu_unit: 'Unit {n}',
   apercu_ueben: 'Üben',
   // La ligne des fiches (F1-D12), pas dans le prototype : le singulier pour une seule.
   apercu_feuille_une: '1 Arbeitsblatt',

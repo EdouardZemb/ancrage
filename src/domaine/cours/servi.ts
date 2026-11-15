@@ -186,8 +186,9 @@ function tacheServie(tache: Tache): Tache {
  * le modèle ajoute à un module ne part pas tant qu'on ne l'a pas écrit ici. `ModuleServi` est le
  * module sans son `fichier` : un type de module de plus fait échouer la garde `never`. Un champ
  * facultatif de plus au modèle, lui, ne fait pas échouer `pnpm types` : un littéral qui l'oublie
- * reste bien typé. Le vrai garde est le test `cles_servies_de_chaque_type_de_module`
- * (`routes-cours.test.ts`), qui compare les clés servies à une liste exacte.
+ * reste bien typé. Ce qui le voit, c'est `COURS_SOURCE`, qui porte la clé, avec
+ * `contenu_servi_avec_droit` (il compare le cours servi au modèle) et
+ * `cles_servies_de_chaque_type_de_module` (`routes-cours.test.ts`, une liste exacte des clés).
  */
 export function moduleServi(module: Module): ModuleServi {
   switch (module.type) {
@@ -325,7 +326,9 @@ export function versCoursServi(cours: Cours): CoursServi {
     leitner: cours.leitner,
     ...(cours.memoire === undefined ? {} : { memoire: cours.memoire }),
     ...(cours.planning === undefined ? {} : { planning: cours.planning }),
-    ...(cours.manuels === undefined ? {} : { manuels: cours.manuels }),
+    ...(cours.manuels === undefined
+      ? {}
+      : { manuels: cours.manuels.map(({ id, titre }) => ({ id, titre })) }),
     modules: cours.modules.map(moduleServi),
   };
 }

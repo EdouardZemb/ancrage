@@ -5,6 +5,7 @@ import { analyserContenus } from '../../domaine/contenu/analyse.js';
 import {
   exempleAvecManuels,
   exempleDeCours,
+  ID_MANUEL_ALPHA,
   modifier,
   valeursDeNoticeDExemple,
 } from '../../domaine/contenu/exemple.fixture.js';
@@ -65,7 +66,7 @@ describe('textesDuCours', () => {
     const { cours } = analyserContenus(exempleAvecManuels());
     const [avec] = cours;
     expect(textesDuCours(avec)).toContain('Lehrbuch Alpha');
-    const court = { ...avec, manuels: [{ id: 'b7k2m9qd', titre: 'Lehrbuch Ab' }] };
+    const court = { ...avec, manuels: [{ id: ID_MANUEL_ALPHA, titre: 'Lehrbuch Ab' }] };
     expect(textesDuCours(court)).not.toContain('Lehrbuch Ab'); // onze caractères
     const [sans] = analyserContenus(exempleDeCours()).cours;
     expect(textesDuCours(sans)).not.toContain('Lehrbuch Alpha');

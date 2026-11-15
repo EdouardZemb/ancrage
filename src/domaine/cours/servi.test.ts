@@ -8,6 +8,7 @@ import {
   ID_MANUEL_BETA,
   modifier,
 } from '../contenu/exemple.fixture.js';
+import type { Manuel } from '../contenu/modele.js';
 import { planningDuCours } from '../seances/planning.js';
 import { coursSans, coursServiDeTest, coursServiParLaV030 } from './cours.fixture.js';
 import type { CoursServi } from './servi.js';
@@ -348,6 +349,15 @@ describe('versCoursServi', () => {
     for (const module of versCoursServi(sans).modules) {
       for (const cle of ['manuel', 'chapitre', 'unit']) expect(module).not.toHaveProperty(cle);
     }
+  });
+
+  it('manuels_servis_champ_par_champ_sans_cle_de_trop', () => {
+    const { cours } = analyserContenus(exempleAvecManuels());
+    const manuels = [
+      { id: ID_MANUEL_ALPHA, titre: 'Lehrbuch Alpha', en_trop: 'x' },
+    ] as unknown as Manuel[];
+    const servi = versCoursServi({ ...cours[0], manuels });
+    expect(servi.manuels).toStrictEqual([{ id: ID_MANUEL_ALPHA, titre: 'Lehrbuch Alpha' }]);
   });
 
   it('manuels_et_cles_bien_ou_mal_formes_ne_bloquent_jamais_le_client', () => {

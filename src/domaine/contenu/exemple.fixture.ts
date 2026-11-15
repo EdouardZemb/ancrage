@@ -29,20 +29,29 @@ export function exempleDeCours(): Map<string, string> {
 export const ID_MANUEL_ALPHA = 'b7k2m9qd';
 export const ID_MANUEL_BETA = 'c8n3p5rt';
 
+/** Le bloc `manuels` de `cours.yaml`, d'après des paires (identifiant, titre). */
+export function blocDeManuels(manuels: readonly (readonly [string, string])[]): string {
+  const lignes = manuels.map(([id, titre]) => `  - id: "${id}"\n    titre: "${titre}"\n`);
+  return `manuels:\n${lignes.join('')}`;
+}
+
 /**
  * L'exemple dont le cours nomme deux manuels, « Lehrbuch Alpha » et « Lehrbuch Beta » : chaque
  * module de cartes dit son manuel, son chapitre et sa Unit, le schéma dit son manuel, et les deux
- * identifiants sont dans `ids.lock`.
+ * identifiants sont dans `ids.lock`. `manuels` remplace le bloc `manuels` (un test le dégrade), et
+ * `ids` les identifiants inscrits à `ids.lock`.
  */
-export function exempleAvecManuels(): Map<string, string> {
+export function exempleAvecManuels(
+  manuels = blocDeManuels([
+    [ID_MANUEL_ALPHA, 'Lehrbuch Alpha'],
+    [ID_MANUEL_BETA, 'Lehrbuch Beta'],
+  ]),
+  ids = [ID_MANUEL_ALPHA, ID_MANUEL_BETA],
+): Map<string, string> {
   const fichiers = exempleDeCours();
   const ajouter = (chemin: string, apres: string, cles: string[]) =>
     modifier(fichiers, chemin, `${apres}\n`, `${apres}\n${cles.join('\n')}\n`);
-  const manuels = [
-    [ID_MANUEL_ALPHA, 'Alpha'],
-    [ID_MANUEL_BETA, 'Beta'],
-  ].map(([id, nom]) => `  - id: "${id}"\n    titre: "Lehrbuch ${nom}"\n`);
-  modifier(fichiers, 'essai/cours.yaml', 'modules:\n', `manuels:\n${manuels.join('')}modules:\n`);
+  modifier(fichiers, 'essai/cours.yaml', 'modules:\n', `${manuels}modules:\n`);
   ajouter('essai/cartes/01-grundbegriffe.yaml', 'numero: 1', [
     `manuel: "${ID_MANUEL_ALPHA}"`,
     'chapitre: 2',
@@ -56,12 +65,7 @@ export function exempleAvecManuels(): Map<string, string> {
   ajouter('essai/schemas/muster.yaml', 'titre: "Das Musterorgan"', [
     `manuel: "${ID_MANUEL_ALPHA}"`,
   ]);
-  return modifier(
-    fichiers,
-    'ids.lock',
-    'j5by5stz\n',
-    `j5by5stz\n${ID_MANUEL_ALPHA}\n${ID_MANUEL_BETA}\n`,
-  );
+  return modifier(fichiers, 'ids.lock', 'j5by5stz\n', `j5by5stz\n${ids.join('\n')}\n`);
 }
 
 /** Les valeurs de la notice de l'exemple, telles que l'analyse les rend (S1-D7). */

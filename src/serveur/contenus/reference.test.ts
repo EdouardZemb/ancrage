@@ -8,7 +8,7 @@ import {
   ID_MANUEL_BETA,
   REGLAGES_DE_L_EXAMEN,
 } from '../../domaine/contenu/exemple.fixture.js';
-import type { Cours, Planning } from '../../domaine/contenu/modele.js';
+import type { Cours, Manuel, Planning } from '../../domaine/contenu/modele.js';
 import { calculerReference } from './reference.js';
 
 function coursDe(fichiers: Map<string, string>): Cours {
@@ -389,6 +389,15 @@ describe('calculerReference', () => {
     const ecrite = cours.planning?.etapes[0] ?? {};
     expect(Object.keys(ecrite)).toEqual(['titre', 'seance', 'genre', 'modules']);
     expect(ecrite).not.toHaveProperty('en_trop');
+  });
+
+  it('manuel_recopie_champ_par_champ_dans_l_ordre', () => {
+    const manuel = { titre: 'Lehrbuch Alpha', id: ID_MANUEL_ALPHA, en_trop: 'x' };
+    const manuels = [manuel] as unknown as Manuel[];
+    const { cours } = calculerReference({ ...coursDe(exempleDeCours()), manuels });
+    const ecrit = cours.manuels?.[0] ?? {};
+    expect(Object.keys(ecrit)).toEqual(['id', 'titre']);
+    expect(ecrit).not.toHaveProperty('en_trop');
   });
 
   it('manuels_ecrits_apres_planning_et_cles_des_entrees_dans_l_ordre', () => {

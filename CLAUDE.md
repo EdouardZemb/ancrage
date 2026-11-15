@@ -329,7 +329,7 @@ Sur le poste, `pnpm` s'appelle par `corepack pnpm …` ; en CI, `corepack enable
   poids de FSRS-6 sur les journaux du cours dans une copie de la base, ouverte en lecture seule, tous
   comptes confondus et sans rien qui nomme une personne. N'apprend que sur ce que le rejeu lit : les
   cartes des `--chapitre` donnés ; sinon celles de `chapitres` du manifeste en `par-chapitre` ; sinon,
-  en `fsrs`, toutes les unités du cours ; sinon (Leitner) toutes les cartes. Dit combien de réponses il écarte. Écrit le bloc
+  en `fsrs`, toutes les unités du cours ; sinon (Leitner) toutes les cartes. Dit combien de réponses il écarte (toute réponse de pré-test, ADR-0014, en est). Écrit le bloc
   `parametres:` du manifeste, puis la qualité de la prédiction avant et après, sur ce filtre. Refuse une
   copie brute en mode WAL (copier par `VACUUM INTO`). Codes : 0 ajusté ; 2 moins de 1 000 révisions
   exploitables ; 64 usage (sans `--contenu`, ou `--chapitre` qui n'est pas un module de cartes) ; 1 base
@@ -337,7 +337,7 @@ Sur le poste, `pnpm` s'appelle par `corepack pnpm …` ; en CI, `corepack enable
 - `corepack pnpm memoire:rapport --base <copie.sqlite> --cours <id> --contenu <dossier> --sortie <fichier.html> [--personne <identifiant> --accord <JJ/MM/AAAA>] [--jusquau <AAAA-MM-JJ>] [--ecraser]` :
   outil du poste, hors de l'image. Écrit le rapport de suivi d'un cours, une page HTML autonome et
   privée (charge par jour, réussite selon le délai et le mode, part vue et sûre, projection jusqu'à
-  l'examen par algorithme). Sans `--personne`, rapport d'ensemble : il ne lit que les personnes actives (20
+  l'examen par algorithme ; les réponses de pré-test n'entrent dans aucune case). Sans `--personne`, rapport d'ensemble : il ne lit que les personnes actives (20
   réponses dans les 28 jours qui finissent au jour du rapport) ; sous trois il ne garde que le nombre
   d'éléments du cours ; toute case (jour, semaine, délai, mode, boîte, minutes) n'est gardée qu'à 3
   personnes, 20 réponses et aucune personne au-delà de 70 % ; ni compte exact ni total (des

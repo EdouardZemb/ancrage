@@ -590,3 +590,29 @@ test('l_ecart_median_est_celui_de_la_personne_mediane_et_non_celui_de_toutes_les
   expect(html).toContain('(100 secondes)');
   expect(html).not.toContain('(60 secondes)');
 });
+
+test('le_rapport_dit_que_les_reponses_de_pretest_sont_ecartees_et_ne_les_compte_pas', () => {
+  const sans = troisActives();
+  const avec = sans.map((journal, i) => [
+    ...journal,
+    ...Array.from({ length: 25 }, (_, k) =>
+      reponseInventee(
+        Date.UTC(2026, 1, 3 + (k % 20), 8, 0, k),
+        900_000 + i * 100 + k,
+        idsDesPosables(cours).at(k) ?? '',
+        k % 2 === 0,
+        cours.cours.id,
+        'pretest',
+      ),
+    ),
+  ]);
+
+  const html = rapport(avec);
+
+  expect(html).toBe(rapport(sans));
+  // La note des modes et la définition d'une réponse le disent.
+  expect(html).toMatch(
+    /Selon le mode de la réponse[\s\S]*Les réponses de pré-test[^.]*sont écartées/,
+  );
+  expect(html).toMatch(/<strong>Une réponse<\/strong>[^<]*pré-test/);
+});

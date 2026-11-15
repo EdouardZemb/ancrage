@@ -3,6 +3,7 @@ import type { Evenement, ModeDeReponse } from '../../domaine/journal/evenement.j
 import { coursDExemple } from './cours-exemple.fixture.js';
 import { reponseInventee } from './ecrire-journal.fixture.js';
 import {
+  CLES_DE_MODE,
   caseAdmise,
   estActive,
   MINIMUM_D_UNE_CASE,
@@ -170,4 +171,46 @@ test('une_case_demande_trois_personnes_vingt_reponses_et_aucune_au_dela_de_70_po
 
 test('le_minimum_d_une_case_est_de_vingt_reponses', () => {
   expect(MINIMUM_D_UNE_CASE).toBe(20);
+});
+
+test('un_journal_avec_des_pretests_a_les_mesures_du_meme_journal_sans_eux', () => {
+  const sans = petitJournal();
+  const pretests = [
+    // Avant toute réponse, un jour de pré-tests seuls, une unité jamais répondue, une faute après
+    // une réponse juste, une réponse juste après une faute.
+    reponse(4, 9, 0, 0, A, false, 'pretest'),
+    reponse(5, 10, 0, 10, B, true, 'pretest'),
+    reponse(5, 10, 0, 50, A, true, 'pretest'),
+    reponse(5, 11, 0, 0, 'z4n0v1t8', false, 'pretest'),
+    reponse(6, 9, 0, 20, A, false, 'pretest'),
+    reponse(8, 10, 0, 0, B, true, 'pretest'),
+    reponse(9, 10, 0, 0, A, false, 'pretest'),
+  ];
+  const avec = [
+    ...sans.slice(0, 3),
+    pretests[0],
+    ...pretests.slice(1, 4),
+    ...sans.slice(3),
+    ...pretests.slice(4),
+  ];
+  expect(avec.filter((e) => e.type === 'reponse' && e.resultat.mode === 'pretest')).toHaveLength(7);
+
+  for (const jour of ['2026-01-07', '2026-01-09']) {
+    expect(mesures(avec, cours, jour)).toEqual(mesures(sans, cours, jour));
+  }
+  const m = mesures(avec, cours, '2026-01-09');
+  expect(m.reponses).toBe(6);
+  expect(m.premierJour).toBe('2026-01-05');
+  expect(m.dernierJour).toBe('2026-01-07');
+  expect(Object.keys(m.parJour)).toEqual(['2026-01-05', '2026-01-06', '2026-01-07']);
+  // Ni une case de mode, ni l'activité : le pré-test n'est rien de cela.
+  expect(CLES_DE_MODE).not.toContain('pretest');
+  expect(Object.keys(m.modes)).not.toContain('pretest');
+  const dixNeufEtPretests = [
+    ...Array.from({ length: 19 }, (_, i) => reponse(30, 9, 0, i, A, true, 'retournee')),
+    ...Array.from({ length: 5 }, (_, i) => reponse(30, 10, 0, i, A, true, 'pretest')),
+  ];
+  expect(estActive(dixNeufEtPretests, '2026-01-30')).toBe(false);
+  const vingtEtPretests = [reponse(30, 9, 0, 59, A, true, 'retournee'), ...dixNeufEtPretests];
+  expect(estActive(vingtEtPretests, '2026-01-30')).toBe(true);
 });

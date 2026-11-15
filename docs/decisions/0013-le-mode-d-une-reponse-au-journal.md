@@ -1,6 +1,6 @@
 # ADR-0013 — Le mode d'une réponse au journal : le geste, et rien d'autre
 
-- **Statut** : accepté le 2026-11-12
+- **Statut** : accepté le 2026-11-12 ; précisé le 2026-11-15 par l'ADR-0014, qui ajoute un dixième mode, `pretest`
 - **Contexte amont** : issue 21 du dépôt (`ancrage#21`, lot M3) ; ADR-0004 (le journal, auquel on ne
   fait qu'ajouter, et son format qui n'évolue que par ajouts) ; ADR-0007 (§1, ce que l'application
   collecte, et sa « Difficile à changer » : une donnée de plus oblige à modifier la notice et à

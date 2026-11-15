@@ -106,7 +106,7 @@ export async function executer(argv: readonly string[], sortie: Sortie): Promise
   }
   if (!ajustement.ajuste) {
     sortie.err(
-      `${ajustement.revues} révisions exploitables, moins de ${MINIMUM_DE_REVUES} : aucun paramètre écrit (${ecartees} réponse(s) écartée(s))`,
+      `${ajustement.revues} révisions exploitables, moins de ${MINIMUM_DE_REVUES} : aucun paramètre écrit (${ecartees} réponse(s) écartée(s), pré-tests compris)`,
     );
     return SORTIE_TROP_PEU;
   }
@@ -119,8 +119,8 @@ export async function executer(argv: readonly string[], sortie: Sortie): Promise
   sortie.out(`${ajustement.revues} révisions exploitables, tous comptes confondus.`);
   sortie.out(
     choisis.chapitres === null
-      ? `Appris sur tout le cours (FSRS le planifie en entier) ; ${ecartees} réponse(s) écartée(s).`
-      : `Appris sur les cartes de ${choisis.chapitres.size} module(s) ; ${ecartees} réponse(s) écartée(s) (autres modules, mots, points, exercices, fiches).`,
+      ? `Appris sur tout le cours (FSRS le planifie en entier) ; ${ecartees} réponse(s) écartée(s) (pré-tests).`
+      : `Appris sur les cartes de ${choisis.chapitres.size} module(s) ; ${ecartees} réponse(s) écartée(s) (autres modules, mots, points, exercices, fiches, pré-tests).`,
   );
   sortie.out('');
   ecrireQualite('Avant (poids par défaut)', ajustement.avant, sortie);

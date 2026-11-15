@@ -1,6 +1,6 @@
 import type { CoursPrepare } from '../../domaine/cours/prepare.js';
 import { memoireDuCours } from '../../domaine/cours/servi.js';
-import type { Evenement } from '../../domaine/journal/evenement.js';
+import { type Evenement, estPretest } from '../../domaine/journal/evenement.js';
 
 /*
  * Ce que l'ajustement apprend (M3) : ce que le rejeu lit, c'est-à-dire ce que FSRS planifiera. En
@@ -39,21 +39,24 @@ export function chapitresAAjuster(
 
 /**
  * Ne garde des `journaux` que les réponses aux cartes des `chapitres` (`null` : tout le cours), et
- * compte celles qui sont écartées. Rien qui nomme une personne n'en sort : des journaux et un nombre.
+ * compte celles qui sont écartées. Toute réponse de pré-test est écartée et comptée (ADR-0014), des
+ * chapitres ou non. Rien qui nomme une personne n'en sort : des journaux et un nombre.
  */
 export function garderLesCartes(
   journaux: readonly (readonly Evenement[])[],
   cours: CoursPrepare,
   chapitres: ReadonlySet<string> | null,
 ): { journaux: Evenement[][]; ecartees: number } {
-  if (chapitres === null) return { journaux: journaux.map((journal) => [...journal]), ecartees: 0 };
-  const unites = new Set(
-    cours.unites.filter((unite) => chapitres.has(unite.module)).map((unite) => unite.id),
-  );
+  const unites =
+    chapitres === null
+      ? null
+      : new Set(
+          cours.unites.filter((unite) => chapitres.has(unite.module)).map((unite) => unite.id),
+        );
   let ecartees = 0;
   const gardes = journaux.map((journal) =>
     journal.filter((evenement) => {
-      const garde = unites.has(evenement.unite);
+      const garde = !estPretest(evenement) && (unites === null || unites.has(evenement.unite));
       if (!garde) ecartees += 1;
       return garde;
     }),

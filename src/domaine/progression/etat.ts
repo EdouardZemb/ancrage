@@ -1,5 +1,10 @@
 import type { ReglagesLeitner } from '../contenu/modele.js';
-import { type Evenement, fusionnerEvenements, type ResultatExamen } from '../journal/evenement.js';
+import {
+  type Evenement,
+  estPretest,
+  fusionnerEvenements,
+  type ResultatExamen,
+} from '../journal/evenement.js';
 import { ajouterJours, jourDe } from '../journal/temps.js';
 
 /*
@@ -17,6 +22,15 @@ import { ajouterJours, jourDe } from '../journal/temps.js';
 /** Le journal dans son ordre, chaque `id` une seule fois : le premier fait foi. */
 export function journalSansDoublon(evenements: readonly Evenement[]): Evenement[] {
   return fusionnerEvenements(evenements, []);
+}
+
+/**
+ * Le journal sans doublon et sans les réponses de pré-test (ADR-0014) : ce que lisent l'état de
+ * Leitner, FSRS, les découvertes du jour et les réponses par jour. Le départ d'un planning,
+ * l'export, la suppression et la purge lisent, eux, tout le journal.
+ */
+export function journalDesRevisions(evenements: readonly Evenement[]): Evenement[] {
+  return journalSansDoublon(evenements).filter((evenement) => !estPretest(evenement));
 }
 
 /** La dernière boîte de Leitner : les boîtes vont de 0 (neuve) à 5. */
@@ -55,7 +69,7 @@ export function etatsDesUnites(
   leitner: ReglagesLeitner,
 ): ReadonlyMap<string, EtatUnite> {
   const etats = new Map<string, EtatUnite>();
-  for (const evenement of journalSansDoublon(evenements)) {
+  for (const evenement of journalDesRevisions(evenements)) {
     if (evenement.type !== 'reponse') continue;
     const jour = jourDe(evenement.repondu_a);
     const avant = etatDe(etats, evenement.unite);
@@ -95,7 +109,7 @@ export function estDue(etat: EtatUnite, aujourdhui: string): boolean {
  */
 export function reponsesParJour(evenements: readonly Evenement[]): ReadonlyMap<string, number> {
   const jours = new Map<string, number>();
-  for (const evenement of journalSansDoublon(evenements)) {
+  for (const evenement of journalDesRevisions(evenements)) {
     if (evenement.type !== 'reponse') continue;
     const jour = jourDe(evenement.repondu_a);
     jours.set(jour, (jours.get(jour) ?? 0) + 1);

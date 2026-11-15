@@ -3,8 +3,11 @@ import {
   comparerPositions,
   creerIdEvenement,
   type Evenement,
+  estPretest,
   fusionnerEvenements,
+  MODE_PRETEST,
   MODES_DE_REPONSE,
+  MODES_DE_REVISION,
   schemaEvenement,
   trierEvenements,
   VERSION_EVENEMENT,
@@ -81,7 +84,7 @@ it('evenement_valide_accepte', () => {
 
 it('le_mode_d_une_reponse_est_facultatif_et_ferme', () => {
   // La liste de M3-P2, dans son ordre : un mode ajouté ou retiré change le format du journal.
-  expect(MODES_DE_REPONSE).toEqual([
+  const gestes = [
     'retournee',
     'saisie',
     'corrigee',
@@ -91,7 +94,11 @@ it('le_mode_d_une_reponse_est_facultatif_et_ferme', () => {
     'association',
     'montree',
     'lecture',
-  ]);
+  ];
+  expect(MODES_DE_REVISION).toEqual(gestes);
+  expect(MODE_PRETEST).toBe('pretest');
+  // Le dixième mode, celui d'un pré-test (ADR-0014), vient après les neuf gestes.
+  expect(MODES_DE_REPONSE).toEqual([...gestes, 'pretest']);
   // Sans mode, accepté, et rendu sans la clé.
   expect(schemaEvenement.parse(REPONSE)).not.toHaveProperty('mode');
   // Avec chacun des modes, accepté, et conservé.
@@ -114,6 +121,25 @@ it('le_mode_d_une_reponse_est_facultatif_et_ferme', () => {
   ]);
   // Le format n'a pas changé : un serveur d'avant refuserait tout autre `v`.
   expect(accepte(reponse({ v: 2, resultat: { juste: true, mode: 'saisie' } }))).toBe(false);
+});
+
+it('une_reponse_pretest_est_acceptee_et_conservee_juste_comme_fausse', () => {
+  for (const juste of [true, false]) {
+    const evenement = reponse({ resultat: { juste, mode: 'pretest' } });
+    expect(accepte(evenement), String(juste)).toBe(true);
+    expect(schemaEvenement.parse(evenement)).toEqual(evenement);
+  }
+});
+
+it('est_pretest_ne_vaut_que_pour_une_reponse_de_ce_mode', () => {
+  const lu = (valeur: unknown): Evenement => schemaEvenement.parse(valeur);
+  expect(estPretest(lu(reponse({ resultat: { juste: true, mode: 'pretest' } })))).toBe(true);
+  expect(estPretest(lu(reponse({ resultat: { juste: false, mode: 'pretest' } })))).toBe(true);
+  expect(estPretest(lu(REPONSE))).toBe(false);
+  for (const mode of MODES_DE_REVISION) {
+    expect(estPretest(lu(reponse({ resultat: { juste: true, mode } }))), mode).toBe(false);
+  }
+  expect(estPretest(lu(EXAMEN))).toBe(false);
 });
 
 it('champ_personne_refuse', () => {

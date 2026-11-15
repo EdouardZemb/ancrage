@@ -1,7 +1,7 @@
 import { FSRS6_DEFAULT_WEIGHTS } from 'ts-fsrs/models/fsrs-6';
 import { expect, it } from 'vitest';
 import type { ReglagesLeitner, ReglagesMemoire } from '../contenu/modele.js';
-import { examenRemisDeTest, reponseDeTest } from '../evenements.fixture.js';
+import { examenRemisDeTest, pretestDeTest, reponseDeTest } from '../evenements.fixture.js';
 import { hasardDeterministe } from '../hasard.js';
 import type { Evenement } from '../journal/evenement.js';
 import { ajouterJours, jourDe } from '../journal/temps.js';
@@ -296,4 +296,40 @@ it('le passage d’un chapitre après un mois : FSRS ne dépasse pas une fois et
   const message = `dues en Leitner ${duesLeitner}, en FSRS ${duesFsrs}`;
   expect(duesLeitner, message).toBeGreaterThan(0);
   expect(duesFsrs, message).toBeLessThanOrEqual(Math.floor(duesLeitner * 1.5));
+});
+
+it('en par-chapitre, un pré-test sur une carte en FSRS et un sur une carte en Leitner ne changent aucun état', () => {
+  const memoire: ReglagesMemoire = {
+    algorithme: 'par-chapitre',
+    retention: 0.9,
+    chapitres: ['fsrs'],
+  };
+  const chapitreDe = (unite: string): string | undefined =>
+    unite.startsWith('f') ? 'fsrs' : 'leitner';
+  const vrai = [
+    repAMidi(1, 'f1', true, J0),
+    repAMidi(2, 'l1', true, J0),
+    repAMidi(3, 'f1', true, ajouterJours(J0, 3)),
+    repAMidi(4, 'l1', false, ajouterJours(J0, 3)),
+  ];
+  const avecPretests = [
+    pretestDeTest(10, 'f1', false, `${ajouterJours(J0, -1)}T12:00:00.000+01:00`),
+    pretestDeTest(11, 'l1', false, `${ajouterJours(J0, -1)}T13:00:00.000+01:00`),
+    vrai[0],
+    vrai[1],
+    pretestDeTest(12, 'f1', false, `${ajouterJours(J0, 1)}T12:00:00.000+01:00`),
+    pretestDeTest(13, 'l1', true, `${ajouterJours(J0, 1)}T13:00:00.000+01:00`),
+    pretestDeTest(14, 'f2', true, `${ajouterJours(J0, 1)}T14:00:00.000+01:00`),
+    pretestDeTest(15, 'l2', false, `${ajouterJours(J0, 1)}T15:00:00.000+01:00`),
+    vrai[2],
+    vrai[3],
+  ];
+  const ordonnanceur = ordonnanceurDe({ leitner: LEITNER, memoire, chapitreDe });
+
+  const etats = ordonnanceur(avecPretests);
+
+  expect(etats).toEqual(ordonnanceur(vrai));
+  // Les unités répondues en pré-test seulement restent neuves.
+  expect(etats.has('f2')).toBe(false);
+  expect(etats.has('l2')).toBe(false);
 });

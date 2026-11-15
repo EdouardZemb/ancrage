@@ -4,7 +4,7 @@ import type { CoursPrepare, ModuleServiDe } from '../cours/prepare.js';
 import { type Hasard, melanger } from '../hasard.js';
 import type { Evenement } from '../journal/evenement.js';
 import { jourDe } from '../journal/temps.js';
-import { type EtatUnite, estDue, etatDe, journalSansDoublon } from '../progression/etat.js';
+import { type EtatUnite, estDue, etatDe, journalDesRevisions } from '../progression/etat.js';
 import { type ElementFerme, elementsTirables, GENRES_FERMES, idDeLElement } from './feuilles.js';
 
 /*
@@ -78,8 +78,9 @@ export function cartesNeuves(
 /**
  * Les cartes de `cartes` découvertes le `jour` (M2-P9) : celles dont la première réponse du journal
  * est de ce jour (local), où qu'elle ait été donnée. La première est la plus ancienne, dans l'ordre
- * du journal sans doublon, et non la première arrivée. Une réponse à une autre unité, ou un
- * événement d'examen, ne compte pas.
+ * du journal sans doublon, et non la première arrivée. Une réponse à une autre unité, un
+ * événement d'examen ou une réponse de pré-test (ADR-0014) ne compte pas : la première vraie
+ * réponse d'une carte pré-testée est sa découverte.
  */
 export function decouvertesLe(
   evenements: readonly Evenement[],
@@ -88,7 +89,7 @@ export function decouvertesLe(
 ): number {
   const vues = new Set<string>();
   let decouvertes = 0;
-  for (const evenement of journalSansDoublon(evenements)) {
+  for (const evenement of journalDesRevisions(evenements)) {
     if (evenement.type !== 'reponse' || !cartes.has(evenement.unite)) continue;
     if (vues.has(evenement.unite)) continue;
     vues.add(evenement.unite);

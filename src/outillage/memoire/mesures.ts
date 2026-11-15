@@ -1,8 +1,13 @@
 import { ordonnanceurDuCours } from '../../client/cours/ordonnanceur-du-cours.js';
 import type { CoursPrepare } from '../../domaine/cours/prepare.js';
-import { type Evenement, MODES_DE_REPONSE } from '../../domaine/journal/evenement.js';
+import {
+  type Evenement,
+  estPretest,
+  MODES_DE_REVISION,
+  type ModeDeRevision,
+} from '../../domaine/journal/evenement.js';
 import { ajouterJours, jourDe } from '../../domaine/journal/temps.js';
-import { estDue, journalSansDoublon } from '../../domaine/progression/etat.js';
+import { estDue, journalDesRevisions } from '../../domaine/progression/etat.js';
 import { posablesDuCours } from '../../domaine/seances/heute.js';
 
 /*
@@ -35,8 +40,8 @@ export const CLES_DE_DELAI = [
 ] as const;
 export type CleDeDelai = (typeof CLES_DE_DELAI)[number];
 
-/** Les modes de réponse, puis les réponses qui n'en portent pas. */
-export const CLES_DE_MODE = [...MODES_DE_REPONSE, 'sans-mode'] as const;
+/** Les modes d'une révision, puis les réponses qui n'en portent pas : jamais `pretest` (B-D9). */
+export const CLES_DE_MODE = [...MODES_DE_REVISION, 'sans-mode'] as const;
 export type CleDeMode = (typeof CLES_DE_MODE)[number];
 
 export interface Mesures {
@@ -138,12 +143,12 @@ function caseDuJour(parJour: Mesures['parJour'], jour: string): Mesures['parJour
   return neuve;
 }
 
-type Reponse = Evenement & { type: 'reponse' };
+type Reponse = Evenement & { type: 'reponse'; resultat: { mode?: ModeDeRevision } };
 
-/** Les réponses du journal, sans doublon, dans l'ordre du journal. */
+/** Les réponses du journal, sans doublon et sans les pré-tests (B-D9), dans l'ordre du journal. */
 function reponsesDe(journal: readonly Evenement[]): Reponse[] {
-  return journalSansDoublon(journal).filter(
-    (evenement): evenement is Reponse => evenement.type === 'reponse',
+  return journalDesRevisions(journal).filter(
+    (evenement): evenement is Reponse => evenement.type === 'reponse' && !estPretest(evenement),
   );
 }
 

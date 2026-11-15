@@ -9,6 +9,8 @@ import {
   etatDe,
   etatsDesUnites,
   examensPasses,
+  journalDesRevisions,
+  journalSansDoublon,
   reponsesParJour,
   serie,
 } from './etat.js';
@@ -429,4 +431,99 @@ it('evenement_present_deux_fois_ne_change_rien', () => {
   expect(reponsesParJour([juste, autreJour])).toEqual(new Map([['2026-10-16', 1]]));
   const autreExamen = { ...examen, resultat: { ...RESULTAT_EXAMEN, note: 6 } } as Evenement;
   expect(examensPasses([examen, autreExamen])).toEqual(examensPasses([examen]));
+});
+
+/** Une réponse de pré-test (ADR-0014), donnée à l'instant local `reponduA`. */
+function pre(n: number, unite: string, juste: boolean, reponduA: string): Evenement {
+  return { ...rep(n, unite, juste, reponduA), resultat: { juste, mode: 'pretest' } } as Evenement;
+}
+
+it('journal_des_revisions_retire_les_pretests_garde_l_ordre_et_les_doublons_en_moins', () => {
+  const premiere = rep(1, U1, true, '2026-10-16T10:00:00.000+02:00');
+  const test = pre(2, U1, false, '2026-10-16T11:00:00.000+02:00');
+  const suivante = rep(3, U2, false, '2026-10-16T12:00:00.000+02:00');
+  const faute = pre(4, U2, true, '2026-10-16T13:00:00.000+02:00');
+  const journal = [
+    suivante,
+    premiere,
+    faute,
+    test,
+    premiere,
+    exam(5, '2026-10-16T14:00:00.000+02:00'),
+  ];
+
+  const revisions = journalDesRevisions(journal);
+
+  // L'ordre du journal, un seul exemplaire de chaque `id`, l'examen gardé, les pré-tests partis.
+  expect(revisions.map((e) => e.id)).toEqual([ID(1), ID(3), ID(5)]);
+  // Le journal sans doublon, lui, les garde (le départ d'un planning, l'export les comptent).
+  expect(journalSansDoublon(journal).map((e) => e.id)).toEqual([ID(1), ID(2), ID(3), ID(4), ID(5)]);
+});
+
+it('journal_des_revisions_d_un_journal_sans_pretest_est_le_journal_sans_doublon', () => {
+  const journal = [
+    rep(2, U2, true, '2026-10-16T12:00:00.000+02:00'),
+    rep(1, U1, false, '2026-10-16T10:00:00.000+02:00'),
+    rep(1, U1, false, '2026-10-16T10:00:00.000+02:00'),
+  ];
+  expect(journalDesRevisions(journal)).toEqual(journalSansDoublon(journal));
+});
+
+it('une_unite_repondue_en_pretest_seulement_est_absente_de_l_etat', () => {
+  const journal = [pre(1, U1, true, '2026-10-16T10:00:00.000+02:00')];
+  expect(etatsDesUnites(journal, LEITNER).has(U1)).toBe(false);
+  expect(etatsDesUnites(journal, LEITNER).size).toBe(0);
+});
+
+it('un_pretest_ne_change_aucun_etat_juste_comme_faux', () => {
+  const vrai = [
+    rep(1, U1, true, '2026-10-16T10:00:00.000+02:00'),
+    rep(2, U2, false, '2026-10-16T10:05:00.000+02:00'),
+    rep(3, U1, true, '2026-10-17T10:00:00.000+02:00'),
+  ];
+  const avecPretests = [
+    pre(10, U1, false, '2026-10-15T09:00:00.000+02:00'),
+    vrai[0],
+    pre(11, U1, false, '2026-10-16T10:02:00.000+02:00'),
+    vrai[1],
+    pre(12, U2, true, '2026-10-16T23:00:00.000+02:00'),
+    vrai[2],
+    pre(13, U1, false, '2026-10-18T10:00:00.000+02:00'),
+  ];
+  // Mêmes boîtes, mêmes échéances, mêmes comptes : la faute d'un pré-test, après une réponse
+  // juste, ne renvoie pas l'unité en boîte 1.
+  expect(etatsDesUnites(avecPretests, LEITNER)).toEqual(etatsDesUnites(vrai, LEITNER));
+  expect(etatsDesUnites(avecPretests, LEITNER).get(U1)?.boite).toBe(2);
+});
+
+it('les_reponses_par_jour_et_la_serie_ne_comptent_pas_un_pretest', () => {
+  const journal = [
+    rep(1, U1, true, '2026-10-15T10:00:00.000+02:00'),
+    pre(2, U1, true, '2026-10-16T10:00:00.000+02:00'),
+    pre(3, U2, false, '2026-10-16T10:05:00.000+02:00'),
+    pre(4, U2, false, '2026-10-17T10:05:00.000+02:00'),
+    rep(5, U2, true, '2026-10-17T11:00:00.000+02:00'),
+  ];
+
+  const jours = reponsesParJour(journal);
+
+  // Le 16, un jour de pré-tests seuls, n'y est pas ; le 17 ne compte que la vraie réponse.
+  expect(jours).toEqual(
+    new Map([
+      ['2026-10-15', 1],
+      ['2026-10-17', 1],
+    ]),
+  );
+  expect(jours.has('2026-10-16')).toBe(false);
+  // Le 16 manquant coupe la série : elle ne compte que le 17.
+  expect(serie(jours, '2026-10-17')).toBe(1);
+  expect(serie(jours, '2026-10-18')).toBe(1);
+});
+
+it('les_examens_passes_ne_changent_pas_avec_des_pretests', () => {
+  const journal = [
+    pre(1, U1, true, '2026-10-16T10:00:00.000+02:00'),
+    exam(2, '2026-10-17T10:00:00.000+02:00'),
+  ];
+  expect(examensPasses(journal)).toEqual(examensPasses([journal[1]]));
 });

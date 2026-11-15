@@ -3,7 +3,7 @@ import { coursServiDeTest } from '../cours/cours.fixture.js';
 import { preparerCours } from '../cours/prepare.js';
 import { hasardDeterministe } from '../hasard.js';
 import type { Evenement } from '../journal/evenement.js';
-import type { EtatUnite } from '../progression/etat.js';
+import { type EtatUnite, etatsDesUnites } from '../progression/etat.js';
 import {
   apresReponseDuJour,
   bilanDuJour,
@@ -599,4 +599,40 @@ it('compose_seance_borne_le_quota_par_la_place_que_laissent_les_dues', () => {
   );
 
   expect(file).toHaveLength(TAILLE_DE_SEANCE);
+});
+
+/** Une réponse de pré-test à `unite` (ADR-0014). */
+function pretest(n: number, unite: string, reponduA: string, juste = false): Evenement {
+  return {
+    ...reponse(n, unite, reponduA, juste),
+    resultat: { juste, mode: 'pretest' },
+  } as Evenement;
+}
+
+it('decouvertes_le_une_carte_pretestee_hier_et_repondue_aujourd_hui_est_decouverte_aujourd_hui', () => {
+  const journal = [pretest(1, HERZ, HIER_A_10H), reponse(2, HERZ, AUJOURDHUI_A_10H)];
+
+  expect(decouvertesLe(journal, AUJOURDHUI, LES_DEUX)).toBe(1);
+  expect(decouvertesLe(journal, '2026-10-16', LES_DEUX)).toBe(0);
+});
+
+it('decouvertes_le_un_pretest_d_aujourd_hui_seul_ne_decouvre_rien', () => {
+  const journal = [
+    pretest(1, HERZ, AUJOURDHUI_A_10H, true),
+    pretest(2, LEBER, AUJOURDHUI_A_10H, false),
+  ];
+
+  expect(decouvertesLe(journal, AUJOURDHUI, LES_DEUX)).toBe(0);
+});
+
+it('cartes_neuves_garde_une_carte_pretestee', () => {
+  const tous = lesPosables();
+  const [carte] = tous.filter((p) => p.genre === 'carte');
+  // Le pré-test n'entre dans aucun état : la carte pré-testée reste en boîte 0.
+  const etats = etatsDesUnites(
+    [pretest(1, carte.id, HIER_A_10H), pretest(2, carte.id, AUJOURDHUI_A_10H, true)],
+    { intervalles: [0, 1, 2, 4, 8, 16], nouvellesParSeance: 15 },
+  );
+
+  expect(cartesNeuves(tous, etats).map(({ id }) => id)).toContain(carte.id);
 });

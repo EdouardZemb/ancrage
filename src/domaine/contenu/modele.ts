@@ -28,6 +28,12 @@ export interface ModuleCartes {
   fichier: string;
   numero: number;
   titre: string;
+  /** L'identifiant d'un manuel du cours (A2-D2). Absent : le cours ne nomme pas ses manuels. */
+  manuel?: string;
+  /** Le numéro du chapitre dans ce manuel. */
+  chapitre?: number;
+  /** La Unit du chapitre. */
+  unit?: number;
   cartes: Carte[];
 }
 
@@ -70,6 +76,8 @@ export interface ModuleSchema extends Etat {
   id: string;
   fichier: string;
   titre: string;
+  /** L'identifiant d'un manuel du cours. */
+  manuel?: string;
   description?: string;
   viewbox: string;
   /** L'intérieur du SVG, sans son cadre. */
@@ -335,6 +343,12 @@ export interface Planning {
   etapes: EtapeDePlanning[];
 }
 
+/** Un manuel du cours : un identifiant du format, et son titre. */
+export interface Manuel {
+  id: string;
+  titre: string;
+}
+
 export interface Cours {
   id: string;
   /** Le dossier du cours, à la racine du dossier de contenu. */
@@ -347,6 +361,8 @@ export interface Cours {
   memoire?: ReglagesMemoire;
   /** Le planning des modules. Absent : le cours n'en a pas écrit. */
   planning?: Planning;
+  /** Les manuels du cours, dans l'ordre écrit. Absent : le cours n'en nomme pas. */
+  manuels?: Manuel[];
   /**
    * La dérogation écrite dans `cours.yaml` qui autorise la diffusion à un groupe d'un cours « à
    * vérifier » (invariant 9). Absente : le cours n'en a pas.

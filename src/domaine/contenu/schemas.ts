@@ -93,6 +93,9 @@ const moduleCartes = z
     id: identifiant,
     numero: entierPositif,
     titre: z.string(),
+    manuel: identifiant.optional(),
+    chapitre: entierPositif.optional(),
+    unit: entierPositif.optional(),
     ...etatDuModule,
     cartes: z.array(carte),
   })
@@ -145,6 +148,7 @@ const moduleSchema = z
     type: z.literal('schema'),
     id: identifiant,
     titre: z.string(),
+    manuel: identifiant.optional(),
     description,
     ...etatDuModule,
     dessin: z.string(),
@@ -603,6 +607,16 @@ const reglagesPlanning = z
     });
   });
 
+/** Une liste, pour que l'ordre des divisions soit celui de l'écriture (A2-D1). */
+const reglagesManuels = z
+  .array(
+    z.strictObject({
+      id: identifiant,
+      titre: z.string().refine((texte) => texte.trim() !== '', { error: 'Le titre est vide.' }),
+    }),
+  )
+  .min(1, { error: 'Attendu au moins un manuel.' });
+
 export const schemaDeCours = z.strictObject({
   format: z.literal(1),
   id: identifiant,
@@ -612,6 +626,7 @@ export const schemaDeCours = z.strictObject({
   leitner: reglagesLeitner,
   memoire: reglagesMemoire.optional(),
   planning: reglagesPlanning.optional(),
+  manuels: reglagesManuels.optional(),
   derogation_diffusion: derogationDiffusion.optional(),
   modules: z.array(z.string()),
 });

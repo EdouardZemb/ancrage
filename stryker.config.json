@@ -17,6 +17,7 @@
     "src/domaine/seances/feuilles.ts",
     "src/domaine/seances/heute.ts",
     "src/domaine/seances/planning.ts",
+    "src/domaine/contenu/analyse-manuels.ts",
     "src/domaine/notice.ts",
     "src/serveur/comptes/export.ts",
     "src/serveur/comptes/purge.ts",

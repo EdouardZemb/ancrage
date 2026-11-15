@@ -5,6 +5,8 @@ import {
   unitesDeCartes,
 } from '../cartes/unites.js';
 import { idsDeFeuille } from '../contenu/feuille.js';
+import type { Manuel } from '../contenu/modele.js';
+import { lireManuels, rangementDuChapitre } from './manuels.js';
 import type { CoursServi, ModuleServi } from './servi.js';
 
 /*
@@ -19,6 +21,12 @@ export interface Chapitre {
   id: string;
   numero: number;
   titre: string;
+  /** Le manuel du chapitre, s'il nomme un manuel lu (A2-D12). */
+  manuel?: string;
+  /** Son numéro dans ce manuel : présent avec `manuel`. */
+  chapitre?: number;
+  /** Sa Unit, si elle est lisible. */
+  unit?: number;
 }
 
 /**
@@ -44,6 +52,8 @@ export interface CoursPrepare {
   cours: CoursServi;
   unites: UniteDeCarte[];
   index: IndexDesReponses;
+  /** Les manuels du cours, `[]` s'il n'en nomme pas ou si ce client ne les lit pas. */
+  manuels: Manuel[];
   chapitres: Chapitre[];
   morphologie?: ModuleServiDe<'morphologie'>;
   schemas: ModuleServiDe<'schema'>[];
@@ -73,6 +83,7 @@ function modulesDe<T extends ModuleServi['type']>(cours: CoursServi, type: T): M
 export function preparerCours(cours: CoursServi): CoursPrepare {
   const modulesDeCartes = modulesDe(cours, 'cartes');
   const unites = unitesDeCartes(modulesDeCartes);
+  const manuels = lireManuels(cours.manuels);
   const [morphologie] = modulesDe(cours, 'morphologie');
   const schemas = modulesDe(cours, 'schema');
   const [textes] = modulesDe(cours, 'texte-annote');
@@ -94,7 +105,13 @@ export function preparerCours(cours: CoursServi): CoursPrepare {
     cours,
     unites,
     index: indexerReponses(unites),
-    chapitres: modulesDeCartes.map(({ id, numero, titre }) => ({ id, numero, titre })),
+    manuels,
+    chapitres: modulesDeCartes.map((module) => ({
+      id: module.id,
+      numero: module.numero,
+      titre: module.titre,
+      ...rangementDuChapitre(module, manuels),
+    })),
     morphologie,
     schemas,
     textes,

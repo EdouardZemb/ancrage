@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { reponsesAcceptees } from '../cartes/unites.js';
+import { ID_MANUEL_ALPHA, ID_MANUEL_BETA } from '../contenu/exemple.fixture.js';
 import type { Tache } from '../contenu/modele.js';
-import { CHAPITRE_1, CHAPITRE_2, coursServiDeTest } from './cours.fixture.js';
+import { CHAPITRE_1, CHAPITRE_2, coursAvecManuels, coursServiDeTest } from './cours.fixture.js';
 import { type CoursPrepare, ongletsDuCours, preparerCours } from './prepare.js';
 import type { CoursServi, ModuleServi } from './servi.js';
 
@@ -49,7 +50,9 @@ describe('preparerCours', () => {
       'c2000005',
       'c2000005:inverse',
     ]);
-    expect(prepare.chapitres).toEqual([
+    // Sans manuel : ni `manuels`, ni clé de rangement sur un chapitre.
+    expect(prepare.manuels).toStrictEqual([]);
+    expect(prepare.chapitres).toStrictEqual([
       { id: CHAPITRE_1, numero: 1, titre: 'Anfangskapitel' },
       { id: CHAPITRE_2, numero: 2, titre: 'Vorsilben' },
     ]);
@@ -59,6 +62,45 @@ describe('preparerCours', () => {
     expect(prepare.exercices?.id).toBe('ex000001');
     expect(prepare.examen?.id).toBe('ey000001');
     expect(prepare.feuilles.map((f) => f.id)).toEqual(['fe000001']);
+  });
+
+  it('prepare_les_manuels_et_le_rangement_de_chaque_chapitre', () => {
+    const prepare = preparerCours(coursAvecManuels());
+
+    expect(prepare.manuels.map((m) => m.titre)).toEqual([
+      'Lehrbuch Alpha',
+      'Lehrbuch Beta',
+      'Lehrbuch Gamma',
+    ]);
+    expect(prepare.chapitres).toStrictEqual([
+      {
+        id: CHAPITRE_1,
+        numero: 1,
+        titre: 'Anfangskapitel',
+        manuel: ID_MANUEL_BETA,
+        chapitre: 2,
+        unit: 1,
+      },
+      {
+        id: CHAPITRE_2,
+        numero: 2,
+        titre: 'Vorsilben',
+        manuel: ID_MANUEL_BETA,
+        chapitre: 1,
+        unit: 2,
+      },
+    ]);
+    expect(prepare.schemas.map((s) => s.manuel)).toEqual([ID_MANUEL_ALPHA, undefined]);
+  });
+
+  it('des_manuels_illisibles_laissent_les_chapitres_sans_rangement', () => {
+    const prepare = preparerCours({ ...coursAvecManuels(), manuels: 42 });
+
+    expect(prepare.manuels).toStrictEqual([]);
+    expect(prepare.chapitres.map((c) => [c.manuel, c.chapitre, c.unit])).toEqual([
+      [undefined, undefined, 1],
+      [undefined, undefined, 2],
+    ]);
   });
 
   it('feuilles_preparees_de_la_plus_recente_a_la_plus_ancienne', () => {

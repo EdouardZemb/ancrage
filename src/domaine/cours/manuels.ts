@@ -21,7 +21,7 @@ export function lireManuels(lu: unknown): Manuel[] {
 }
 
 function estNumero(valeur: unknown): valeur is number {
-  return typeof valeur === 'number' && Number.isInteger(valeur) && valeur > 0;
+  return typeof valeur === 'number' && valeur > 0 && valeur % 1 === 0;
 }
 
 /** Le manuel et le chapitre d'un module de cartes, s'ils sont lisibles, et sa Unit (A2-D12). */
@@ -30,9 +30,9 @@ export function rangementDuChapitre(
   manuels: readonly Manuel[],
 ): Pick<Chapitre, 'manuel' | 'chapitre' | 'unit'> {
   const { manuel, chapitre, unit } = module;
-  const dansUnManuel = typeof manuel === 'string' && manuels.some((m) => m.id === manuel);
+  const lu = manuels.find((m) => m.id === manuel);
   return {
-    ...(dansUnManuel && estNumero(chapitre) ? { manuel, chapitre } : {}),
+    ...(lu !== undefined && estNumero(chapitre) ? { manuel: lu.id, chapitre } : {}),
     ...(estNumero(unit) ? { unit } : {}),
   };
 }

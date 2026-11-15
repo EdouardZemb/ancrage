@@ -362,7 +362,7 @@ describe('Apercu par manuel', () => {
       'Grammatik',
       'Arbeitsblätter',
     ]);
-    expect(autres[1].textContent).toContain('Das zweite Muster · 0/5');
+    expect(autres[1].textContent).toContain('Das zweite Muster · 0/3');
   });
 
   it('apercu_manuels_la_legende_vient_une_fois_avant_les_uebungen', () => {

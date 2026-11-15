@@ -17,6 +17,8 @@ export const CHAPITRE_1 = 'mc000001';
 export const CHAPITRE_2 = 'mc000002';
 export const SCHEMA_2 = 'sc000002';
 export const ID_MANUEL_GAMMA = 'd9p4q6sv';
+/** Un identifiant bien formé qu'aucun manuel du cours ne porte. */
+export const ID_MANUEL_INCONNU = 'epas79zz';
 
 /** Une carte `source`, avec ses réponses acceptées en plus s'il y en a. */
 export function carte(
@@ -414,7 +416,7 @@ export function coursServiParLaV030(): Record<string, unknown> {
  * Le cours de test avec trois manuels inventés, « Lehrbuch Alpha », « Lehrbuch Beta » et
  * « Lehrbuch Gamma » (cité par aucun module). `CHAPITRE_1` est au chapitre 2 de Beta, Unit 1 ;
  * `CHAPITRE_2` au chapitre 1 de Beta, Unit 2 ; le schéma est dans Alpha ; un second schéma,
- * `SCHEMA_2`, n'a pas de manuel.
+ * `SCHEMA_2`, n'a pas de manuel et porte trois points, le premier cinq.
  */
 export function coursAvecManuels(): CoursServi {
   const servi = coursServiDeTest();
@@ -429,7 +431,7 @@ export function coursAvecManuels(): CoursServi {
       ...module,
       id: SCHEMA_2,
       titre: 'Das zweite Muster',
-      points: module.points.map((p) => ({ ...p, id: p.id.replace('q', 'r') })),
+      points: module.points.slice(0, 3).map((p) => ({ ...p, id: p.id.replace('q', 'r') })),
     };
     return [{ ...module, manuel: ID_MANUEL_ALPHA }, second];
   });
@@ -439,4 +441,15 @@ export function coursAvecManuels(): CoursServi {
     { id: ID_MANUEL_GAMMA, titre: 'Lehrbuch Gamma' },
   ];
   return { ...servi, manuels, modules };
+}
+
+/** `coursAvecManuels()`, dont `CHAPITRE_2` nomme un manuel bien formé que le cours ne connaît pas. */
+export function coursAvecChapitreAuManuelInconnu(): CoursServi {
+  const servi = coursAvecManuels();
+  return {
+    ...servi,
+    modules: servi.modules.map((module) =>
+      module.id === CHAPITRE_2 ? { ...module, manuel: ID_MANUEL_INCONNU } : module,
+    ),
+  };
 }

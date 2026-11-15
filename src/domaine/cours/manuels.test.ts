@@ -1,10 +1,13 @@
 import { expect, it } from 'vitest';
+import { ID_MANUEL_ALPHA } from '../contenu/exemple.fixture.js';
 import type { Manuel } from '../contenu/modele.js';
 import {
   CHAPITRE_1,
   CHAPITRE_2,
+  coursAvecChapitreAuManuelInconnu,
   coursAvecManuels,
   coursServiDeTest,
+  ID_MANUEL_INCONNU,
   SCHEMA_2,
 } from './cours.fixture.js';
 import {
@@ -14,7 +17,7 @@ import {
   numeroDeLUnite,
   rangementDuChapitre,
 } from './manuels.js';
-import { type CoursPrepare, preparerCours } from './prepare.js';
+import { preparerCours } from './prepare.js';
 
 /* Données factices, écrites à la main (invariant 7). */
 
@@ -151,13 +154,7 @@ it('divisionsDuCours_un_schema_seul_dans_un_manuel_allume_le_mode', () => {
 });
 
 it('divisionsDuCours_la_division_sans_manuel_reunit_les_chapitres_a_manuel_illisible', () => {
-  const cours = coursAvecManuels();
-  const modules = cours.modules.map((module) =>
-    module.type === 'cartes' && module.id === CHAPITRE_2
-      ? { ...module, manuel: 'epas79zz' }
-      : module,
-  );
-  const divisions = divisionsDuCours(preparerCours({ ...cours, modules }));
+  const divisions = divisionsDuCours(preparerCours(coursAvecChapitreAuManuelInconnu()));
   expect(divisions?.map((d) => d.chapitres.map((c) => c.id))).toEqual([
     [],
     [CHAPITRE_1],
@@ -165,12 +162,23 @@ it('divisionsDuCours_la_division_sans_manuel_reunit_les_chapitres_a_manuel_illis
   ]);
 });
 
-it('divisionsDuCours_se_calcule_sur_les_chapitres_prepares_seuls', () => {
-  const prepare = preparerCours(coursAvecManuels());
-  const seul: Pick<CoursPrepare, 'manuels' | 'chapitres' | 'schemas'> = {
-    manuels: prepare.manuels,
-    chapitres: prepare.chapitres,
-    schemas: prepare.schemas,
-  };
-  expect(divisionsDuCours(seul)).toEqual(divisionsDuCours(prepare));
+it('divisionsDuCours_les_uebungen_sont_en_dernier_meme_vides', () => {
+  const cours = coursAvecManuels();
+  const modules = cours.modules.map((module) =>
+    module.id === SCHEMA_2 ? { ...module, manuel: ID_MANUEL_ALPHA } : module,
+  );
+  const divisions = divisionsDuCours(preparerCours({ ...cours, modules }));
+  expect(divisions?.length).toBe(3);
+  expect(divisions?.at(-1)).toStrictEqual({ chapitres: [], schemas: [] });
+  expect(divisions?.[0].schemas.map((s) => s.id)).toEqual(['sc000001', SCHEMA_2]);
+});
+
+it('divisionsDuCours_un_schema_au_manuel_inconnu_va_dans_la_derniere_division', () => {
+  const cours = coursAvecManuels();
+  const modules = cours.modules.map((module) =>
+    module.id === SCHEMA_2 ? { ...module, manuel: ID_MANUEL_INCONNU } : module,
+  );
+  const divisions = divisionsDuCours(preparerCours({ ...cours, modules }));
+  expect(divisions?.at(-1)?.schemas.map((s) => s.id)).toEqual([SCHEMA_2]);
+  expect(divisions?.[0].schemas.map((s) => s.id)).toEqual(['sc000001']);
 });

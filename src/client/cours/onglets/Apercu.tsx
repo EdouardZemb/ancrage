@@ -4,6 +4,9 @@
  * boîtes, puis les autres exercices du cours avec leur sous-titre (décision 19), les feuilles
  * comprises (F1-D12).
  *
+ * Quand le cours range ses chapitres par manuel, il y a une section par manuel, dans l'ordre de
+ * `manuels`, puis « Übungen » ; sinon « Kapitel » puis « Weitere Übungen » (A2-D5 à A2-D9).
+ *
  * Un chiffre, une ligne ou une section n'apparaît que si le cours a le module qu'elle décrit : un
  * cours sans mots n'a pas de « Wörter zerlegt », un cours sans examen pas de note.
  */

@@ -105,7 +105,7 @@ manuels:                   # facultative : voir « Les manuels »
 derogation_diffusion:      # facultative : voir « Dérogation de diffusion »
   motif: "<pourquoi>"
   date: "2026-10-16"
-modules:                   # dans l'ordre d'affichage
+modules:                   # dans l'ordre du cours (celui de l'affichage, hors « Les manuels »)
   - "cartes/01-geraete.yaml"
   # … les autres modules de cartes, puis :
   - "morphologie.yaml"
@@ -302,8 +302,8 @@ est admis, et ne se montre pas : un cours peut nommer un manuel avant d'y ranger
 - « Übersicht » se divise : une division par manuel, dans l'ordre de `manuels`, puis « Übungen »,
   toujours la dernière. Une division de manuel range ses chapitres dans l'ordre du livre (`chapitre`
   croissant), puis ses schémas dans l'ordre du cours, sur une ligne « Schemata » ; « Übungen » reçoit
-  les chapitres et les schémas sans manuel lisible, puis la morphologie, les textes, les exercices
-  et les feuilles. Une division vide ne se montre pas. Une étiquette « Unit {n} » suit le titre d'un
+  les chapitres sans manuel lisible, puis, à leur place d'avant, la morphologie, la ligne des
+  schémas sans manuel lisible, les textes, les exercices et les feuilles. Une division vide ne se montre pas. Une étiquette « Unit {n} » suit le titre d'un
   chapitre. « Üben » d'une ligne de schémas ouvre un schéma de cette ligne.
 - Le choix du chapitre (Karteikarten, Quiz) a un groupe par division qui a des chapitres, ses options
   libellées « {n} · {titre} », puis « Alle Kapitel ». La valeur d'une option reste l'identifiant du
@@ -325,12 +325,14 @@ manuel ou le chapitre est illisible va dans « Übungen ». Rien ne bloque le co
 cours analysé, de la forme servie et de l'instantané : l'instantané d'un cours qui n'en a pas ne
 change pas.
 
-**Retirer un manuel.** On le retire de `manuels` et des modules qui le nomment, et l'on marque sa
-ligne d'`ids.lock` `<id> retiré` : jamais on ne la supprime.
+**Retirer un manuel.** On le retire de `manuels`, et chaque module qui le nomme change de place : un
+schéma perd sa clé `manuel` ou en nomme un autre ; un module de cartes nomme un autre manuel du
+cours, avec son `chapitre` dans celui-ci (« Tout ou rien »). Retirer le dernier manuel, c'est retirer
+la clé `manuels` et, de chaque module, `manuel`, `chapitre` et `unit`. Puis l'on marque sa ligne
+d'`ids.lock` `<id> retiré` : jamais on ne la supprime.
 
 **Un cours monté ne reçoit `manuels`, ni les clés `manuel`, `chapitre` et `unit` de ses modules, qu'à
-partir de la version qui suit celle qui les connaît**, la première étant celle qui suit la
-`v0.16.0`. Les schémas stricts du manifeste et des modules de l'image précédente, que le retour
+partir de la version qui suit la `v0.17.0`**, la première qui les connaît. Les schémas stricts du manifeste et des modules de l'image précédente, que le retour
 arrière remet en service, les refuseraient (invariant 8). Exception : le cours d'exemple vit dans
 l'image, et l'image précédente garde le sien. Le cours d'exemple nomme deux manuels inventés,
 « Beispielbuch Küche » puis « Beispielheft Geräte », et range ses trois modules de cartes dans leur
@@ -405,8 +407,9 @@ et `examen` ne l'ont pas, et la clé y est refusée comme toute clé inconnue.
 - Sans elle, la clé est absente du modèle et de la réponse de l'API.
 - Par usage, elle se place après `statut`, avant les autres clés propres au module. Ce n'est pas
   une règle : l'ordre des clés n'est pas contrôlé.
-- La `description` d'un `schema` n'est pas affichée : les schémas partagent une seule ligne de
-  l'aperçu, dont le sous-titre est leurs titres joints par « · ». Elle reste dans le modèle et
+- La `description` d'un `schema` n'est pas affichée : les schémas partagent une ligne de l'aperçu
+  (une par division quand le cours nomme ses manuels, voir « Les manuels »), dont le sous-titre est
+  leurs titres joints par « · ». Elle reste dans le modèle et
   dans la réponse de l'API.
 
 Le module `texte-annote` a de plus une clé `consigne`, elle aussi facultative : le texte affiché en

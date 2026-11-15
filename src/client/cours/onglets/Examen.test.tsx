@@ -1501,6 +1501,18 @@ describe('Examen par manuel', () => {
       t.division_uebungen,
     ]);
     expect(casesDe(groupes[1])).toEqual([['2 · Vorsilben', true]]);
+
+    const coches = () => groupes.map((g) => casesDe(g).map(([, coche]) => coche));
+    const avant = coches();
+    expect(avant.flat().length).toBeGreaterThan(1);
+    fireEvent.click(screen.getByRole('button', { name: t.examen_keine }));
+    expect(
+      coches()
+        .flat()
+        .every((coche) => !coche),
+    ).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: t.examen_alle }));
+    expect(coches()).toEqual(groupes.map((_, i) => avant[i].map(() => true)));
   });
 
   it('examen_par_manuel_les_cartes_et_le_resultat_disent_le_numero_dans_le_manuel', () => {

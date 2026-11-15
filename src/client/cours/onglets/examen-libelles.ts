@@ -36,7 +36,10 @@ export interface Passage {
   resultat: Remis | null;
 }
 
-/** Le libellé du groupe d'un résultat : « Kapitel n », ou celui de l'onglet du module. */
+/**
+ * Le libellé du groupe d'un résultat : « Kapitel n », ou « Kapitel n · {manuel} » quand le chapitre
+ * a un manuel (A2-D7), ou celui de l'onglet du module.
+ */
 export function libelleDuGroupe(groupe: string, cours: CoursPrepare, t: Textes): string {
   const chapitre = cours.chapitres.find(({ id }) => id === groupe);
   if (chapitre !== undefined) {

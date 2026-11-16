@@ -20,6 +20,7 @@
     "src/domaine/seances/rythme.ts",
     "src/domaine/seances/pretest.ts",
     "src/domaine/seances/semestre.ts",
+    "src/domaine/seances/revisions.ts",
     "src/domaine/contenu/analyse-manuels.ts",
     "src/domaine/cours/manuels.ts",
     "src/domaine/notice.ts",

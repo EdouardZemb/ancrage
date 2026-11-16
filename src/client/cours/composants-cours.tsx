@@ -217,6 +217,7 @@ export function Options(props: {
   sansFaute?: boolean;
 }) {
   const { repondu } = props;
+  const { t } = useCours();
   const classe = (option: string, i: number): string | undefined => {
     if (repondu === undefined) return undefined;
     if (option === repondu.reponse) return 'right';
@@ -224,13 +225,19 @@ export function Options(props: {
     return props.sansFaute === true ? 'sel' : 'wrong';
   };
   return (
-    <div class="options">
+    <div class={props.sansFaute === true ? 'options sansfaute' : 'options'}>
       {props.options.map((option, i) => (
         <button
           key={`${i}|${option}`}
           type="button"
           class={classe(option, i)}
           disabled={repondu !== undefined}
+          // Sans faute, la bonne option n'est dite que par sa couleur : le lecteur d'écran la nomme.
+          aria-label={
+            props.sansFaute === true && classe(option, i) === 'right'
+              ? `${i + 1} ${option} (${t.heute_pretest_richtig})`
+              : undefined
+          }
           onClick={() => props.choisir(i)}
         >
           <span class="mono muted">{i + 1}</span>&nbsp; {option}

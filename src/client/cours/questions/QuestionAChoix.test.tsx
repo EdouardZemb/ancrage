@@ -78,6 +78,21 @@ describe('QuestionAChoix', () => {
     expect(boutons().map((b) => b.className)).toEqual(['', 'right', '']);
   });
 
+  it('sans_faute_la_bonne_option_se_dit_aux_lecteurs_d_ecran_et_le_choix_faux_prend_le_style_neutre', () => {
+    poser(question(0), vi.fn(), vi.fn(), true);
+    expect(boutons().map((b) => b.getAttribute('aria-label'))).toEqual([
+      null,
+      expect.stringContaining(t.heute_pretest_richtig),
+      null,
+    ]);
+    expect(document.querySelector('.options')?.classList.contains('sansfaute')).toBe(true);
+    cleanup();
+    // Hors pré-test, rien n'est ajouté : ni libellé, ni classe.
+    poser(question(0));
+    expect(boutons().map((b) => b.getAttribute('aria-label'))).toEqual([null, null, null]);
+    expect(document.querySelector('.options')?.className).toBe('options');
+  });
+
   it('questionDeLElement_reprend_l_id_la_reponse_et_les_options_de_l_element', () => {
     const cours = coursServiDeTest();
     const tirables = elementsTirables(

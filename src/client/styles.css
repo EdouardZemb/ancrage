@@ -720,12 +720,16 @@ header.top {
   text-align: center;
 }
 
-.pretest {
+.pretest,
+.done {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 18px 20px;
   display: grid;
+}
+
+.pretest {
+  padding: 18px 20px;
   gap: 10px;
   margin-bottom: 14px;
 }
@@ -830,11 +834,7 @@ header.top {
 }
 
 .done {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 14px;
   padding: 24px;
-  display: grid;
   gap: 12px;
   justify-items: start;
 }
@@ -935,6 +935,11 @@ form.typed input {
 .options button.sel {
   background: var(--accent-soft);
   border-color: var(--accent);
+}
+
+.options.sansfaute button.sel {
+  background: var(--box1);
+  border-color: var(--muted);
 }
 
 .options button:disabled {

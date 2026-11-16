@@ -228,6 +228,17 @@ export function Heute() {
     () => null,
     pretestEnCours,
   );
+  // Un pré-test terminé ne survit pas à l'onglet : au montage, son écran de fin est déjà vu et
+  // l'état se vide ; un pré-test en cours, lui, revient tel quel (B-D16).
+  const aMonter = useRef(true);
+  let pretestCourant = pretest;
+  if (aMonter.current) {
+    aMonter.current = false;
+    if (pretest !== null && pretest.rang >= pretest.questions.length) {
+      pretestCourant = null;
+      setPretest(null);
+    }
+  }
   // Les dues ou les cartes neuves ont changé avant le premier geste, ou la séance est finie et le
   // jour a changé (une application restée ouverte la nuit) : on recompose.
   let etat = courante;
@@ -283,7 +294,9 @@ export function Heute() {
   // À l'écran de fin : les dues que la séance n'a pas déjà réussies, le journal pouvant être en retard.
   const restantes = dues.filter(({ id }) => !reussis.current.has(id)).length;
 
-  if (pretest !== null) return <PretestDeHeute etat={pretest} changer={setPretest} />;
+  if (pretestCourant !== null) {
+    return <PretestDeHeute etat={pretestCourant} changer={setPretest} />;
+  }
 
   // L'offre : jamais en pleine séance, avant le premier geste, ou quand la file est vide (B-D14).
   const offre =

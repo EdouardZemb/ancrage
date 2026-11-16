@@ -1125,6 +1125,48 @@ describe('Heute', () => {
       expect(screen.queryByText(t.heute_pretest_warum)).toBeNull();
     });
 
+    it('pas_d_offre_apres_un_jugement_avant_la_suite', () => {
+      // Une question à choix jugée, sa suite pas encore donnée : `faites` vaut encore 0, mais
+      // `repondue` n'est plus `null`, et la séance est amorcée.
+      const memoire = new Map<string, unknown>();
+      const evenements = departLe('2026-10-12');
+      const contexte = contexteDe({ memoire, cours: duPlanning(), evenements });
+      amorcer(contexte, memoire, [QCM, HERZ]);
+      rendreDansLeCours(<Heute />, contexte);
+      expect(offre()).toBeTruthy();
+      fireEvent.click(boutons()[0] as HTMLButtonElement);
+
+      expect(etatGarde(memoire).repondue).not.toBeNull();
+      expect(etatGarde(memoire).seance.faites).toBe(0);
+      expect(offre()).toBeNull();
+    });
+
+    it('la_question_du_pretest_reste_la_meme_d_un_rendu_a_l_autre', () => {
+      // Un hasard qui change à chaque tirage : avec celui des tests (`() => 0`), tout tirage
+      // redonne la même chose et un tirage refait au rendu ne se verrait pas.
+      let tirage = 1;
+      const base = {
+        ...contexteDe({ cours: duPlanning(), evenements: departLe('2026-10-12') }),
+        hasard: () => {
+          tirage = (tirage * 16807) % 2147483647;
+          return tirage / 2147483647;
+        },
+      };
+      const vue = rendreDansLeCours(<Heute />, base);
+      cliquer(t.heute_pretest_starten);
+      const lire = () => [
+        document.querySelector('.card .front')?.textContent,
+        boutons().map(texteDe).join('|'),
+      ];
+      const avant = lire();
+      vue.rerender(
+        <ContexteDuCours.Provider value={{ ...base, evenements: [...base.evenements] }}>
+          <Heute />
+        </ContexteDuCours.Provider>,
+      );
+      expect(lire()).toEqual(avant);
+    });
+
     it('l_offre_suit_le_journal_les_etats_et_le_jour_d_une_meme_vue', () => {
       // Les mêmes objets `cours`, `etats` et `evenements` d'un rendu à l'autre : seule la valeur
       // éprouvée change, si bien qu'une dépendance oubliée au `useMemo` se voit.
@@ -1256,6 +1298,46 @@ describe('Heute', () => {
       expect(contexte.finDeSeance).not.toHaveBeenCalled();
       fireEvent.click(boutons()[0] as HTMLButtonElement);
       await waitFor(() => expect(contexte.finDeSeance).toHaveBeenCalledTimes(1));
+    });
+
+    it('la_derniere_reponse_appelle_fin_de_seance_une_fois', async () => {
+      const { contexte } = commencer();
+      cliquer(t.heute_pretest_starten);
+      repondre(4);
+      fireEvent.click(boutons()[0] as HTMLButtonElement);
+      await waitFor(() => expect(contexte.finDeSeance).toHaveBeenCalledTimes(1));
+      cliquer(t.suivante);
+      cliquer(t.heute_pretest_zurueck);
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(contexte.finDeSeance).toHaveBeenCalledTimes(1);
+    });
+
+    it('un_pretest_termine_ne_revient_pas_au_remontage_de_l_onglet', () => {
+      const { contexte, memoire } = commencer();
+      const question = document.querySelector('.card .front')?.textContent;
+      cliquer(t.heute_pretest_starten);
+      repondre(5);
+      expect(screen.getByText(formater(t.heute_pretest_fertig, { etape: 'Woche 2' }))).toBeTruthy();
+
+      cleanup();
+      rendreDansUnCoursVivant(<Heute />, contexte);
+      expect(screen.queryByText(formater(t.heute_pretest_fertig, { etape: 'Woche 2' }))).toBeNull();
+      expect(memoire.get('heute/pretest')).toBeNull();
+      expect(document.querySelector('.card .front')?.textContent).toBe(question);
+    });
+
+    it('un_pretest_en_cours_revient_tel_quel_au_remontage_de_l_onglet', () => {
+      const { contexte } = commencer();
+      cliquer(t.heute_pretest_starten);
+      repondre(1);
+      const posee = document.querySelector('.card .front')?.textContent;
+      expect(screen.getByText(formater(t.heute_pretest_frage, { i: 2, n: 5 }))).toBeTruthy();
+
+      cleanup();
+      rendreDansUnCoursVivant(<Heute />, contexte);
+      expect(screen.getByText(formater(t.heute_pretest_frage, { i: 2, n: 5 }))).toBeTruthy();
+      expect(document.querySelector('.card .front')?.textContent).toBe(posee);
     });
   });
 });

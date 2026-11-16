@@ -45,6 +45,7 @@ const de = {
   heute_pretest_danach: 'Jetzt kennst du die Antwort.',
   heute_pretest_fertig: 'Vortest geschafft. Die Karten kommen, sobald «{etape}» beginnt.',
   heute_pretest_zurueck: 'Zur Tagesrunde',
+  heute_pretest_richtig: 'richtige Antwort',
 
   // L'état de la synchronisation, en tête du cours (H:197, H:1595-1605).
   synchro_en_cours: 'Speichere …',

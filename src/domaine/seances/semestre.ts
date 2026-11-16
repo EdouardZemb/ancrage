@@ -70,17 +70,19 @@ export function etapeEnCours(lu: PlanningDuJour, aujourdhui: string): EtapeDePla
   const { planning, depart, examen } = lu;
   const ouvertes = planning.etapes.filter((etape) => ouvertureDe(etape, depart) <= aujourdhui);
   const derniere = ouvertes[ouvertes.length - 1];
-  // Stryker disable next-line ConditionalExpression: sans étape ouverte, `derniere` reste
-  // `undefined` et chaque issue rend `undefined` (équivalent ; le test garde le typage).
+  // Stryker disable next-line ConditionalExpression: seul le mutant `false` est équivalent. Sans
+  // étape ouverte, l'horizon suit `aujourdhui` et le code rend avant `derniere.genre` : ce chemin
+  // est inaccessible (le test garde le typage).
   if (derniere === undefined) return undefined;
   // Des dates `AAAA-MM-JJ` se classent comme des chaînes.
   if (aujourdhui < horizonDuRythme(planning, depart, aujourdhui, examen)) return derniere;
   // Arrivé ici, aujourd'hui est à la dernière ouverture plus sept jours ou après : une étape
   // suivante, non ouverte, ferait précéder l'horizon (`derniere` est donc la dernière du planning),
-  // et un examen avant ce jour ne peut plus être atteint (C-D3).
+  // et un examen avant ce jour ne peut plus être atteint (C-D3). L'équivalence avec la lettre de
+  // C-D3 tient à `JOURS_APRES_LA_DERNIERE_ETAPE` (7), l'horizon d'une dernière étape.
   if (derniere.genre !== 'revision') return undefined;
-  // Stryker disable next-line ConditionalExpression: sans examen, `aujourdhui <= undefined` est
-  // faux (équivalent ; le test garde le typage).
+  // Stryker disable next-line ConditionalExpression: seul le mutant `false` est équivalent : sans
+  // examen, `aujourdhui <= undefined` est faux (le test garde le typage).
   if (examen === undefined) return undefined;
   return aujourdhui <= examen ? derniere : undefined;
 }
@@ -105,14 +107,14 @@ export function etapesDuSemestre(
   return planning.etapes.map((etape): EtapeDuSemestre => {
     const ouverture = ouvertureDe(etape, depart);
     const citees = new Set(etape.modules);
-    // Stryker disable next-line StringLiteral: un posable sans module n'est dans aucune étape, que
-    // le repli soit vide ou non (équivalent).
+    // Stryker disable next-line StringLiteral: tout posable du cours a son module, donc le repli
+    // n'est jamais lu (équivalent).
     const elements = posables.filter((p) => citees.has(modules.get(p.id) ?? ''));
     const { total, boites, sures } = statistiquesDeChapitre(elements, etats, aujourdhui);
     const sure = total > 0 && sures === total;
-    // Une étape dépassée : ouverte avant la dernière ouverture passée (C-D5).
+    // Une étape dépassée : ouverte avant la dernière ouverture passée, et pas en cours (C-D5).
     const retard =
-      ouverture < derniere
+      etape !== courante && ouverture < derniere
         ? elements.filter(
             (p) =>
               p.genre === 'carte' &&

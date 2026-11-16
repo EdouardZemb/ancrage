@@ -18,7 +18,7 @@ import {
 
 /* Données factices, écrites à la main (invariant 7). Les attendus sont calculés à la main. */
 
-const HIER_A_10H = '2026-10-16T10:00:00.000+02:00';
+const REPONDU_LE_9 = '2026-10-09T10:00:00.000+02:00';
 const DEPART = '2026-10-01';
 
 const MORPHOLOGIE = 'mm000001';
@@ -58,7 +58,7 @@ let compteur = 0;
 
 /** Autant de réponses justes que de boîtes : l'unité arrive dans cette boîte (0 : rien). */
 function enBoite(unite: string, boite: number): Evenement[] {
-  return Array.from({ length: boite }, () => reponseDeTest(++compteur, unite, true, HIER_A_10H));
+  return Array.from({ length: boite }, () => reponseDeTest(++compteur, unite, true, REPONDU_LE_9));
 }
 
 /** Les étapes du semestre du cours de test, pour ce journal. */
@@ -101,6 +101,7 @@ it('modules_des_posables_cartes_mots_points_exercices_et_fiches', () => {
   expect(modules.get('fb000009')).toBe(FEUILLE);
   // Un trou de fiche ne se pose pas seul : il n'a pas de module ici.
   expect(modules.has('fb000010')).toBe(false);
+  expect(modules.has('fb000011')).toBe(false);
   for (const posable of posablesDuCours(cours)) expect(modules.has(posable.id)).toBe(true);
 });
 
@@ -186,6 +187,8 @@ it('etape_en_cours_une_derniere_revision_dure_jusqu_a_l_examen', () => {
   expect(etapeEnCours(lu(cours, '2026-11-10'), '2026-10-24')).toBeUndefined();
   // Sans examen : la règle commune.
   expect(etapeEnCours(lu(revision), '2026-10-24')).toBeUndefined();
+  // Un examen avant l'horizon ne coupe pas une étape de révision avant l'horizon.
+  expect(etapeEnCours(lu(revision, '2026-10-20'), '2026-10-22')).toBe(finale);
   // Une révision qui n'est pas la dernière : la règle commune.
   const milieu = datees(['2026-10-03', [], 'revision'], ['2026-10-17', []]);
   expect(etapeEnCours(lu(milieu, '2026-11-10'), '2026-10-24')).toBeUndefined();
@@ -230,10 +233,9 @@ it('etat_sure_quand_tous_les_elements_sont_en_boite_4_ou_5', () => {
   });
 
   // Une unité en boîte 3 : l'étape reste ouverte.
-  const [derniere, ...reste] = unites;
   const evenements = [
-    ...enBoite(derniere?.id ?? '', 3),
-    ...reste.flatMap((unite) => enBoite(unite.id, 4)),
+    ...enBoite(premiere?.id ?? '', 3),
+    ...autres.flatMap((unite) => enBoite(unite.id, 4)),
   ];
   expect(semestre(planning, '2026-10-14', evenements)[0]).toMatchObject({
     etat: 'ouverte',
@@ -331,9 +333,16 @@ it('pas_de_retard_pour_l_etape_en_cours_ni_pour_une_etape_du_meme_jour', () => {
 });
 
 it('le_retard_se_mesure_a_la_derniere_ouverture_meme_dans_le_desordre', () => {
-  // Un planning dont les étapes ne se suivent pas par date : la dernière ouverture est le 12/10.
-  const planning = datees(['2026-10-12', [CHAPITRE_2]], ['2026-10-10', [CHAPITRE_1]]);
-  expect(semestre(planning, '2026-10-14').map((e) => e.retard)).toEqual([0, 15]);
+  // Un planning dont les étapes ne se suivent pas par date : la dernière ouverture est le 12/10,
+  // l'étape en cours est la dernière du planning (le 09/10) et n'a jamais de retard.
+  const planning = datees(
+    ['2026-10-12', [SCHEMA]],
+    ['2026-10-10', [CHAPITRE_1]],
+    ['2026-10-09', [CHAPITRE_2]],
+  );
+  const etapes = semestre(planning, '2026-10-14');
+  expect(etapes.map((e) => e.retard)).toEqual([0, 15, 0]);
+  expect(etapes.map((e) => e.enCours)).toEqual([false, false, true]);
 });
 
 it('pas_de_retard_pour_une_etape_a_venir', () => {
@@ -354,9 +363,9 @@ it('un_pretest_laisse_la_carte_dans_le_retard', () => {
     ['2026-10-12', [CHAPITRE_2]],
     ['2026-10-16', [SCHEMA]],
   );
-  const pretest = pretestDeTest(++compteur, 'c1000001', true, HIER_A_10H);
+  const pretest = pretestDeTest(++compteur, 'c1000001', true, REPONDU_LE_9);
   expect(semestre(planning, '2026-10-16', [pretest], 'direct')[0]?.retard).toBe(8);
-  const vue = reponseDeTest(++compteur, 'c1000002', true, HIER_A_10H);
+  const vue = reponseDeTest(++compteur, 'c1000002', true, REPONDU_LE_9);
   expect(semestre(planning, '2026-10-16', [pretest, vue], 'direct')[0]?.retard).toBe(7);
 });
 

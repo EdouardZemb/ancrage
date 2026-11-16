@@ -125,6 +125,24 @@ describe('Planning', () => {
     );
   });
 
+  it('chaque_morceau_de_la_meta_est_insecable_dans_son_span', () => {
+    rendre();
+
+    const morceaux = (titre: string) =>
+      Array.from(ligne(titre).querySelectorAll('.meta')[0].children).map((e) => [
+        e.className,
+        e.textContent,
+      ]);
+    expect(morceaux(REVISION)).toEqual([
+      ['morceau', t.planning_revision],
+      ['morceau', 'ab 24.10.2026'],
+    ]);
+    expect(morceaux('Woche 1')).toEqual([
+      ['morceau', 'ab 10.10.2026'],
+      ['morceau', '0/15 sicher'],
+    ]);
+  });
+
   it('une_etape_sans_element_n_a_ni_barre_ni_compte', () => {
     rendre();
 

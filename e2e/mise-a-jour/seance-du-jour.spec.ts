@@ -7,6 +7,9 @@
  * Il tourne avec les tests des deux versions (`pnpm e2e:mise-a-jour`) : le lien du propriétaire ne
  * sert qu'une fois, et la suite principale le consomme pour son parcours de compte. Ici, le test
  * lance son propre serveur, sur sa propre base, et sert la version A.
+ *
+ * Puis, cinq jours plus tard, le Lernplan dit les étapes de l'exemple et leur état, et la ligne de
+ * l'étape en cours tient à 360 px.
  */
 import { expect, type Page } from '@playwright/test';
 import { formater, TEXTES_COURS } from '../../src/client/cours/textes-cours.js';
@@ -55,7 +58,10 @@ const JOURS_PLUS_TARD = 5;
 /** Les questions du pré-test : le module de la semaine 2 a 8 cartes, et le pré-test en pose 5. */
 const QUESTIONS_DU_PRETEST = 5;
 
-/** Les étapes du planning du cours d'exemple, dans l'ordre (`exemple-contenu/kueche/cours.yaml`). */
+/**
+ * Les étapes du planning du cours d'exemple, dans l'ordre
+ * (`exemple-contenu/kueche/cours.yaml`).
+ */
 const ETAPES_DE_L_EXEMPLE = [
   'Woche 1 – Küchengeräte',
   SEMAINE_2,
@@ -296,7 +302,9 @@ test('la_seance_du_jour_mele_les_types', async ({ page }) => {
     await expect(lignes.nth(3).locator('.meta')).toContainText(deCours.planning_revision);
   });
 
-  await test.step('8. à 360 px, la ligne de l’étape en cours tient et garde son titre', async () => {
+  // Dernière étape : la fenêtre réduite ne sert à rien d'autre. Une étape ajoutée après elle
+  // hériterait de 360 px et remettrait d'abord la largeur du Pixel 7.
+  await test.step('8. à 360 px, l’étape en cours tient et garde son titre', async () => {
     const hauteur = page.viewportSize()?.height ?? 915;
     await page.setViewportSize({ width: LARGEUR_ETROITE, height: hauteur });
     const ligne = page.locator('.cours ol.chapters li.chap[aria-current="step"]');

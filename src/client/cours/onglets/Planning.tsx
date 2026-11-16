@@ -8,6 +8,7 @@
  * par la seule couleur. Ni pourcentage, ni rouge, ni bouton : rien n'est bloqué, et « Heute » reste
  * l'entrée de la séance. Les titres des étapes sont des textes du cours servi (invariant 3).
  */
+import { Fragment } from 'preact';
 import { useMemo } from 'preact/hooks';
 import { posablesDuCours } from '../../../domaine/seances/heute.js';
 import { joursAvantExamen } from '../../../domaine/seances/planning.js';
@@ -22,7 +23,10 @@ import { useCours } from '../contexte-cours.js';
 import { usePlanningDuCours } from '../planning-du-cours.js';
 import { formater } from '../textes-cours.js';
 
-/** La classe de la pastille de chaque état : `unit` est le gris neutre, `frei` l'accent clair, `ok` le vert. */
+/**
+ * La classe de la pastille de chaque état : `unit` est le gris neutre, `frei` l'accent clair, `ok`
+ * le vert.
+ */
 const CLASSE_D_ETAT = { 'a-venir': 'unit', ouverte: 'frei', sure: 'ok' } as const;
 
 function LigneDEtape(props: { etape: EtapeDuSemestre; rang: number }) {
@@ -46,7 +50,14 @@ function LigneDEtape(props: { etape: EtapeDuSemestre; rang: number }) {
       <span class="title">
         {etape.etape.titre}
         <br />
-        <span class="meta">{meta.join(' · ')}</span>
+        <span class="meta">
+          {meta.map((morceau, i) => (
+            <Fragment key={morceau}>
+              {i > 0 && ' · '}
+              <span class="morceau">{morceau}</span>
+            </Fragment>
+          ))}
+        </span>
         {etape.retard > 0 && (
           <>
             <br />

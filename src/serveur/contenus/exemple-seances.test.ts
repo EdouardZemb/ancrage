@@ -294,8 +294,9 @@ describe("cours d'exemple : unités par chapitre", () => {
 
 describe("cours d'exemple : Lernplan", () => {
   // Un compte neuf : le départ est le premier jour. L'examen inventé (2030-06-30) est lointain, si
-  // bien que la quatrième étape, de révision, reste en cours (C-D3). Ce test ne tient que jusqu'à
-  // cet examen : le garde ci-dessous le dit.
+  // bien que la quatrième étape, de révision, reste en cours (C-D3). Le jour est figé : le garde
+  // ci-dessous dit que l'examen inventé doit rester après le jour +60, sans quoi la quatrième
+  // étape cesserait d'être en cours.
   const servi = coursDExempleServi();
   const planning = planningDuCours(servi);
   const examen = memoireDuCours(servi)?.examen;

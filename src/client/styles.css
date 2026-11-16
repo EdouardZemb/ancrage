@@ -1100,6 +1100,14 @@ form.typed input {
   white-space: nowrap;
 }
 
+ol.chapters .title {
+  hyphens: auto;
+}
+
+ol.chapters .meta .morceau {
+  white-space: nowrap;
+}
+
 .pill.unit {
   background: var(--line);
   color: var(--muted);

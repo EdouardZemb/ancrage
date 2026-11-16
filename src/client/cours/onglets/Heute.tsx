@@ -79,7 +79,8 @@ export type QuestionDeTete =
   | { genre: 'fermee'; question: QuestionDeChoix };
 
 /**
- * La séance en cours. `cle` dit de quoi elle est issue : le jour et les dues du moment. `question`
+ * La séance en cours. `cle` dit de quoi elle est issue : le jour, les dues, les cartes neuves
+ * candidates, le quota et, s'il y en a, les révisions (`cleDuJour`). `question`
  * est `null` quand la file est vide ; `repondue` est le verdict de la question de tête, tant que sa
  * suite n'est pas donnée.
  */
@@ -316,9 +317,9 @@ export function Heute() {
   const neuves = cartesNeuves(seance.file, etats).length;
   // Les révisions encore dans la file et pas dues : une révision manquée est due (C-D13).
   const duesDuMoment = new Set(dues.map(({ id }) => id));
-  const retenues = new Set(etat.revisions);
+  const revisionsRetenues = new Set(etat.revisions);
   const aRafraichir = seance.file.filter(
-    ({ id }) => retenues.has(id) && !duesDuMoment.has(id),
+    ({ id }) => revisionsRetenues.has(id) && !duesDuMoment.has(id),
   ).length;
   const compteARebours = ligneDExamen(joursAvantExamen(examen, aujourdhui), t);
   // À l'écran de fin : les dues que la séance n'a pas déjà réussies, le journal pouvant être en retard.

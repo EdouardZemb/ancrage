@@ -285,8 +285,15 @@ export function SaisieDeLaReponse(props: {
 }
 
 /** La couleur de chaque boîte, de 0 (neuve) à 5 (H:1700). */
-export const COULEUR_DES_BOITES = ['--box1', '--box1', '--box2', '--box3', '--box4', '--box5'];
-export const BOITES_REMPLIES = [1, 2, 3, 4, 5];
+export const COULEUR_DES_BOITES: readonly string[] = [
+  '--box1',
+  '--box1',
+  '--box2',
+  '--box3',
+  '--box4',
+  '--box5',
+];
+export const BOITES_REMPLIES: readonly number[] = [1, 2, 3, 4, 5];
 /** La barre d'un chapitre : la part de chaque boîte de 1 à 5 ; les neuves restent au fond. */
 export function Barre(props: { boites: number[]; total: number }) {
   const { boites, total } = props;

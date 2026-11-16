@@ -166,8 +166,7 @@ export function Heute() {
     () => duesDuJour(posables, etats, aujourdhui),
     [posables, etats, aujourdhui],
   );
-  // Le planning ne règle que les cartes neuves : ce qui est dû reste dû (A1-D7). Le départ relit
-  // tout le journal, il ne se refait que si le journal ou le jour change.
+  // Le planning ne règle que les cartes neuves : ce qui est dû reste dû (A1-D7).
   const { planning, depart, examen } = usePlanningDuCours();
   // Les cartes neuves du jour et leur quota (M2-P9, B-D2, B-D3). Sans planning, les neuves du choix
   // de Karteikarten et le plafond moins les cartes découvertes aujourd'hui ; avec un planning, les

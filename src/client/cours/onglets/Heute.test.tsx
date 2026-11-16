@@ -1490,7 +1490,7 @@ describe('les_revisions', () => {
     expect(screen.queryByText(/Etappen, gemischt/)).toBeNull();
   });
 
-  it('sans_element_revisable_a_une_etape_de_revision_la_seance_est_celle_d_une_etape_de_cours', () => {
+  it('sans_element_revisable_la_revision_a_la_seance_d_une_etape_de_cours', () => {
     const [revision, cours] = [planningDe(), planningDe('cours')].map((planning) => {
       const { m } = rendre([], planning);
       const releve = { cle: etatGarde(m).cle, file: fileDe(m) };

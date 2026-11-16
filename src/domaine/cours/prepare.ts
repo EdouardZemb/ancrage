@@ -32,7 +32,9 @@ export interface Chapitre {
 
 /**
  * Les écrans d'un cours : l'aperçu est à `/cours/<id>`, chacun des autres à `/cours/<id>/<onglet>`
- * (décision 20) ; « Heute », la séance du jour, est à `/cours/<id>/heute` (M2-P1) ; « Lernplan », la vue des étapes du planning, est à `/cours/<id>/planning` (M4, C-D2). `feuilles` montre toutes les feuilles du cours (F1-D1).
+ * (décision 20) ; « Heute », la séance du jour, est à `/cours/<id>/heute` (M2-P1) ; « Lernplan »,
+ * la vue des étapes du planning, à `/cours/<id>/planning` (M4, C-D2). `feuilles` montre toutes les
+ * feuilles du cours (F1-D1).
  */
 export type Onglet =
   | 'heute'
@@ -125,9 +127,11 @@ export function preparerCours(cours: CoursServi): CoursPrepare {
 }
 
 /**
- * Les onglets du cours, dans l'ordre du prototype (décision 19), « Heute » en tête (M2-P1) : « Heute »,
- * l'aperçu et la progression toujours, les cartes et le quiz s'il y a un module de cartes, puis un onglet par type de module.
- * Celui des feuilles, que le prototype n'avait pas, vient entre les exercices et l'examen (F1-D1).
+ * Les onglets du cours, dans l'ordre du prototype (décision 19), « Heute » en tête (M2-P1) :
+ * « Heute », l'aperçu et la progression toujours ; « Lernplan » juste après « Heute » quand le
+ * cours a un planning que ce client lit (M4, C-D2) ; les cartes et le quiz s'il y a un module de
+ * cartes, puis un onglet par type de module. Celui des feuilles, que le prototype n'avait pas,
+ * vient entre les exercices et l'examen (F1-D1).
  */
 export function ongletsDuCours(cours: CoursPrepare): Onglet[] {
   const onglets: Onglet[] = ['heute'];

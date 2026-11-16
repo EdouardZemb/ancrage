@@ -22,7 +22,7 @@ import { useCours } from '../contexte-cours.js';
 import { usePlanningDuCours } from '../planning-du-cours.js';
 import { formater } from '../textes-cours.js';
 
-/** La classe de la pastille de chaque état : `unit` est le gris neutre, `ok` le vert. */
+/** La classe de la pastille de chaque état : `unit` est le gris neutre, `frei` l'accent clair, `ok` le vert. */
 const CLASSE_D_ETAT = { 'a-venir': 'unit', ouverte: 'frei', sure: 'ok' } as const;
 
 function LigneDEtape(props: { etape: EtapeDuSemestre; rang: number }) {
@@ -88,9 +88,10 @@ export function Planning() {
     [posables, modules, etats, planning, depart, examen, aujourdhui, sens],
   );
   if (planning === undefined) return null;
+  const compte = ligneDExamen(joursAvantExamen(examen, aujourdhui), t);
   return (
     <section>
-      <div class="controls">{ligneDExamen(joursAvantExamen(examen, aujourdhui), t)}</div>
+      {compte !== null && <div class="controls">{compte}</div>}
       <ol class="chapters" aria-label={t.onglet_planning}>
         {etapes.map((etape, rang) => (
           <LigneDEtape key={`${rang}-${etape.etape.titre}`} etape={etape} rang={rang + 1} />

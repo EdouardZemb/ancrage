@@ -6,7 +6,7 @@ import type { CoursServi } from '../../../domaine/cours/servi.js';
 import type { Evenement } from '../../../domaine/journal/evenement.js';
 import type { SensChoisi } from '../../../domaine/seances/cartes.js';
 import { contexteDeTest, rendreDansLeCours, reponseDeTest } from '../contexte-cours.fixture.js';
-import type { ContexteCours } from '../contexte-cours.js';
+import { type ContexteCours, ContexteDuCours } from '../contexte-cours.js';
 import { TEXTES_COURS } from '../textes-cours.js';
 import { Apercu } from './Apercu.js';
 import { Planning } from './Planning.js';
@@ -117,8 +117,12 @@ describe('Planning', () => {
   it('une_etape_de_revision_dit_wiederholung', () => {
     rendre();
 
-    expect(ligne(REVISION).textContent).toContain(t.planning_revision);
-    expect(ligne('Woche 1').textContent).not.toContain(t.planning_revision);
+    expect(ligne(REVISION).querySelector('.meta')?.textContent).toBe(
+      `${t.planning_revision} · ab 24.10.2026`,
+    );
+    expect(ligne('Woche 1').querySelector('.meta')?.textContent).toBe(
+      'ab 10.10.2026 · 0/15 sicher',
+    );
   });
 
   it('une_etape_sans_element_n_a_ni_barre_ni_compte', () => {
@@ -174,6 +178,7 @@ describe('Planning', () => {
 
     rendre();
     expect(document.querySelector('.examenline')).toBeNull();
+    expect(document.querySelector('.controls')).toBeNull();
   });
 
   it('le_lernplan_n_a_ni_pourcentage_ni_rouge', () => {
@@ -200,7 +205,12 @@ describe('Planning', () => {
     const duLernplan = /(\d+\/\d+) sicher/.exec(ligne('Woche 1').textContent ?? '')?.[1];
     cleanup();
 
-    rendreDansLeCours(<Apercu />, contexteDeTest({ cours: coursAvec(), evenements }));
+    const direct = contexteDeTest({ cours: coursAvec(), evenements });
+    direct.preferences = {
+      ...direct.preferences,
+      cartes: { ...direct.preferences.cartes, sens: 'direct' },
+    };
+    rendreDansLeCours(<Apercu />, direct);
     const chapitre = screen
       .getAllByRole('listitem')
       .find((li) => li.textContent?.includes('Anfangskapitel'));
@@ -225,14 +235,50 @@ describe('Planning', () => {
     expect(ligne('Woche 1').textContent).toContain(`${retard} neue Karten zum Nachholen`);
   });
 
+  it('le_lernplan_suit_le_jour_et_le_sens_d_une_meme_vue', () => {
+    const cours = coursAvec();
+    const evenements = [DEPART];
+    const modele = { ...contexteDeTest({ cours, evenements }), aujourdhui: '2026-10-23' };
+    const vue = rendreDansLeCours(<Planning />, modele);
+    const courants = () => lignes().map((li) => li.getAttribute('aria-current'));
+    expect(courants()).toEqual([null, 'step', null]);
+
+    const lendemain = { ...modele, aujourdhui: '2026-10-24' };
+    vue.rerender(
+      <ContexteDuCours.Provider value={lendemain}>
+        <Planning />
+      </ContexteDuCours.Provider>,
+    );
+    expect(courants()).toEqual([null, null, 'step']);
+    expect(ligne('Woche 1').textContent).toContain('15 neue Karten zum Nachholen');
+
+    const direct = {
+      ...lendemain,
+      preferences: {
+        ...lendemain.preferences,
+        cartes: { ...lendemain.preferences.cartes, sens: 'direct' as const },
+      },
+    };
+    vue.rerender(
+      <ContexteDuCours.Provider value={direct}>
+        <Planning />
+      </ContexteDuCours.Provider>,
+    );
+    expect(ligne('Woche 1').textContent).toContain('8 neue Karten zum Nachholen');
+  });
+
   it('sans_planning_rien', () => {
-    rendreDansLeCours(<Planning />, contexteDeTest({ cours: coursAvec({}) }));
-    expect(document.body.textContent).toBe('');
+    const sans = rendreDansLeCours(<Planning />, contexteDeTest({ cours: coursAvec({}) }));
+    expect(sans.container.innerHTML).toBe('');
     cleanup();
 
     // Un planning que ce client ne lit pas vaut pas de planning.
     const illisible = { etapes: [{ titre: 'x', modules: [] }] };
-    rendreDansLeCours(<Planning />, contexteDeTest({ cours: coursAvec({ planning: illisible }) }));
-    expect(document.body.textContent).toBe('');
+    const vue = rendreDansLeCours(
+      <Planning />,
+      contexteDeTest({ cours: coursAvec({ planning: illisible }) }),
+    );
+    expect(vue.container.innerHTML).toBe('');
+    expect(screen.queryByRole('list')).toBeNull();
   });
 });

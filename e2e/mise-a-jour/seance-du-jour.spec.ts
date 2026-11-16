@@ -57,21 +57,22 @@ const QUESTIONS_DU_PRETEST = 5;
 const EXAMEN_DE_L_EXEMPLE = [2030, 6, 30] as const;
 
 /**
- * Le compte à rebours que « Heute » dit (A1-D8), `decalage` jours plus tard. Le test lit l'horloge
- * réelle contre l'examen inventé, lointain : il tient jusqu'au 24/06/2030 inclus, moins le
- * décalage : ensuite l'examen devient l'horizon du rythme (B-D4), et le nombre de cartes neuves
- * change. Le calcul est celui du jour local, comme l'onglet.
+ * Le compte à rebours que « Heute » dit (A1-D8), `decalage` jours plus tard que `maintenant`. Le
+ * test lit l'horloge réelle contre l'examen inventé, lointain : il tient tant que le jour de
+ * `maintenant` est au 24/06/2030 au plus (`jours >= 6`), et celui de l'étape 6, décalé de
+ * `JOURS_PLUS_TARD`, aussi : la date limite du test est donc le 19/06/2030 inclus. Ensuite
+ * l'examen devient l'horizon du rythme (B-D4), et le nombre de cartes neuves change. Le calcul est
+ * celui du jour local, comme l'onglet.
  */
-function compteARebours(decalage = 0): string {
+function compteARebours(decalage = 0, maintenant = new Date()): string {
   const [annee, mois, jour] = EXAMEN_DE_L_EXEMPLE;
-  const maintenant = new Date();
   const aujourdhui = Date.UTC(
     maintenant.getFullYear(),
     maintenant.getMonth(),
     maintenant.getDate(),
   );
   const jours = Math.round((Date.UTC(annee, mois - 1, jour) - aujourdhui) / 86_400_000);
-  if (jours < 6 + 2 * decalage) {
+  if (jours < 6 + decalage) {
     throw new Error('l’examen inventé de l’exemple arrive : en reculer la date');
   }
   return formater(deCours.heute_examen_n, { n: jours - decalage });
@@ -208,6 +209,7 @@ test('la_seance_du_jour_mele_les_types', async ({ page }) => {
   await test.step('6. cinq jours plus tard, le Vortest de la semaine 2', async () => {
     // Midi, jour local : le décalage est de jours entiers, quel que soit l'heure d'été.
     const maintenant = new Date();
+    const aTerme = compteARebours(JOURS_PLUS_TARD, maintenant);
     await page.clock.setFixedTime(
       new Date(
         maintenant.getFullYear(),
@@ -218,9 +220,7 @@ test('la_seance_du_jour_mele_les_types', async ({ page }) => {
     );
     await page.reload();
     const cours = page.locator('#onglet-courant');
-    await expect(
-      cours.locator('.examenline', { hasText: compteARebours(JOURS_PLUS_TARD) }),
-    ).toBeVisible();
+    await expect(cours.locator('.examenline', { hasText: aTerme })).toBeVisible();
     const offre = cours.locator('.pretest');
     await expect(offre).toContainText(
       formater(deCours.heute_pretest_angebot, { etape: SEMAINE_2 }),

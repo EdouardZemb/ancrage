@@ -85,7 +85,7 @@ export function PretestDeHeute(props: {
     return (
       <section>
         <div class="done">
-          <h2>{t.heute_fin}</h2>
+          <h2>{t.heute_pretest_fin}</h2>
           <p class="muted">{formater(t.heute_pretest_fertig, { etape: etat.etape })}</p>
           <div class="controls">
             <button type="button" class="primary" onClick={() => changer(null)}>

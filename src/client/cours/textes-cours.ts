@@ -43,7 +43,8 @@ const de = {
   heute_pretest_starten: 'Vortest starten',
   heute_pretest_frage: 'Vortest · Frage {i} von {n}',
   heute_pretest_danach: 'Jetzt kennst du die Antwort.',
-  heute_pretest_fertig: 'Vortest geschafft. Die Karten kommen, sobald «{etape}» beginnt.',
+  heute_pretest_fin: 'Vortest geschafft!',
+  heute_pretest_fertig: 'Die Karten lernst du, sobald «{etape}» beginnt.',
   heute_pretest_zurueck: 'Zur Tagesrunde',
   heute_pretest_richtig: 'richtige Antwort',
 

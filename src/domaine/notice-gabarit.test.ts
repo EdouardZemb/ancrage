@@ -129,7 +129,7 @@ describe('notice', () => {
         'éléments associés ou classés',
         'texte tapé puis compté juste par toi',
         // ADR-0014 : la réponse de pré-test, donnée avant d’avoir appris, hors de la progression.
-        'réponse à un pré-test, donnée avant d’avoir appris l’élément et qui ne compte pas dans ta progression',
+        'réponse à un pré-test, donnée avant d’avoir appris l’élément, qui ne compte pas dans ta progression',
         'statistiques d’ensemble',
         'Si tu es d’accord, le responsable suit aussi ta progression',
         'sans ton accord, il n’en voit que les chiffres d’ensemble',
@@ -145,7 +145,7 @@ describe('notice', () => {
         // Le mode `association` (appariement, classement) : la notice dit chaque geste que le client note.
         'Elemente zugeordnet oder eingeordnet',
         'Text getippt und von dir als richtig gewertet',
-        'Antwort in einem Vortest, die vor dem Lernen gegeben wird und nicht für deinen Fortschritt zählt',
+        'Antwort in einem Vortest, die du gibst, bevor du das Element gelernt hast, und die nicht zu deinem Lernfortschritt zählt',
         'Gesamtstatistiken',
         'Wenn du einverstanden bist, verfolgt der Verantwortliche auch deinen Lernfortschritt',
         'ohne dein Einverständnis sieht er nur die Gesamtzahlen',

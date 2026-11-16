@@ -1253,6 +1253,7 @@ describe('Heute', () => {
       expect(etatGarde(memoire)).toBe(garde);
       repondre(5);
 
+      expect(screen.getByRole('heading', { name: t.heute_pretest_fin })).toBeTruthy();
       expect(screen.getByText(formater(t.heute_pretest_fertig, { etape: 'Woche 2' }))).toBeTruthy();
       expect(document.body.textContent).not.toMatch(/richtig/i);
       cliquer(t.heute_pretest_zurueck);
@@ -1261,6 +1262,36 @@ describe('Heute', () => {
       expect(etatGarde(memoire)).toBe(garde);
       expect(document.querySelector('.card .front')?.textContent).toBe(question);
       expect(offre()).toBeNull();
+    });
+
+    it('la_seance_reste_gardee_quand_le_journal_grandit_des_reponses_de_pretest', () => {
+      const memoire = new Map<string, unknown>();
+      const predicats: PredicatsDeSeance = new Map();
+      const base = {
+        ...contexteDe({ memoire, cours: duPlanning(), evenements: departLe('2026-10-12') }),
+        useEtatDOnglet: etatDOngletSur(memoire, predicats),
+      };
+      const vue = rendreDansLeCours(<Heute />, base);
+      const garde = etatGarde(memoire);
+      cliquer(t.heute_pretest_starten);
+      repondre(5);
+      // Le journal du parent grandit des cinq réponses ; un pré-test ne change pas les états.
+      const pretests = vi
+        .mocked(base.enregistrer)
+        .mock.calls.map(([id, juste], n) =>
+          reponseDeTest(2000 + n, id, juste, '2026-10-12', 'pretest'),
+        );
+      expect(pretests).toHaveLength(5);
+      vue.rerender(
+        <ContexteDuCours.Provider
+          value={{ ...base, evenements: [...base.evenements, ...pretests] }}
+        >
+          <Heute />
+        </ContexteDuCours.Provider>,
+      );
+      cliquer(t.heute_pretest_zurueck);
+
+      expect(etatGarde(memoire)).toEqual(garde);
     });
 
     it('quitter_le_pretest_ramene_a_la_seance', () => {

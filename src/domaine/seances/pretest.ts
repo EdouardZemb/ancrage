@@ -45,7 +45,10 @@ function modulesOuverts(etape: EtapeDePlanning, planning: Planning, depart: stri
   return etape.modules.filter((module) => !dejaCites.has(module));
 }
 
-/** Le journal porte une réponse `pretest` à une unité d'un module que l'étape ouvre (B-D12). */
+/**
+ * Le journal porte une réponse `pretest` à une unité d'un module que l'étape ouvre (B-D12).
+ * Exportée pour son test : l'étape doit être celle du planning, pas une copie (`indexOf`).
+ */
 export function pretestFait(
   etape: EtapeDePlanning,
   planning: Planning,

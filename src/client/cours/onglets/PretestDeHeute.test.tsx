@@ -139,7 +139,7 @@ describe('PretestDeHeute', () => {
 
     expect(screen.getByText(formater(t.heute_pretest_fertig, { etape: 'Woche 2' }))).toBeTruthy();
     expect(boutons()).toHaveLength(0);
-    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe(t.heute_fin);
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe(t.heute_pretest_fin);
     expect(document.body.textContent).not.toMatch(/\d\s*(von|\/)\s*5/);
     fireEvent.click(screen.getByRole('button', { name: t.heute_pretest_zurueck }));
     expect(changer).toHaveBeenCalledWith(null);

@@ -303,6 +303,7 @@ async function ongletDansLaMarge(page: Page, nom: string): Promise<void> {
       '.cours .tache',
       '.cours .pastille',
       '.cours .zone',
+      '.cours li.chap',
     ].join(', ');
     return {
       marge: bord(document.querySelector('.cours header.top')),
@@ -862,6 +863,9 @@ parcours('invitation_passkey_reconnexion_et_lien_de_secours', async ({ telephone
     await expect(lernende.locator('#apercu-manuel-dfyhpe2p')).toHaveText('Beispielbuch Küche');
     await expect(lernende.locator('#apercu-manuel-dgb1wgcc')).toHaveText('Beispielheft Geräte');
     await expect(lernende.locator('#apercu-uebungen')).toHaveText(deCours.division_uebungen);
+    // Le Lernplan : ses lignes d'étapes comptent à 412 px (`li.chap`).
+    await ouvrirOnglet(lernende, 'planning');
+    await ongletDansLaMarge(lernende, deCours.onglet_planning);
     await ongletsDeCartesDansLaMarge(lernende);
     await exercicesAnnexesDansLaMarge(lernende);
     await feuillesDansLaMarge(lernende);

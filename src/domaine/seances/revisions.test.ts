@@ -92,6 +92,12 @@ it('pas_de_revision_hors_de_toute_etape', () => {
   expect(revisions(vu('c1000001', '2026-09-20', 5), PLANNING, '2026-10-02')).toEqual([]);
   // Après l'horizon (24/10 plus sept jours), la dernière étape étant de cours.
   expect(revisions(vu('c1000001', '2026-10-25', 5), PLANNING, '2026-11-05')).toEqual([]);
+  // Après l'horizon d'une dernière étape de révision, sans examen (sa date plus sept jours) :
+  // c1000001 (boîte 2, échéance le 18/10) est révisée le 16/10, plus le 17/10.
+  const revision = datees(['2026-10-01', [CHAPITRE_1]], ['2026-10-10', [], 'revision']);
+  const journal = vu('c1000001', '2026-10-12', 2);
+  expect(revisions(journal, revision, '2026-10-16')).toEqual(['c1000001']);
+  expect(revisions(journal, revision, '2026-10-17')).toEqual([]);
 });
 
 it('revisions_l_etape_de_revision_cite_ses_modules_comme_une_autre', () => {
@@ -125,6 +131,18 @@ it('revisions_ni_neuves_ni_dues', () => {
 it('revisions_sans_ce_qui_est_repondu_aujourd_hui', () => {
   const journal = [...vu('c1000001'), ...vu('c1000002'), ...vu('c1000002', AUJOURDHUI)];
   expect(revisions(journal)).toEqual(['c1000001']);
+  // Répondue aujourd'hui, l'unité est aussi sous le seuil (2 × 0 < 6) : la clause « sans réponse
+  // aujourd'hui » ne joue que si le jour local recule dans le journal.
+  // Le jour d'une réponse est celui de l'appareil (`jourDe`) : vingt réponses d'hier à 23 h, à
+  // -04:00 (le 17/10 en UTC), ne sont pas du jour et laissent une séance pleine ; vingt
+  // d'aujourd'hui à 0 h 30, à +02:00 (le 16/10 en UTC), en sont et n'en laissent aucune.
+  const { posables, planning } = toutLeCours();
+  const tous = posables.flatMap(({ id }) => vu(id));
+  const a = (instant: string) =>
+    posables.slice(0, 20).map(({ id }) => reponseDeTest(++compteur, id, true, instant));
+  const hier = a('2026-10-16T23:00:00.000-04:00');
+  expect(revisions([...tous, ...hier], planning)).toHaveLength(TAILLE_DE_SEANCE);
+  expect(revisions([...tous, ...a('2026-10-17T00:30:00.000+02:00')], planning)).toEqual([]);
 });
 
 it('revisions_pas_avant_la_moitie_de_l_intervalle', () => {
@@ -243,8 +261,13 @@ it('un_pretest_ne_rend_rien_revisable_et_ne_compte_pas', () => {
   // Une carte vue seulement par un pré-test n'est pas révisable.
   const pretest = [pretestDeTest(++compteur, 'c1000001', true, a10h('2026-10-15'))];
   expect(revisions(pretest, planning)).toEqual([]);
-  // Un pré-test ne repousse pas la dernière réponse (15/10, non le 16/10) : à mi-intervalle.
-  const avec = [...vu('c1000002'), pretestDeTest(++compteur, 'c1000002', true, a10h('2026-10-16'))];
+  // Un pré-test ne repousse pas la dernière réponse : vue deux fois le 14/10 (boîte 2, échéance
+  // le 20/10), elle est à mi-intervalle (2 × 3 ≥ 6) ; datée du pré-test du 16/10, elle ne le
+  // serait pas (2 × 1 < 4).
+  const avec = [
+    ...vu('c1000002', '2026-10-14', 2),
+    pretestDeTest(++compteur, 'c1000002', true, a10h('2026-10-16')),
+  ];
   expect(revisions(avec, planning)).toEqual(['c1000002']);
   // Vingt pré-tests aujourd'hui ne comptent pas parmi les réponses du jour.
   const pretestsDuJour = posables
@@ -318,11 +341,12 @@ it('avec_revisions_sans_place_rend_la_seance_telle_quelle', () => {
   const ids = posables.map(({ id }) => id);
   const etats = etatsDe(ids.slice(0, 22).flatMap((id) => vu(id, '2026-10-10')));
   const aReviser = seanceDe(['c2000005']).file;
+  const trois = seanceDe(['c2000004:inverse', 'c2000005', 'c2000005:inverse']).file;
   const pleine = seanceDe(ids.slice(0, TAILLE_DE_SEANCE));
   expect(avecRevisions(pleine, aReviser, etats, hasardDeterministe(1))).toBe(pleine);
   // Deux revenus allongent la file au-delà de vingt : aucune place, et non une place négative.
   const longue = seanceDe(ids.slice(0, TAILLE_DE_SEANCE + 2), ids.slice(0, 2));
-  expect(avecRevisions(longue, aReviser, etats, hasardDeterministe(1))).toBe(longue);
+  expect(avecRevisions(longue, trois, etats, hasardDeterministe(1))).toBe(longue);
   // Une file à dix-neuf éléments laisse une place, une seule révision entre.
   const presque = seanceDe(ids.slice(0, TAILLE_DE_SEANCE - 1));
   const deux = seanceDe(['c2000004', 'c2000005']).file;

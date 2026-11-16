@@ -467,6 +467,7 @@ it('neuves_du_jour_pendant_un_trou_rien_au_dela_des_etapes_ouvertes', () => {
   const ordre = unitesDuPlanning(planning, '2026-10-01', AUJOURDHUI, cours.unites);
   expect(ordre.length).toBeGreaterThan(0);
   expect(ordre.every(({ module }) => module === CHAPITRE_1)).toBe(true);
+  expect(horizonDuRythme(planning, '2026-10-01', AUJOURDHUI, undefined)).toBe('2026-12-01');
   // Quinze cartes neuves à répartir sur 45 jours : une par jour, de CHAPITRE_1 seulement.
   const trou = { planning, depart: '2026-10-01' };
   const rendu = neuves([], TOUS, trou);

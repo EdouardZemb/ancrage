@@ -1,5 +1,4 @@
-import type { Hasard } from '../hasard.js';
-import { melanger } from '../hasard.js';
+import { type Hasard, melanger } from '../hasard.js';
 import type { Evenement } from '../journal/evenement.js';
 import { jourDe, joursEntre } from '../journal/temps.js';
 import { type EtatUnite, estDue, etatDe, journalDesRevisions } from '../progression/etat.js';
@@ -40,29 +39,27 @@ export function revisionsDuJour(
   const derniere = new Map<string, string>();
   const repondues = new Set<string>();
   for (const evenement of journalDesRevisions(evenements)) {
-    // Stryker disable next-line ConditionalExpression: un examen a pour unité celle de son module,
-    // qu'aucun posable ne porte : l'ignorer ou non est sans effet (équivalent).
-    if (evenement.type !== 'reponse') continue;
+    // Un examen a pour unité son module, qu'aucun posable ne porte : sans effet ici.
     const jour = jourDe(evenement.repondu_a);
     derniere.set(evenement.unite, jour);
     if (jour === aujourdhui) repondues.add(evenement.unite);
   }
+  // Ne comptent que les posables : une unité retirée, ou un élément de fiche ou de texte que
+  // « Heute » ne pose pas, n'entre pas dans la séance.
   const repondus = posables.filter(({ id }) => repondues.has(id)).length;
   const nombre = Math.max(0, TAILLE_DE_SEANCE - repondus);
 
   const revisable = (p: Posable): boolean => {
     const etat = etatDe(etats, p.id);
     const jour = derniere.get(p.id);
-    // Stryker disable next-line ConditionalExpression,LogicalOperator: une unité en boîte 1 au
-    // moins a une réponse au journal et, non due, une échéance ; ces gardes ne servent que le
-    // typage (équivalent).
-    if (etat.boite < 1 || jour === undefined || etat.echeance === null) return false;
-    if (estDue(etat, aujourdhui) || repondues.has(p.id)) return false;
-    return 2 * joursEntre(jour, aujourdhui) >= joursEntre(jour, etat.echeance);
+    // Sans réponse au journal des révisions, l'unité est neuve (boîte 0) : jamais révisable.
+    if (jour === undefined || estDue(etat, aujourdhui) || repondues.has(p.id)) return false;
+    // Une unité répondue a une échéance : le repli ne sert que le typage.
+    return 2 * joursEntre(jour, aujourdhui) >= joursEntre(jour, etat.echeance ?? aujourdhui);
   };
 
   // Chaque étape ouverte prend ses révisables, les plus fragiles d'abord : la boîte croissante,
-  // puis l'échéance croissante (des `AAAA-MM-JJ` se classent comme des chaînes), puis l'ordre du
+  // puis l'échéance croissante (l'écart en jours, `joursEntre`), puis l'ordre du
   // cours, le tri étant stable. Un élément que deux étapes citent n'est pris qu'une fois.
   const deja = new Set<string>();
   const parEtape = lu.planning.etapes

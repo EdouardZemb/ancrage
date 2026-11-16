@@ -295,7 +295,7 @@ Sur le poste, `pnpm` s'appelle par `corepack pnpm …` ; en CI, `corepack enable
 - `corepack pnpm mutation` : tests de mutation (Stryker) de `src/domaine/acces.ts`, de
   `src/domaine/journal/*.ts` (tests exclus), de `src/domaine/progression/etat.ts`, `fsrs.ts`, `ordonnanceur.ts` et `reglages.ts`, de
   `src/domaine/feuilles/deroulement.ts` et `correction.ts`, de
-  `src/domaine/seances/feuilles.ts`, `heute.ts`, `planning.ts`, `rythme.ts` et `pretest.ts`, de
+  `src/domaine/seances/feuilles.ts`, `heute.ts`, `planning.ts`, `rythme.ts`, `pretest.ts` et `semestre.ts`, de
   `src/domaine/contenu/analyse-manuels.ts`, de `src/domaine/cours/manuels.ts`, de
   `src/domaine/notice.ts` et, côté serveur, de `src/serveur/acces/index.ts` (la moitié serveur du
   module `acces`, ADR-0001), de `src/serveur/comptes/export.ts`, `purge.ts` et `suppression.ts`.

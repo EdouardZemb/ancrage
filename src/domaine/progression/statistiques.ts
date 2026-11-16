@@ -15,7 +15,7 @@ const BOITE_SURE = 4;
  * sûres (boîtes 4 et 5) et le nombre de dues aujourd'hui.
  */
 export function statistiquesDeChapitre(
-  unites: readonly UniteDeCarte[],
+  unites: readonly { id: string }[],
   etats: ReadonlyMap<string, EtatUnite>,
   aujourdhui: string,
 ): { total: number; boites: number[]; sures: number; dues: number } {

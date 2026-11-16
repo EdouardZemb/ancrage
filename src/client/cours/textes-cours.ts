@@ -32,6 +32,10 @@ const de = {
   heute_fertig: 'Für heute ist alles erledigt.',
   heute_rien_suite: 'In den anderen Bereichen kannst du frei üben.',
   heute_vers_apercu: 'Zur Übersicht',
+  heute_revisions: '{n} zum Auffrischen',
+  heute_revision:
+    '«{etape}»: Dazu kommen Fragen aus allen bisherigen Etappen, gemischt. ' +
+    'So behältst du das Gelernte länger.',
   heute_examen_n: 'Noch {n} Tage bis zur Prüfung',
   heute_examen_1: 'Noch 1 Tag bis zur Prüfung',
   heute_examen_0: 'Heute ist die Prüfung',

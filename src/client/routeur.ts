@@ -25,6 +25,7 @@ export type Route =
 const ONGLETS_A_CHEMIN: ReadonlySet<string> = new Set(
   Object.keys({
     heute: true,
+    planning: true,
     cartes: true,
     quiz: true,
     mots: true,

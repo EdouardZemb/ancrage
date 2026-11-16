@@ -46,6 +46,7 @@ describe("cours d'exemple : cours préparé", () => {
     expect(prepare.examen).toBeDefined();
     expect(ongletsDuCours(prepare)).toEqual([
       'heute',
+      'planning',
       'apercu',
       'cartes',
       'quiz',

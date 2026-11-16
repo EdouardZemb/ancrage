@@ -6,6 +6,7 @@ import {
 } from '../cartes/unites.js';
 import { idsDeFeuille } from '../contenu/feuille.js';
 import type { Manuel } from '../contenu/modele.js';
+import { planningDuCours } from '../seances/planning.js';
 import { lireManuels, rangementDuChapitre } from './manuels.js';
 import type { CoursServi, ModuleServi } from './servi.js';
 
@@ -31,10 +32,11 @@ export interface Chapitre {
 
 /**
  * Les écrans d'un cours : l'aperçu est à `/cours/<id>`, chacun des autres à `/cours/<id>/<onglet>`
- * (décision 20) ; « Heute », la séance du jour, est à `/cours/<id>/heute` (M2-P1). `feuilles` montre toutes les feuilles du cours (F1-D1).
+ * (décision 20) ; « Heute », la séance du jour, est à `/cours/<id>/heute` (M2-P1) ; « Lernplan », la vue des étapes du planning, est à `/cours/<id>/planning` (M4, C-D2). `feuilles` montre toutes les feuilles du cours (F1-D1).
  */
 export type Onglet =
   | 'heute'
+  | 'planning'
   | 'apercu'
   | 'cartes'
   | 'quiz'
@@ -128,7 +130,10 @@ export function preparerCours(cours: CoursServi): CoursPrepare {
  * Celui des feuilles, que le prototype n'avait pas, vient entre les exercices et l'examen (F1-D1).
  */
 export function ongletsDuCours(cours: CoursPrepare): Onglet[] {
-  const onglets: Onglet[] = ['heute', 'apercu'];
+  const onglets: Onglet[] = ['heute'];
+  // Le Lernplan n'existe que si le cours a un planning que ce client lit (M4, C-D2).
+  if (planningDuCours(cours.cours) !== undefined) onglets.push('planning');
+  onglets.push('apercu');
   if (cours.chapitres.length > 0) onglets.push('cartes', 'quiz');
   if (cours.morphologie !== undefined) onglets.push('mots');
   if (cours.schemas.length > 0) onglets.push('schemas');

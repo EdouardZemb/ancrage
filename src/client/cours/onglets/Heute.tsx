@@ -26,7 +26,6 @@
  */
 import { useMemo, useRef } from 'preact/hooks';
 import type { CoursPrepare } from '../../../domaine/cours/prepare.js';
-import { memoireDuCours } from '../../../domaine/cours/servi.js';
 import type { Hasard } from '../../../domaine/hasard.js';
 import type { ModeDeReponse } from '../../../domaine/journal/evenement.js';
 import {
@@ -39,15 +38,13 @@ import {
   posablesDuCours,
   type SeanceDuJour,
 } from '../../../domaine/seances/heute.js';
-import {
-  departDuPlanning,
-  joursAvantExamen,
-  planningDuCours,
-} from '../../../domaine/seances/planning.js';
+import { joursAvantExamen } from '../../../domaine/seances/planning.js';
 import { pretestDuJour } from '../../../domaine/seances/pretest.js';
 import { neuvesDuJour } from '../../../domaine/seances/rythme.js';
 import { optionsDuPoint } from '../../../domaine/seances/schemas.js';
+import { ligneDExamen } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
+import { usePlanningDuCours } from '../planning-du-cours.js';
 import {
   QuestionAChoix,
   type QuestionDeChoix,
@@ -58,7 +55,7 @@ import { QuestionDExercice, type ReponseDExercice } from '../questions/QuestionD
 import { QuestionDeSchema, type TacheDeSchema } from '../questions/QuestionDeSchema.js';
 import { QuestionMot, type TacheDeMot, tacheDeMot } from '../questions/QuestionMot.js';
 import { heuteEnCours, pretestEnCours } from '../seances-en-cours.js';
-import { type CleTexteCours, formater } from '../textes-cours.js';
+import { formater } from '../textes-cours.js';
 import {
   demarrerPretest,
   type EtatDuPretest,
@@ -138,18 +135,6 @@ export function questionDe(
   }
 }
 
-/** Le compte à rebours avant l'examen (A1-D8) ; rien sans examen ou après lui. */
-function ligneDExamen(jours: number | undefined, t: Record<CleTexteCours, string>) {
-  if (jours === undefined) return null;
-  const texte =
-    jours === 0
-      ? t.heute_examen_0
-      : jours === 1
-        ? t.heute_examen_1
-        : formater(t.heute_examen_n, { n: jours });
-  return <span class="examenline">{texte}</span>;
-}
-
 export function Heute() {
   const {
     cours,
@@ -171,12 +156,7 @@ export function Heute() {
   );
   // Le planning ne règle que les cartes neuves : ce qui est dû reste dû (A1-D7). Le départ relit
   // tout le journal, il ne se refait que si le journal ou le jour change.
-  const planning = useMemo(() => planningDuCours(cours.cours), [cours]);
-  const depart = useMemo(
-    () => (planning === undefined ? aujourdhui : departDuPlanning(evenements, aujourdhui)),
-    [planning, evenements, aujourdhui],
-  );
-  const examen = useMemo(() => memoireDuCours(cours.cours)?.examen, [cours]);
+  const { planning, depart, examen } = usePlanningDuCours();
   // Les cartes neuves du jour et leur quota (M2-P9, B-D2, B-D3). Sans planning, les neuves du choix
   // de Karteikarten et le plafond moins les cartes découvertes aujourd'hui ; avec un planning, les
   // premières cartes neuves des modules ouverts, au rythme du jour. Le compte relit le journal :

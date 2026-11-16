@@ -51,6 +51,7 @@ describe('route', () => {
     });
     for (const onglet of [
       'heute',
+      'planning',
       'cartes',
       'quiz',
       'mots',

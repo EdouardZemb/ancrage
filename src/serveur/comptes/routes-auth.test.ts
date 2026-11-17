@@ -564,7 +564,8 @@ describe('invitation', () => {
     // Le journal dit pourquoi (une `ANCRAGE_URL_PUBLIQUE` fausse se voit), sans rien de secret.
     const journal = journalServeur.lignes.join('');
     expect(journal).toContain('"motif":"webauthn"');
-    expect(journal).toContain('Unexpected registration response origin');
+    // Le texte vient de la bibliothèque, qui l'a raccourci en 14.1 : les deux formes sont admises.
+    expect(journal).toMatch(/Unexpected (registration )?response origin/);
     expect(journal).toContain('Unexpected RP ID hash');
     for (const secret of secrets) {
       expect(journal).not.toContain(secret);
@@ -671,7 +672,8 @@ describe('connexion', () => {
     }
     const journal = journalServeur.lignes.join('');
     expect(journal).toContain('"motif":"webauthn"');
-    expect(journal).toContain('Unexpected authentication response origin');
+    // Le texte vient de la bibliothèque, qui l'a raccourci en 14.1 : les deux formes sont admises.
+    expect(journal).toMatch(/Unexpected (authentication )?response origin/);
     expect(journal).toContain('User not present during authentication');
     for (const secret of [id, authentificateur.idCle, jetonSession, 'Lernende Test']) {
       expect(journal).not.toContain(secret);

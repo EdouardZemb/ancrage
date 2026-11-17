@@ -485,13 +485,18 @@ cours (M4-R4).
 
 ## Les limites
 
-- **Le cours de l'instance n'a ni planning ni manuels** à la clôture. Rien du lot n'y paraît :
-  ni compte à rebours (il lui faut `memoire.examen`, donc FSRS), ni Lernplan, ni pré-test, ni
-  révisions, ni divisions. Le planning est une PR du dépôt de données ; les manuels, une version
-  après la `v0.17.0` (A2-D17).
-- **Ce qui n'a été vu que par les tests et le bout en bout** sur le cours d'exemple, au poste :
-  le mode sombre des nouvelles pastilles, un lecteur d'écran (TalkBack), le passage de minuit, un
-  autre fuseau. L'allemand du lot (libellés, notice) n'a pas été relu par une personne germanophone.
+- **Le cours de l'instance a son planning au staging, pas encore en prod**, à la clôture. Une PR
+  du dépôt de données l'a posé le 17/11/2026 : le staging sert le compte à rebours, le rythme, le
+  pré-test et le Lernplan. La prod, en `v0.17.0`, attend une étiquette de données pour le planning,
+  et la version suivante du code pour le pré-test et le Lernplan. Le cours n'a pas de manuels, donc
+  pas de divisions : ils viennent une version après la `v0.17.0` (A2-D17).
+- **Ce qui a été vu sur un téléphone Android**, au staging, par Edouard, le 17/11/2026 : le
+  Lernplan, « Heute » et son compte à rebours, l'offre de pré-test. **Ce qui n'a été vu que par
+  les tests et le bout en bout**, sur le cours d'exemple, au poste : les révisions d'une étape de
+  révision (la première du cours de l'instance s'ouvre en janvier 2027), un lecteur d'écran
+  (TalkBack), le passage de minuit, un autre fuseau ; le mode sombre des nouvelles pastilles n'a
+  pas été confirmé sur appareil. L'allemand du lot (libellés, notice) n'a pas été relu par une
+  personne germanophone.
 - **Un appareil resté sur une version d'avant la `v0.17.0`** compterait un pré-test synchronisé
   comme une réponse ordinaire ; aucun test ne fait tourner l'ancien client.
 - **Le bout en bout de la séance du jour** tient jusqu'au 19/06/2030 inclus (l'examen inventé de
@@ -516,12 +521,14 @@ cours (M4-R4).
   court, refusé par `contenus:client` et le hook `cours-absent` ; le nom du test
   `chaque_morceau_de_la_meta_est_insecable_dans_son_span` ; le mutant équivalent de
   `revisions.ts` ; la vérification sur appareil, l'ancien client et l'échéance de 2030.
-- **La vérification sur Android** : elle revient à Edouard, au staging. Le staging sert le cours
-  de l'instance, sans planning ni manuels : rien du lot n'y paraît avant qu'une PR de données les
-  pose, et les écrans d'avant doivent y être restés tels quels.
-- **Le passage du cours de l'instance** : des PR du dépôt de données. Le planning d'abord, une
-  version après la `v0.16.0` (déjà tenue) ; les manuels, une version après la `v0.17.0`, avec le
-  retrait des suffixes « · Unit N » des titres du cours. L'ordre du résultat de la Prüfung par
-  manuel se règle avant la PR des manuels (ancrage#11).
+- **La vérification sur Android** : faite par Edouard, au staging, le 17/11/2026, avec le planning
+  du cours de l'instance. Ce qu'elle n'a pas couvert est dans « Les limites » et dans ancrage#11.
+- **La mise en prod** : à Edouard. La prochaine étiquette `vX.Y.Z` porte le pré-test, le Lernplan
+  et les révisions ; une étiquette de données porte le planning.
+- **Le passage du cours de l'instance** : des PR du dépôt de données. Le planning est posé, avec
+  une étape par séance transcrite ; les séances à venir auront la leur à leur transcription. Les
+  manuels viennent une version après la `v0.17.0`, avec le retrait des suffixes « · Unit N » des
+  titres du cours. L'ordre du résultat de la Prüfung par manuel se règle avant la PR des manuels
+  (ancrage#11).
 - **Parmi les lots suivants** : le rejeu d'une seule unité (ancrage#31), les éléments rebelles
   (ancrage#32).

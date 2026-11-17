@@ -237,8 +237,9 @@ cours de l'instance reste en Leitner jusqu'à son passage, qui est une PR du dé
 
 Ses décisions et ses arbitrages (« M3-P<n> », « M3-R<n> ») sont dans `docs/conception/lot-m3.md`.
 
-Le lot M4 a donné à un cours son planning (ancrage#30). Le cours de l'instance n'a encore ni planning
-ni manuels : rien du lot n'y paraît avant une PR du dépôt de données :
+Le lot M4 a donné à un cours son planning (ancrage#30). Le cours de l'instance a le sien au staging
+depuis le 17/11/2026, par une PR du dépôt de données, et pas encore de manuels ; en prod, il attend
+une étiquette de données, et la version qui suit la `v0.17.0` pour le pré-test et le Lernplan :
 - la clé facultative `planning` du manifeste : des étapes, datées ou relatives (« en semaine 3 »),
   chacune avec ses modules et son genre, `cours` ou `revision`. Un module qu'aucune étape ne nomme
   reste ouvert. Un cours monté ne la reçoit qu'une version après la `v0.16.0`

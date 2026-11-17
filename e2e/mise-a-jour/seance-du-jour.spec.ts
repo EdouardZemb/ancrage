@@ -46,26 +46,36 @@ const JOURS_JUSQU_A_LA_SEMAINE_2 = 7;
 /** Les essais pour tomber sur une faute, quand une réponse choisie à l'aveugle se trouve juste. */
 const ESSAIS_DE_FAUTE = 12;
 
+/** Le titre de la semaine 2 du planning du cours d'exemple : l'étape dont le pré-test se passe. */
+const SEMAINE_2 = 'Woche 2 – Zutaten';
+/** Les jours que saute l'étape 6 : la semaine 2 s'ouvre alors dans 2 jours, en fenêtre (B-D11). */
+const JOURS_PLUS_TARD = 5;
+/** Les questions du pré-test : le module de la semaine 2 a 8 cartes, et le pré-test en pose 5. */
+const QUESTIONS_DU_PRETEST = 5;
+
 /** L'examen inventé du cours d'exemple (`memoire.examen`, `exemple-contenu/kueche/cours.yaml`). */
 const EXAMEN_DE_L_EXEMPLE = [2030, 6, 30] as const;
 
 /**
- * Le compte à rebours que « Heute » dit (A1-D8). Le test lit l'horloge réelle contre l'examen
- * inventé, lointain : il tient jusqu'au 24/06/2030 inclus : ensuite l'examen devient l'horizon du
- * rythme (B-D4), et le nombre de cartes neuves change. Le calcul est celui du jour local, comme
- * l'onglet.
+ * Le compte à rebours que « Heute » dit (A1-D8), `decalage` jours plus tard que `maintenant`. Le
+ * test lit l'horloge réelle contre l'examen inventé, lointain : il tient tant que le jour de
+ * `maintenant` est au 24/06/2030 au plus (`jours >= 6`), et celui de l'étape 6, décalé de
+ * `JOURS_PLUS_TARD`, aussi : la date limite du test est donc le 19/06/2030 inclus. Ensuite
+ * l'examen devient l'horizon du rythme (B-D4), et le nombre de cartes neuves change. Le calcul est
+ * celui du jour local, comme l'onglet.
  */
-function compteARebours(): string {
+function compteARebours(decalage = 0, maintenant = new Date()): string {
   const [annee, mois, jour] = EXAMEN_DE_L_EXEMPLE;
-  const maintenant = new Date();
   const aujourdhui = Date.UTC(
     maintenant.getFullYear(),
     maintenant.getMonth(),
     maintenant.getDate(),
   );
   const jours = Math.round((Date.UTC(annee, mois - 1, jour) - aujourdhui) / 86_400_000);
-  if (jours < 6) throw new Error('l’examen inventé de l’exemple arrive : en reculer la date');
-  return formater(deCours.heute_examen_n, { n: jours });
+  if (jours < 6 + decalage) {
+    throw new Error('l’examen inventé de l’exemple arrive : en reculer la date');
+  }
+  return formater(deCours.heute_examen_n, { n: jours - decalage });
 }
 
 let serveur: VersionServie | undefined;
@@ -194,5 +204,47 @@ test('la_seance_du_jour_mele_les_types', async ({ page }) => {
     // l'ait fait revenir ou non.
     expect(faites).toBe(file);
     expect(justes).toBeLessThanOrEqual(faites);
+  });
+
+  await test.step('6. cinq jours plus tard, le Vortest de la semaine 2', async () => {
+    // Midi, jour local : le décalage est de jours entiers, quel que soit l'heure d'été.
+    const maintenant = new Date();
+    const aTerme = compteARebours(JOURS_PLUS_TARD, maintenant);
+    await page.clock.setFixedTime(
+      new Date(
+        maintenant.getFullYear(),
+        maintenant.getMonth(),
+        maintenant.getDate() + JOURS_PLUS_TARD,
+        12,
+      ),
+    );
+    await page.reload();
+    const cours = page.locator('#onglet-courant');
+    await expect(cours.locator('.examenline', { hasText: aTerme })).toBeVisible();
+    const offre = cours.locator('.pretest');
+    await expect(offre).toContainText(
+      formater(deCours.heute_pretest_angebot, { etape: SEMAINE_2 }),
+    );
+    const avant = await compteDeHeute(page);
+
+    await cours.getByRole('button', { name: deCours.heute_pretest_starten }).click();
+    for (let question = 1; question <= QUESTIONS_DU_PRETEST; question++) {
+      await expect(
+        cours.getByText(
+          formater(deCours.heute_pretest_frage, { i: question, n: QUESTIONS_DU_PRETEST }),
+        ),
+      ).toBeVisible();
+      await cours.locator('.options button:enabled').first().click();
+      await expect(cours.getByText(deCours.heute_pretest_danach)).toBeVisible();
+      await cours.getByRole('button', { name: deCours.suivante, exact: true }).click();
+    }
+    await expect(
+      cours.getByText(formater(deCours.heute_pretest_fertig, { etape: SEMAINE_2 })),
+    ).toBeVisible();
+
+    await cours.getByRole('button', { name: deCours.heute_pretest_zurueck }).click();
+    // L'offre a disparu (une seule fois), et la séance est celle d'avant : rien n'a compté.
+    await expect(offre).toHaveCount(0);
+    expect(await compteDeHeute(page), 'la séance gardée').toEqual(avant);
   });
 });

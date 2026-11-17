@@ -27,6 +27,13 @@ export function heuteEnCours(s: {
   return s.seance.file.length > 0 && (s.seance.faites > 0 || s.repondue !== null);
 }
 
+/** Le pré-test de « Heute » : au moins une réponse, et une question qui reste (B-D16). */
+export function pretestEnCours(
+  e: { faites: number; rang: number; questions: readonly unknown[] } | null,
+): boolean {
+  return e !== null && e.faites > 0 && e.rang < e.questions.length;
+}
+
 /** Prüfung : un passage commencé et pas remis. */
 export function examenEnCours(p: { resultat: unknown } | null): boolean {
   return p !== null && p.resultat === null;

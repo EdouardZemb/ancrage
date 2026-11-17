@@ -23,10 +23,11 @@ function question(choisie: number | null = null): QuestionDeChoix {
   };
 }
 
-function poser(q: QuestionDeChoix, onChoix = vi.fn(), onSuivante = vi.fn()) {
+function poser(q: QuestionDeChoix, onChoix = vi.fn(), onSuivante = vi.fn(), sansFaute = false) {
   rendreDansLeCours(
     <QuestionAChoix
       question={q}
+      sansFaute={sansFaute}
       libelleSuivante="Weiter"
       onChoix={onChoix}
       onSuivante={onSuivante}
@@ -63,6 +64,33 @@ describe('QuestionAChoix', () => {
     expect(screen.queryByText(t.quiz_touches)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Weiter' }));
     expect(onSuivante).toHaveBeenCalledTimes(1);
+  });
+
+  it('un_mauvais_choix_est_rouge_sans_sansFaute_et_neutre_avec', () => {
+    poser(question(0));
+    expect(boutons().map((b) => b.className)).toEqual(['wrong', 'right', '']);
+    cleanup();
+    poser(question(0), vi.fn(), vi.fn(), true);
+    expect(boutons().map((b) => b.className)).toEqual(['sel', 'right', '']);
+    cleanup();
+    // Un bon choix reste vert, et une question sans réponse n'a aucune classe.
+    poser(question(1), vi.fn(), vi.fn(), true);
+    expect(boutons().map((b) => b.className)).toEqual(['', 'right', '']);
+  });
+
+  it('sans_faute_la_bonne_option_se_dit_aux_lecteurs_d_ecran_et_le_choix_faux_prend_le_style_neutre', () => {
+    poser(question(0), vi.fn(), vi.fn(), true);
+    expect(boutons().map((b) => b.getAttribute('aria-label'))).toEqual([
+      null,
+      expect.stringContaining(t.heute_pretest_richtig),
+      null,
+    ]);
+    expect(document.querySelector('.options')?.classList.contains('sansfaute')).toBe(true);
+    cleanup();
+    // Hors pré-test, rien n'est ajouté : ni libellé, ni classe.
+    poser(question(0));
+    expect(boutons().map((b) => b.getAttribute('aria-label'))).toEqual([null, null, null]);
+    expect(document.querySelector('.options')?.className).toBe('options');
   });
 
   it('questionDeLElement_reprend_l_id_la_reponse_et_les_options_de_l_element', () => {

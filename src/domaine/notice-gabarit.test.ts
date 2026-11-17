@@ -128,6 +128,8 @@ describe('notice', () => {
         'jamais ce que tu as répondu',
         'éléments associés ou classés',
         'texte tapé puis compté juste par toi',
+        // ADR-0014 : la réponse de pré-test, donnée avant d’avoir appris, hors de la progression.
+        'réponse à un pré-test, donnée avant d’avoir appris l’élément, qui ne compte pas dans ta progression',
         'statistiques d’ensemble',
         'Si tu es d’accord, le responsable suit aussi ta progression',
         'sans ton accord, il n’en voit que les chiffres d’ensemble',
@@ -143,6 +145,7 @@ describe('notice', () => {
         // Le mode `association` (appariement, classement) : la notice dit chaque geste que le client note.
         'Elemente zugeordnet oder eingeordnet',
         'Text getippt und von dir als richtig gewertet',
+        'Antwort in einem Vortest, die du gibst, bevor du das Element gelernt hast, und die nicht zu deinem Lernfortschritt zählt',
         'Gesamtstatistiken',
         'Wenn du einverstanden bist, verfolgt der Verantwortliche auch deinen Lernfortschritt',
         'ohne dein Einverständnis sieht er nur die Gesamtzahlen',
@@ -160,8 +163,8 @@ describe('notice', () => {
 
   it('notice_porte_la_version_de_son_dernier_changement', () => {
     // Le texte change avec ADR-0013 (le suivi avec accord), puis d'un geste oublié, l'association :
-    // la version est celle de ce dernier changement.
-    expect(NOTICE_VERSION).toBe('2026-11-14');
+    // le pré-test (ADR-0014) : la version est celle de ce dernier changement.
+    expect(NOTICE_VERSION).toBe('2026-11-17');
   });
 
   it('notice_dit_les_limites_de_ce_qu_elle_promet', () => {

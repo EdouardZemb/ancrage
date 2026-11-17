@@ -22,11 +22,18 @@ import {
   rendreDansUnCoursVivant,
   reponseDeTest,
 } from '../contexte-cours.fixture.js';
-import { type ContexteCours, ContexteDuCours } from '../contexte-cours.js';
+import {
+  type ContexteCours,
+  ContexteDuCours,
+  etatDOngletSur,
+  type PredicatsDeSeance,
+  seanceDansLaMemoire,
+} from '../contexte-cours.js';
 import { heuteEnCours } from '../seances-en-cours.js';
 import { formater, TEXTES_COURS } from '../textes-cours.js';
 import { cleDuJour, type EtatDeHeute, Heute, questionDe } from './Heute.js';
 import { boutons, progression, texteDe } from './onglets.fixture.js';
+import type { EtatDuPretest } from './PretestDeHeute.js';
 
 afterEach(cleanup);
 
@@ -190,21 +197,21 @@ function memoireAvecExamen(examen: string) {
 
 const COMPTE_A_REBOURS = /Prüfung/;
 
-/** Les trois écrans de l'onglet, chacun posé sur le cours donné. */
-const ECRANS: Record<string, (cours: CoursServi) => void> = {
-  seance: (cours) => rendreDansLeCours(<Heute />, contexteDe({ cours })),
-  fin: (cours) => {
+/** Les trois écrans de l'onglet, chacun posé sur le cours donné, et le journal s'il y en a un. */
+const ECRANS: Record<string, (cours: CoursServi, evenements?: Evenement[]) => void> = {
+  seance: (cours, evenements) => rendreDansLeCours(<Heute />, contexteDe({ cours, evenements })),
+  fin: (cours, evenements) => {
     const memoire = new Map<string, unknown>();
-    const contexte = contexteDe({ cours, memoire });
+    const contexte = contexteDe({ cours, memoire, evenements });
     amorcer(contexte, memoire, [HERZ]);
     rendreDansLeCours(<Heute />, contexte);
     cliquer(t.cartes_retourner);
     cliquer(t.cartes_su);
     expect(screen.getByRole('heading', { name: t.heute_fin })).toBeTruthy();
   },
-  rien: (cours) => {
+  rien: (cours, evenements) => {
     const leitner = { ...cours.leitner, nouvellesParSeance: 0 };
-    rendreDansLeCours(<Heute />, contexteDe({ cours: { ...cours, leitner } }));
+    rendreDansLeCours(<Heute />, contexteDe({ cours: { ...cours, leitner }, evenements }));
     expect(screen.getByRole('heading', { name: t.heute_rien })).toBeTruthy();
   },
 };
@@ -1037,5 +1044,331 @@ describe('Heute', () => {
       expect(screen.queryByText(COMPTE_A_REBOURS)).toBeNull();
       cleanup();
     }
+  });
+
+  // Le pré-test (M4, B-D11 à B-D16). Le départ est réglé par un événement hors du cours, au jour
+  // donné : la semaine 2 de `SEMAINES` s'ouvre sept jours plus tard.
+  describe('le_pretest', () => {
+    const departLe = (jour: string) => [reponseDeTest(0, 'zz000000', true, jour)];
+    const duPlanning = () => coursAvec({ planning: SEMAINES });
+    const unitesDuChapitre2 = () =>
+      contexteDe().cours.unites.filter((u) => u.module === CHAPITRE_2 && u.sens === 'direct');
+    const offre = () => screen.queryByRole('button', { name: t.heute_pretest_starten });
+    const phraseDeLOffre = (etape: string) => formater(t.heute_pretest_angebot, { etape });
+
+    it('l_offre_se_dit_sur_les_trois_ecrans_deux_jours_avant_la_semaine_2', () => {
+      for (const ecran of Object.values(ECRANS)) {
+        ecran(duPlanning(), departLe('2026-10-12'));
+        expect(offre()).toBeTruthy();
+        expect(screen.getByText(phraseDeLOffre('Woche 2'))).toBeTruthy();
+        expect(screen.getAllByText(t.heute_pretest_warum)).toHaveLength(1);
+        cleanup();
+      }
+    });
+
+    it.each([
+      ['quatre_jours_avant_se_tait', '2026-10-14', false],
+      ['trois_jours_avant_se_dit', '2026-10-13', true],
+      ['un_jour_avant_se_dit', '2026-10-11', true],
+      ['le_jour_de_l_ouverture_se_tait', '2026-10-10', false],
+    ])('l_offre_suit_la_fenetre_%s', (_nom, depart, dite) => {
+      for (const ecran of Object.values(ECRANS)) {
+        ecran(duPlanning(), departLe(depart));
+        expect(offre() !== null).toBe(dite);
+        cleanup();
+      }
+    });
+
+    it('pas_d_offre_sans_planning', () => {
+      for (const ecran of Object.values(ECRANS)) {
+        ecran(coursAvec({}), departLe('2026-10-12'));
+        expect(offre()).toBeNull();
+        expect(screen.queryByText(t.heute_pretest_warum)).toBeNull();
+        cleanup();
+      }
+    });
+
+    it('pas_d_offre_avant_une_etape_revision', () => {
+      const [premiere, seconde] = SEMAINES.etapes;
+      const planning = { etapes: [premiere, { ...seconde, genre: 'revision' }] };
+      for (const ecran of Object.values(ECRANS)) {
+        ecran(coursAvec({ planning }), departLe('2026-10-12'));
+        expect(offre()).toBeNull();
+        cleanup();
+      }
+    });
+
+    it('pas_d_offre_apres_une_reponse_de_pretest_a_l_etape', () => {
+      const evenements = [
+        ...departLe('2026-10-12'),
+        reponseDeTest(1, 'c2000001', false, '2026-10-17', 'pretest'),
+      ];
+      for (const ecran of Object.values(ECRANS)) {
+        ecran(duPlanning(), evenements);
+        expect(offre()).toBeNull();
+        cleanup();
+      }
+    });
+
+    it('pas_d_offre_en_pleine_seance', () => {
+      const memoire = new Map<string, unknown>();
+      const evenements = departLe('2026-10-12');
+      const contexte = contexteDe({ memoire, cours: duPlanning(), evenements });
+      amorcer(contexte, memoire, [HERZ, LEBER]);
+      rendreDansLeCours(<Heute />, contexte);
+      expect(offre()).toBeTruthy();
+      cliquer(t.cartes_retourner);
+      cliquer(t.cartes_su);
+
+      expect(fileDe(memoire)).toEqual([LEBER]);
+      expect(offre()).toBeNull();
+      expect(screen.queryByText(t.heute_pretest_warum)).toBeNull();
+    });
+
+    it('pas_d_offre_apres_un_jugement_avant_la_suite', () => {
+      // Une question à choix jugée, sa suite pas encore donnée : `faites` vaut encore 0, mais
+      // `repondue` n'est plus `null`, et la séance est amorcée.
+      const memoire = new Map<string, unknown>();
+      const evenements = departLe('2026-10-12');
+      const contexte = contexteDe({ memoire, cours: duPlanning(), evenements });
+      amorcer(contexte, memoire, [QCM, HERZ]);
+      rendreDansLeCours(<Heute />, contexte);
+      expect(offre()).toBeTruthy();
+      fireEvent.click(boutons()[0] as HTMLButtonElement);
+
+      expect(etatGarde(memoire).repondue).not.toBeNull();
+      expect(etatGarde(memoire).seance.faites).toBe(0);
+      expect(offre()).toBeNull();
+    });
+
+    it('la_question_du_pretest_reste_la_meme_d_un_rendu_a_l_autre', () => {
+      // Un hasard qui change à chaque tirage : avec celui des tests (`() => 0`), tout tirage
+      // redonne la même chose et un tirage refait au rendu ne se verrait pas.
+      let tirage = 1;
+      const base = {
+        ...contexteDe({ cours: duPlanning(), evenements: departLe('2026-10-12') }),
+        hasard: () => {
+          tirage = (tirage * 16807) % 2147483647;
+          return tirage / 2147483647;
+        },
+      };
+      const vue = rendreDansLeCours(<Heute />, base);
+      cliquer(t.heute_pretest_starten);
+      const lire = () => [
+        document.querySelector('.card .front')?.textContent,
+        boutons().map(texteDe).join('|'),
+      ];
+      const avant = lire();
+      vue.rerender(
+        <ContexteDuCours.Provider value={{ ...base, evenements: [...base.evenements] }}>
+          <Heute />
+        </ContexteDuCours.Provider>,
+      );
+      expect(lire()).toEqual(avant);
+    });
+
+    it('l_offre_suit_le_journal_les_etats_et_le_jour_d_une_meme_vue', () => {
+      // Les mêmes objets `cours`, `etats` et `evenements` d'un rendu à l'autre : seule la valeur
+      // éprouvée change, si bien qu'une dépendance oubliée au `useMemo` se voit.
+      const base = contexteDe({ cours: duPlanning(), evenements: departLe('2026-10-12') });
+      const vue = rendreDansLeCours(<Heute />, base);
+      const rendre = (suivant: ContexteCours) =>
+        vue.rerender(
+          <ContexteDuCours.Provider value={suivant}>
+            <Heute />
+          </ContexteDuCours.Provider>,
+        );
+      expect(offre()).toBeTruthy();
+
+      const vues = unitesDuChapitre2().map((u, n) =>
+        reponseDeTest(n + 1, u.id, true, '2026-10-16'),
+      );
+      const decouvertes = contexteDe({
+        cours: duPlanning(),
+        evenements: [...base.evenements, ...vues],
+      });
+      rendre({ ...base, etats: decouvertes.etats });
+      expect(offre()).toBeNull();
+
+      rendre(base);
+      expect(offre()).toBeTruthy();
+      rendre({ ...base, aujourdhui: '2026-10-20' });
+      expect(offre()).toBeNull();
+
+      rendre(base);
+      expect(offre()).toBeTruthy();
+      const fait = reponseDeTest(99, 'c2000001', false, '2026-10-17', 'pretest');
+      rendre({ ...base, evenements: [...base.evenements, fait] });
+      expect(offre()).toBeNull();
+    });
+
+    function commencer() {
+      const memoire = new Map<string, unknown>();
+      const predicats: PredicatsDeSeance = new Map();
+      const base = contexteDe({ memoire, cours: duPlanning(), evenements: departLe('2026-10-12') });
+      const contexte: ContexteCours = {
+        ...base,
+        useEtatDOnglet: etatDOngletSur(memoire, predicats),
+      };
+      rendreDansUnCoursVivant(<Heute />, contexte);
+      return { contexte, memoire, seance: () => seanceDansLaMemoire(memoire, predicats) };
+    }
+
+    /** Répond à `n` questions du pré-test, par la première option, et passe à la suivante. */
+    function repondre(n: number): string[] {
+      const posees: string[] = [];
+      for (let i = 0; i < n; i++) {
+        posees.push(document.querySelector('.card .front')?.textContent ?? '');
+        fireEvent.click(boutons()[0] as HTMLButtonElement);
+        cliquer(t.suivante);
+      }
+      return posees;
+    }
+
+    it('le_pretest_pose_cinq_cartes_distinctes_de_l_etape_au_sens_direct', () => {
+      const { contexte } = commencer();
+      cliquer(t.heute_pretest_starten);
+
+      expect(screen.getByText(formater(t.heute_pretest_frage, { i: 1, n: 5 }))).toBeTruthy();
+      const posees = repondre(5);
+      const attendues = new Set(unitesDuChapitre2().map(({ question }) => question));
+      expect(new Set(posees).size).toBe(5);
+      for (const posee of posees) expect(attendues.has(posee)).toBe(true);
+      // Chaque réponse est au journal, sous le mode `pretest`, sur l'unité directe d'une carte.
+      const ids = new Set(unitesDuChapitre2().map(({ id }) => id));
+      const appels = vi.mocked(contexte.enregistrer).mock.calls;
+      expect(appels).toHaveLength(5);
+      for (const [id, , mode] of appels) {
+        expect(ids.has(id)).toBe(true);
+        expect(mode).toBe('pretest');
+      }
+    });
+
+    it('la_fin_du_pretest_dit_l_etape_et_ramene_a_la_seance_gardee', () => {
+      const { memoire } = commencer();
+      const garde = etatGarde(memoire);
+      const question = document.querySelector('.card .front')?.textContent;
+      cliquer(t.heute_pretest_starten);
+      // La séance du jour reste gardée telle quelle pendant le pré-test.
+      expect(etatGarde(memoire)).toBe(garde);
+      repondre(5);
+
+      expect(screen.getByRole('heading', { name: t.heute_pretest_fin })).toBeTruthy();
+      expect(screen.getByText(formater(t.heute_pretest_fertig, { etape: 'Woche 2' }))).toBeTruthy();
+      expect(document.body.textContent).not.toMatch(/richtig/i);
+      cliquer(t.heute_pretest_zurueck);
+
+      expect(memoire.get('heute/pretest')).toBeNull();
+      expect(etatGarde(memoire)).toBe(garde);
+      expect(document.querySelector('.card .front')?.textContent).toBe(question);
+      expect(offre()).toBeNull();
+    });
+
+    it('la_seance_reste_gardee_quand_le_journal_grandit_des_reponses_de_pretest', () => {
+      const memoire = new Map<string, unknown>();
+      const predicats: PredicatsDeSeance = new Map();
+      const base = {
+        ...contexteDe({ memoire, cours: duPlanning(), evenements: departLe('2026-10-12') }),
+        useEtatDOnglet: etatDOngletSur(memoire, predicats),
+      };
+      const vue = rendreDansLeCours(<Heute />, base);
+      const garde = etatGarde(memoire);
+      cliquer(t.heute_pretest_starten);
+      repondre(5);
+      // Le journal du parent grandit des cinq réponses ; un pré-test ne change pas les états.
+      const pretests = vi
+        .mocked(base.enregistrer)
+        .mock.calls.map(([id, juste], n) =>
+          reponseDeTest(2000 + n, id, juste, '2026-10-12', 'pretest'),
+        );
+      expect(pretests).toHaveLength(5);
+      vue.rerender(
+        <ContexteDuCours.Provider
+          value={{ ...base, evenements: [...base.evenements, ...pretests] }}
+        >
+          <Heute />
+        </ContexteDuCours.Provider>,
+      );
+      cliquer(t.heute_pretest_zurueck);
+
+      expect(etatGarde(memoire)).toEqual(garde);
+    });
+
+    it('quitter_le_pretest_ramene_a_la_seance', () => {
+      const { memoire } = commencer();
+      const garde = etatGarde(memoire);
+      cliquer(t.heute_pretest_starten);
+      repondre(2);
+      expect((memoire.get('heute/pretest') as EtatDuPretest).faites).toBe(2);
+      cliquer(t.heute_pretest_zurueck);
+
+      expect(memoire.get('heute/pretest')).toBeNull();
+      expect(etatGarde(memoire)).toBe(garde);
+      // Commencé puis quitté, il ne revient pas (B-D12).
+      expect(offre()).toBeNull();
+    });
+
+    it('un_pretest_commence_retient_la_mise_a_jour', () => {
+      const { seance } = commencer();
+      expect(seance()).toBeNull();
+      cliquer(t.heute_pretest_starten);
+      expect(seance()).toBeNull();
+      fireEvent.click(boutons()[0] as HTMLButtonElement);
+      expect(seance()).toBe('journalisee');
+      cliquer(t.suivante);
+      repondre(4);
+      // Fini : plus de question qui reste.
+      expect(seance()).toBeNull();
+    });
+
+    it('la_derniere_reponse_synchronise_et_aucune_autre', async () => {
+      const { contexte } = commencer();
+      cliquer(t.heute_pretest_starten);
+      repondre(4);
+      await Promise.resolve();
+      expect(contexte.finDeSeance).not.toHaveBeenCalled();
+      fireEvent.click(boutons()[0] as HTMLButtonElement);
+      await waitFor(() => expect(contexte.finDeSeance).toHaveBeenCalledTimes(1));
+    });
+
+    it('la_derniere_reponse_appelle_fin_de_seance_une_fois', async () => {
+      const { contexte } = commencer();
+      cliquer(t.heute_pretest_starten);
+      repondre(4);
+      fireEvent.click(boutons()[0] as HTMLButtonElement);
+      await waitFor(() => expect(contexte.finDeSeance).toHaveBeenCalledTimes(1));
+      cliquer(t.suivante);
+      cliquer(t.heute_pretest_zurueck);
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(contexte.finDeSeance).toHaveBeenCalledTimes(1);
+    });
+
+    it('un_pretest_termine_ne_revient_pas_au_remontage_de_l_onglet', () => {
+      const { contexte, memoire } = commencer();
+      const question = document.querySelector('.card .front')?.textContent;
+      cliquer(t.heute_pretest_starten);
+      repondre(5);
+      expect(screen.getByText(formater(t.heute_pretest_fertig, { etape: 'Woche 2' }))).toBeTruthy();
+
+      cleanup();
+      rendreDansUnCoursVivant(<Heute />, contexte);
+      expect(screen.queryByText(formater(t.heute_pretest_fertig, { etape: 'Woche 2' }))).toBeNull();
+      expect(memoire.get('heute/pretest')).toBeNull();
+      expect(document.querySelector('.card .front')?.textContent).toBe(question);
+    });
+
+    it('un_pretest_en_cours_revient_tel_quel_au_remontage_de_l_onglet', () => {
+      const { contexte } = commencer();
+      cliquer(t.heute_pretest_starten);
+      repondre(1);
+      const posee = document.querySelector('.card .front')?.textContent;
+      expect(screen.getByText(formater(t.heute_pretest_frage, { i: 2, n: 5 }))).toBeTruthy();
+
+      cleanup();
+      rendreDansUnCoursVivant(<Heute />, contexte);
+      expect(screen.getByText(formater(t.heute_pretest_frage, { i: 2, n: 5 }))).toBeTruthy();
+      expect(document.querySelector('.card .front')?.textContent).toBe(posee);
+    });
   });
 });

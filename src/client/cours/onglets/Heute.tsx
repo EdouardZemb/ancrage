@@ -44,6 +44,7 @@ import {
   joursAvantExamen,
   planningDuCours,
 } from '../../../domaine/seances/planning.js';
+import { pretestDuJour } from '../../../domaine/seances/pretest.js';
 import { neuvesDuJour } from '../../../domaine/seances/rythme.js';
 import { optionsDuPoint } from '../../../domaine/seances/schemas.js';
 import { useCours } from '../contexte-cours.js';
@@ -56,8 +57,14 @@ import { ETAT_DE_CARTE_NEUF, type EtatDeCarte, QuestionCarte } from '../question
 import { QuestionDExercice, type ReponseDExercice } from '../questions/QuestionDExercice.js';
 import { QuestionDeSchema, type TacheDeSchema } from '../questions/QuestionDeSchema.js';
 import { QuestionMot, type TacheDeMot, tacheDeMot } from '../questions/QuestionMot.js';
-import { heuteEnCours } from '../seances-en-cours.js';
+import { heuteEnCours, pretestEnCours } from '../seances-en-cours.js';
 import { type CleTexteCours, formater } from '../textes-cours.js';
+import {
+  demarrerPretest,
+  type EtatDuPretest,
+  OffreDePretest,
+  PretestDeHeute,
+} from './PretestDeHeute.js';
 
 /** L'état de la question de tête, selon le genre de l'élément posé. */
 export type QuestionDeTete =
@@ -197,6 +204,14 @@ export function Heute() {
     ],
   );
   const cle = cleDuJour(aujourdhui, dues, candidates, quota);
+  // Le pré-test que le jour propose (B-D11) : il se dérive du journal, du planning et du jour.
+  const propose = useMemo(
+    () =>
+      planning === undefined
+        ? undefined
+        : pretestDuJour(planning, depart, aujourdhui, cours.unites, etats, evenements),
+    [planning, depart, aujourdhui, cours, etats, evenements],
+  );
 
   // Les éléments que la séance en cours a réussis : le journal ne les montre qu'une fois rangés,
   // et l'écran de fin ne les compte plus parmi les dues. Une séance neuve repart d'un ensemble vide.
@@ -207,6 +222,23 @@ export function Heute() {
     return { cle, seance, question: questionDe(seance.file[0], cours, hasard), repondue: null };
   };
   const [courante, setCourante] = useEtatDOnglet<EtatDeHeute>('heute', composer, heuteEnCours);
+  // Le pré-test commencé : une sous-clé de la séance, qui reste gardée telle quelle (B-D16).
+  const [pretest, setPretest] = useEtatDOnglet<EtatDuPretest | null>(
+    'heute/pretest',
+    () => null,
+    pretestEnCours,
+  );
+  // Un pré-test terminé ne survit pas à l'onglet : au montage, son écran de fin est déjà vu et
+  // l'état se vide ; un pré-test en cours, lui, revient tel quel (B-D16).
+  const aMonter = useRef(true);
+  let pretestCourant = pretest;
+  if (aMonter.current) {
+    aMonter.current = false;
+    if (pretest !== null && pretest.rang >= pretest.questions.length) {
+      pretestCourant = null;
+      setPretest(null);
+    }
+  }
   // Les dues ou les cartes neuves ont changé avant le premier geste, ou la séance est finie et le
   // jour a changé (une application restée ouverte la nuit) : on recompose.
   let etat = courante;
@@ -262,10 +294,24 @@ export function Heute() {
   // À l'écran de fin : les dues que la séance n'a pas déjà réussies, le journal pouvant être en retard.
   const restantes = dues.filter(({ id }) => !reussis.current.has(id)).length;
 
+  if (pretestCourant !== null) {
+    return <PretestDeHeute etat={pretestCourant} changer={setPretest} />;
+  }
+
+  // L'offre : jamais en pleine séance, avant le premier geste, ou quand la file est vide (B-D14).
+  const offre =
+    propose !== undefined && (tete === undefined || question === null || avantLePremierGeste) ? (
+      <OffreDePretest
+        etape={propose.etape.titre}
+        commencer={() => setPretest(demarrerPretest(propose, cours, hasard))}
+      />
+    ) : null;
+
   if (tete === undefined || question === null) {
     const { elements, justes } = bilanDuJour(seance);
     return (
       <section>
+        {offre}
         {seance.faites > 0 ? (
           <div class="done">
             <h2>{t.heute_fin}</h2>
@@ -310,6 +356,7 @@ export function Heute() {
 
   return (
     <section>
+      {offre}
       <div class="controls">
         <span class="progressline">
           {formater(t.heute_compte, { dues: dues.length, neues: neuves })}

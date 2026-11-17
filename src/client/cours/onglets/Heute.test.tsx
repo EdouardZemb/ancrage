@@ -44,6 +44,7 @@ const t = TEXTES_COURS.de;
 // Les unités du cours de test dont les tests parlent (données factices, écrites à la main).
 const HERZ = 'c1000001';
 const LEBER = 'c1000002';
+const NIERE = 'c1000003';
 const GASTRITIS = 'w0000001';
 const MITTE = 'q0000002';
 const ARTIKEL = 'e1000001';
@@ -1668,5 +1669,162 @@ describe('les_revisions', () => {
     expect(fileAvec(premier)).toEqual([]);
     // Une carte de CHAPITRE_1 reste neuve : elle seule se pose.
     expect(fileAvec(premier.slice(1))).toEqual([premier[0]?.id]);
+  });
+});
+
+describe('la_pose_des_cartes_de_la_seance', () => {
+  const INVERSE = `${HERZ}:inverse`;
+  const AUTRE_INVERSE = `${LEBER}:inverse`;
+
+  /** Une séance d'une carte inverse, la saisie cochée : le lien « Lieber umdrehen » est offert. */
+  function poserUneInverse(ids: string[] = [INVERSE], evenements: Evenement[] = []) {
+    const memoire = new Map<string, unknown>();
+    const contexte = contexteDe({ memoire, evenements });
+    amorcer(contexte, memoire, ids);
+    rendreDansLeCours(<Heute />, contexte);
+    return { contexte, memoire };
+  }
+
+  const lien = (libelle: string) => screen.queryByRole('button', { name: libelle });
+
+  it('le_lien_parait_sous_une_carte_a_saisir_et_pas_ailleurs', () => {
+    poserUneInverse();
+    expect(screen.getByLabelText(t.cartes_saisie_etiquette)).toBeTruthy();
+    expect(lien(t.heute_retourner)).toBeTruthy();
+    expect(lien(t.heute_saisir)).toBeNull();
+    cleanup();
+
+    // Une unité directe se retourne déjà : aucun lien.
+    const direct = new Map<string, unknown>();
+    const contexteDirect = contexteDe({ memoire: direct });
+    amorcer(contexteDirect, direct, [HERZ]);
+    rendreDansLeCours(<Heute />, contexteDirect);
+    expect(lien(t.heute_retourner)).toBeNull();
+    expect(lien(t.heute_saisir)).toBeNull();
+    cleanup();
+
+    // Sans la préférence « Begriffe eintippen » : la carte est retournée, aucun lien.
+    const sans = new Map<string, unknown>();
+    const contexteSans = contexteDe({ memoire: sans });
+    contexteSans.preferences = {
+      ...contexteSans.preferences,
+      cartes: { ...contexteSans.preferences.cartes, saisie: false },
+    };
+    amorcer(contexteSans, sans, [INVERSE]);
+    rendreDansLeCours(<Heute />, contexteSans);
+    expect(lien(t.heute_retourner)).toBeNull();
+    expect(lien(t.heute_saisir)).toBeNull();
+  });
+
+  it('le_lien_disparait_quand_un_verdict_est_affiche', () => {
+    poserUneInverse();
+    fireEvent.input(screen.getByLabelText(t.cartes_saisie_etiquette), {
+      target: { value: 'Leber' },
+    });
+    cliquer(t.cartes_verifier);
+
+    expect(document.querySelector('.verdict')).toBeTruthy();
+    expect(lien(t.heute_retourner)).toBeNull();
+    expect(lien(t.heute_saisir)).toBeNull();
+  });
+
+  it('le_geste_pose_une_carte_a_retourner_sans_journal_ni_preference', () => {
+    const { contexte } = poserUneInverse();
+    const preferences = contexte.preferences;
+
+    cliquer(t.heute_retourner);
+
+    expect(screen.queryByLabelText(t.cartes_saisie_etiquette)).toBeNull();
+    expect(screen.getByRole('button', { name: t.cartes_retourner })).toBeTruthy();
+    expect(lien(t.heute_retourner)).toBeNull();
+    expect(lien(t.heute_saisir)).toBeTruthy();
+    expect(contexte.enregistrer).not.toHaveBeenCalled();
+    expect(contexte.changerPreferences).not.toHaveBeenCalled();
+    expect(contexte.preferences).toBe(preferences);
+  });
+
+  it('apres_le_geste_le_focus_n_est_plus_sur_le_lien_et_espace_retourne_la_carte', () => {
+    poserUneInverse();
+    (lien(t.heute_retourner) as HTMLElement).focus();
+
+    cliquer(t.heute_retourner);
+
+    expect(document.activeElement).not.toBe(lien(t.heute_saisir));
+    expect(document.querySelector('.back')).toBeNull();
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: ' ' });
+    expect(document.querySelector('.back')?.textContent).toBe('Herz');
+    // La carte retournée : le lien de retour disparaît.
+    expect(lien(t.heute_saisir)).toBeNull();
+  });
+
+  it('le_lien_de_retour_rend_la_saisie_et_le_geste_ne_repond_pas_a_la_carte', () => {
+    const { contexte } = poserUneInverse();
+    cliquer(t.heute_retourner);
+    cliquer(t.heute_saisir);
+
+    expect(screen.getByLabelText(t.cartes_saisie_etiquette)).toBeTruthy();
+    expect(lien(t.heute_retourner)).toBeTruthy();
+    expect(lien(t.heute_saisir)).toBeNull();
+    expect(contexte.enregistrer).not.toHaveBeenCalled();
+  });
+
+  it('la_carte_suivante_et_la_serie_suivante_restent_retournees', () => {
+    const memoire = new Map<string, unknown>();
+    const contexte = contexteDe({
+      memoire,
+      evenements: manquees(INVERSE, AUTRE_INVERSE, `${NIERE}:inverse`),
+    });
+    amorcer(contexte, memoire, [INVERSE, AUTRE_INVERSE]);
+    rendreDansUnCoursVivant(<Heute />, contexte);
+    cliquer(t.heute_retourner);
+    cliquer(t.cartes_retourner);
+    cliquer(t.cartes_su);
+
+    // La carte suivante reste retournée.
+    expect(fileDe(memoire)).toEqual([AUTRE_INVERSE]);
+    expect(screen.queryByLabelText(t.cartes_saisie_etiquette)).toBeNull();
+    expect(screen.getByRole('button', { name: t.cartes_retourner })).toBeTruthy();
+    cliquer(t.cartes_retourner);
+    cliquer(t.cartes_su);
+
+    // « Nächste Runde » : la série suivante aussi.
+    expect(screen.getByRole('heading', { name: t.heute_fin })).toBeTruthy();
+    cliquer(t.heute_encore);
+    expect(screen.queryByLabelText(t.cartes_saisie_etiquette)).toBeNull();
+    expect(screen.getByRole('button', { name: t.cartes_retourner })).toBeTruthy();
+    expect(lien(t.heute_saisir)).toBeTruthy();
+  });
+
+  it('le_choix_tient_a_une_recomposition_et_a_un_remontage_pas_au_rechargement', () => {
+    const memoire = new Map<string, unknown>();
+    const contexte = contexteDe({ memoire });
+    amorcer(contexte, memoire, [INVERSE]);
+    rendreDansLeCours(<Heute />, contexte);
+    cliquer(t.heute_retourner);
+    cleanup();
+
+    // Un détour par un autre onglet : la mémoire des onglets garde le choix.
+    rendreDansLeCours(<Heute />, contexteDe({ memoire }));
+    expect(screen.queryByLabelText(t.cartes_saisie_etiquette)).toBeNull();
+    expect(lien(t.heute_saisir)).toBeTruthy();
+    cleanup();
+
+    // Un rechargement : la mémoire est neuve, la saisie revient.
+    const neuve = new Map<string, unknown>();
+    const apres = contexteDe({ memoire: neuve });
+    amorcer(apres, neuve, [INVERSE]);
+    rendreDansLeCours(<Heute />, apres);
+    expect(screen.getByLabelText(t.cartes_saisie_etiquette)).toBeTruthy();
+  });
+
+  it('le_choix_n_est_pas_une_seance_en_cours', () => {
+    const { memoire } = poserUneInverse();
+    cliquer(t.heute_retourner);
+
+    expect(heuteEnCours(etatGarde(memoire))).toBe(false);
+    expect(Object.keys(etatGarde(memoire)).sort()).toEqual(
+      ['cle', 'question', 'repondue', 'seance'].sort(),
+    );
+    expect(memoire.get('heute/pose')).toBe(true);
   });
 });

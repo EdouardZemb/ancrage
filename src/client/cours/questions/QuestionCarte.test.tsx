@@ -182,7 +182,22 @@ describe('QuestionCarte', () => {
       (e) => e.textContent === 'Brummelwicht',
     );
     expect(saisieAffichee).toBeTruthy();
-    expect(container.querySelector('b')?.textContent).toBe('Murmelkrat');
+    const recto = container.querySelector('b');
+    expect(recto?.textContent).toBe('Murmelkrat');
+    // La saisie vient avant le recto.
+    expect(saisieAffichee?.compareDocumentPosition(recto as Element)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
+  it('une_saisie_qui_ne_differe_que_par_un_repli_de_digramme_n_affiche_pas_la_saisie', () => {
+    const { container } = rendreDansLeCours(
+      <Posee unite={{ ...LONG, reponse: 'Grünwurm' }} saisie onReponse={vi.fn()} />,
+      contexteDeTest(),
+    );
+    saisir('Gruenwurm');
+    expect(screen.getByText(t.cartes_juste)).toBeTruthy();
+    expect(container.querySelectorAll('.verdict span')).toHaveLength(1);
   });
 
   it('une_saisie_egale_au_recto_a_la_casse_pres_n_affiche_pas_la_saisie', () => {

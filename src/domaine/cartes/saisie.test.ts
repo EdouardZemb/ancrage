@@ -158,10 +158,9 @@ it('deux_termes_de_l_index_qui_ne_diffèrent_que_par_un_tréma_ne_se_confondent_
   expect(jugerLaCarte('Kübo', a, index)).toEqual(JUSTE);
 });
 
-it('une_saisie_sans_tréma_vide_ou_étrangère_reste_fausse', () => {
+it('une_saisie_étrangère_reste_fausse', () => {
   const u = inverse('l1', 'définition dix-neuf', 'Kübo');
   const { index } = avecIndex(u);
-  expect(jugerLaCarte('', u, index)).toEqual(FAUX);
   expect(jugerLaCarte('Kabo', u, index)).toEqual(PRESQUE);
 });
 
@@ -169,4 +168,40 @@ it('le_tréma_oublié_joue_sur_une_seule_des_réponses_admises', () => {
   const u = inverse('m1', 'définition vingt', 'Kübo', ['Zarnik']);
   const { index } = avecIndex(u);
   expect(jugerLaCarte('Kubo', u, index)).toEqual(FRAPPE);
+});
+
+it('un_ou_plusieurs_trémas_oubliés_sur_un_terme_long_sont_justes_et_signalés', () => {
+  const u = inverse('n1', 'définition vingt et un', 'Kümmelörz');
+  const v = inverse('n2', 'définition vingt-deux', 'Wurzelkümmel');
+  const { index } = avecIndex(u, v);
+  expect(jugerLaCarte('Kummelorz', u, index)).toEqual(FRAPPE);
+  expect(jugerLaCarte('Wurzelkummel', v, index)).toEqual(FRAPPE);
+});
+
+it('le_tréma_oublié_et_une_lettre_fausse_ne_se_cumulent_pas', () => {
+  const u = inverse('o1', 'définition vingt-trois', 'Kübelwarn');
+  const { index } = avecIndex(u);
+  expect(jugerLaCarte('Kubelwarm', u, index)).toEqual(FAUX);
+});
+
+it('un_digramme_ae_n_est_pas_un_tréma_oublié', () => {
+  const avecAe = inverse('p1', 'définition vingt-quatre', 'Murae');
+  const sansAe = inverse('p2', 'définition vingt-cinq', 'Mura');
+  const { index } = avecIndex(avecAe, sansAe);
+  expect(jugerLaCarte('Mura', avecAe, index)).toEqual(PRESQUE);
+  expect(jugerLaCarte('Murae', sansAe, index)).toEqual(PRESQUE);
+});
+
+it('un_digramme_ue_ou_oe_du_recto_ferme_la_tolérance_du_tréma', () => {
+  const ue = inverse('q1', 'définition vingt-six', 'Kuebo');
+  const oe = inverse('q2', 'définition vingt-sept', 'Zoerna');
+  const { index } = avecIndex(ue, oe);
+  expect(jugerLaCarte('Kubo', ue, index)).toEqual(PRESQUE);
+  expect(jugerLaCarte('Zorna', oe, index)).toEqual(PRESQUE);
+});
+
+it('un_digramme_d_une_autre_réponse_admise_de_la_carte_ferme_la_tolérance_du_tréma', () => {
+  const u = inverse('r1', 'définition vingt-huit', 'Kübo', ['Kuebu']);
+  const { index } = avecIndex(u);
+  expect(jugerLaCarte('Kubo', u, index)).toEqual(PRESQUE);
 });

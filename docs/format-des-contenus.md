@@ -661,10 +661,12 @@ Règles des cartes :
     alternatives du recto.
 - Saisie d'une carte (sens « définition vers terme ») : une lettre fausse, en trop ou en moins est
   tolérée et signalée sur une réponse d'au moins six caractères, comptés après le repli de « ae »,
-  « oe » et « ue » ; « ue » vaut « ü ». Un tréma oublié ou en trop (« u » pour « ü », « ü » pour
-  « u ») est de même toléré et signalé, quelle que soit la longueur. La tolérance ne joue pas si la
-  saisie est la réponse d'une autre carte, sauf d'une carte sans sens inverse, qui n'est pas dans
-  l'index. La Prüfung reste stricte.
+  « oe » et « ue » ; « ue » vaut « ü ». Un ou plusieurs trémas oubliés ou en trop (« u » pour « ü »,
+  « ü » pour « u ») sont de même tolérés et signalés, quelle que soit la longueur, sauf si la saisie
+  ou une réponse de la carte s'écrit avec « ae », « oe » ou « ue ». Un tréma oublié et une lettre
+  fausse ne se cumulent pas : c'est faux. Aucune des deux tolérances ne joue si la saisie est la
+  réponse d'une autre carte, sauf d'une carte sans sens inverse, qui n'est pas dans l'index. La
+  Prüfung reste stricte.
 
 ## Module `morphologie`
 

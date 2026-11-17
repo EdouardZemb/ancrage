@@ -7,7 +7,7 @@
  */
 
 import { canonique } from '../../../domaine/cartes/reponses.js';
-import { jugerLaCarte } from '../../../domaine/cartes/saisie.js';
+import { jugerLaCarte, plier } from '../../../domaine/cartes/saisie.js';
 import type { UniteDeCarte } from '../../../domaine/cartes/unites.js';
 import type { ModeDeReponse } from '../../../domaine/journal/evenement.js';
 import { etatDe } from '../../../domaine/progression/etat.js';
@@ -95,7 +95,7 @@ export function QuestionCarte(props: {
                 )}
                 {etat.verdict.juste &&
                   !etat.verdict.frappe &&
-                  canonique(etat.verdict.donnee) !== canonique(unite.reponse) && (
+                  plier(canonique(etat.verdict.donnee)) !== plier(canonique(unite.reponse)) && (
                     <span>{etat.verdict.donnee}</span>
                   )}
                 <b>{unite.reponse}</b>

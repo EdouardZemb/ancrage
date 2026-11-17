@@ -132,3 +132,41 @@ it('une_saisie_exacte_n_est_jamais_une_frappe_même_avec_une_voisine_admise_hors
   };
   expect(jugerLaCarte('Murmelkrat', directe, new Map())).toEqual(JUSTE);
 });
+
+it('un_tréma_oublié_est_juste_et_signalé_quelle_que_soit_la_longueur', () => {
+  const u = inverse('i1', 'définition treize', 'Kübo');
+  const v = inverse('i2', 'définition quatorze', 'Mäbel');
+  const w = inverse('i3', 'définition quinze', 'Zörna');
+  const { index } = avecIndex(u, v, w);
+  expect(jugerLaCarte('Kubo', u, index)).toEqual(FRAPPE);
+  expect(jugerLaCarte('Mabel', v, index)).toEqual(FRAPPE);
+  expect(jugerLaCarte('Zorna', w, index)).toEqual(FRAPPE);
+});
+
+it('un_tréma_en_trop_est_juste_et_signalé', () => {
+  const u = inverse('j1', 'définition seize', 'Kubo');
+  const { index } = avecIndex(u);
+  expect(jugerLaCarte('Kübo', u, index)).toEqual(FRAPPE);
+});
+
+it('deux_termes_de_l_index_qui_ne_diffèrent_que_par_un_tréma_ne_se_confondent_pas', () => {
+  const a = inverse('k1', 'définition dix-sept', 'Kübo');
+  const b = inverse('k2', 'définition dix-huit', 'Kubo');
+  const { index } = avecIndex(a, b);
+  expect(jugerLaCarte('Kubo', a, index)).toEqual(PRESQUE);
+  expect(jugerLaCarte('Kübo', b, index)).toEqual(PRESQUE);
+  expect(jugerLaCarte('Kübo', a, index)).toEqual(JUSTE);
+});
+
+it('une_saisie_sans_tréma_vide_ou_étrangère_reste_fausse', () => {
+  const u = inverse('l1', 'définition dix-neuf', 'Kübo');
+  const { index } = avecIndex(u);
+  expect(jugerLaCarte('', u, index)).toEqual(FAUX);
+  expect(jugerLaCarte('Kabo', u, index)).toEqual(PRESQUE);
+});
+
+it('le_tréma_oublié_joue_sur_une_seule_des_réponses_admises', () => {
+  const u = inverse('m1', 'définition vingt', 'Kübo', ['Zarnik']);
+  const { index } = avecIndex(u);
+  expect(jugerLaCarte('Kubo', u, index)).toEqual(FRAPPE);
+});

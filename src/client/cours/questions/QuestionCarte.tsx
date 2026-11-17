@@ -5,6 +5,8 @@
  * séance « Heute » la posent de la même façon : le composant ne connaît ni la série, ni les
  * préférences, ni le tirage de l'appelant.
  */
+
+import { canonique } from '../../../domaine/cartes/reponses.js';
 import { jugerLaCarte } from '../../../domaine/cartes/saisie.js';
 import type { UniteDeCarte } from '../../../domaine/cartes/unites.js';
 import type { ModeDeReponse } from '../../../domaine/journal/evenement.js';
@@ -91,6 +93,11 @@ export function QuestionCarte(props: {
                 {etat.verdict.donnee !== '' && (!etat.verdict.juste || etat.verdict.frappe) && (
                   <s>{etat.verdict.donnee}</s>
                 )}
+                {etat.verdict.juste &&
+                  !etat.verdict.frappe &&
+                  canonique(etat.verdict.donnee) !== canonique(unite.reponse) && (
+                    <span>{etat.verdict.donnee}</span>
+                  )}
                 <b>{unite.reponse}</b>
                 {!etat.verdict.juste && (
                   <button type="button" class="linkbtn" onClick={() => onReponse(true, 'corrigee')}>

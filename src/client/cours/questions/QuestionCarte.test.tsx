@@ -168,4 +168,30 @@ describe('QuestionCarte', () => {
     fireEvent.click(screen.getByRole('button', { name: t.cartes_aussi_juste }));
     expect(onReponse).toHaveBeenCalledWith(true, 'corrigee');
   });
+
+  it('une_reponse_admise_differente_du_recto_affiche_la_saisie_non_barree_et_le_recto', () => {
+    const autre = { ...LONG, reponses: ['Brummelwicht'] };
+    const { container } = rendreDansLeCours(
+      <Posee unite={autre} saisie onReponse={vi.fn()} />,
+      contexteDeTest(),
+    );
+    saisir('Brummelwicht');
+    expect(screen.getByText(t.cartes_juste)).toBeTruthy();
+    expect(container.querySelector('s')).toBeNull();
+    const saisieAffichee = [...container.querySelectorAll('.verdict span')].find(
+      (e) => e.textContent === 'Brummelwicht',
+    );
+    expect(saisieAffichee).toBeTruthy();
+    expect(container.querySelector('b')?.textContent).toBe('Murmelkrat');
+  });
+
+  it('une_saisie_egale_au_recto_a_la_casse_pres_n_affiche_pas_la_saisie', () => {
+    const { container } = rendreDansLeCours(
+      <Posee unite={LONG} saisie onReponse={vi.fn()} />,
+      contexteDeTest(),
+    );
+    saisir('MURMELKRAT');
+    expect(container.querySelectorAll('.verdict span')).toHaveLength(1);
+    expect(container.querySelector('s')).toBeNull();
+  });
 });

@@ -23,7 +23,10 @@ export function distance(a: string, b: string): number {
 
 export interface Jugement {
   juste: boolean;
-  /** Fausse de peu : une faute de frappe, pas une autre réponse. Jamais vrai si `juste`. */
+  /**
+   * Fausse de peu : à une lettre d'une réponse admise dès quatre caractères de saisie, à deux au-delà
+   * de neuf. Jamais vrai si `juste`.
+   */
   presque: boolean;
 }
 

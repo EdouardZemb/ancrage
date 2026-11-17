@@ -537,7 +537,8 @@ strict, et la version en ligne la refuserait (invariant 8).
 `ecrite`, et le cours reste admis. Rien ne le bloque.
 
 **Un appareil resté à la version précédente** ne connaît pas la clé : il ignore la pose du cours, et
-la case « Begriffe eintippen » y reste cochée d'office, jusqu'à sa mise à jour, au lancement suivant.
+la case « Begriffe eintippen » y reste cochée d'office (sauf si la personne l'a décochée), jusqu'à
+sa mise à jour, au lancement suivant.
 
 ### Dérogation de diffusion
 
@@ -660,9 +661,10 @@ Règles des cartes :
     alternatives du recto.
 - Saisie d'une carte (sens « définition vers terme ») : une lettre fausse, en trop ou en moins est
   tolérée et signalée sur une réponse d'au moins six caractères, comptés après le repli de « ae »,
-  « oe » et « ue » ; « ue » vaut « ü ». La tolérance ne joue pas si la saisie est la réponse d'une
-  autre carte, sauf d'une carte sans sens inverse, qui n'est pas dans l'index. La Prüfung reste
-  stricte.
+  « oe » et « ue » ; « ue » vaut « ü ». Un tréma oublié ou en trop (« u » pour « ü », « ü » pour
+  « u ») est de même toléré et signalé, quelle que soit la longueur. La tolérance ne joue pas si la
+  saisie est la réponse d'une autre carte, sauf d'une carte sans sens inverse, qui n'est pas dans
+  l'index. La Prüfung reste stricte.
 
 ## Module `morphologie`
 

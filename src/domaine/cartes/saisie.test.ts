@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { canonique } from './reponses.js';
-import { jugerLaCarte, LONGUEUR_TOLEREE } from './saisie.js';
+import { jugerLaCarte } from './saisie.js';
 import { type IndexDesReponses, indexerReponses, type UniteDeCarte } from './unites.js';
 
 /** Une unité inverse inventée : la question est la définition, la réponse le terme. */
@@ -29,10 +29,6 @@ const six = inverse('a1', 'définition un', 'Bornav');
 const cinq = inverse('a2', 'définition deux', 'Borna');
 const dix = inverse('a3', 'définition trois', 'Bornavelitis');
 const tableau = inverse('a4', 'définition quatre', 'Grünbau');
-
-it('la_longueur_tolerée_est_six', () => {
-  expect(LONGUEUR_TOLEREE).toBe(6);
-});
 
 it('une_saisie_exacte_est_juste_sans_frappe', () => {
   const { index } = avecIndex(six);
@@ -106,4 +102,33 @@ it('une_unité_directe_sans_index_se_juge_sur_son_repli', () => {
 it('une_saisie_vide_ne_vaut_pas_même_si_l_index_admet_le_vide', () => {
   const index: IndexDesReponses = new Map([[canonique(six.question), new Set([''])]]);
   expect(jugerLaCarte('', six, index)).toEqual(FAUX);
+});
+
+it('ue_et_une_lettre_fausse_sur_un_terme_de_cinq_caractères_est_fausse_de_peu', () => {
+  const u = inverse('e1', 'définition neuf', 'Kübal');
+  const { index } = avecIndex(u);
+  expect(jugerLaCarte('Kuebel', u, index)).toEqual(PRESQUE);
+});
+
+it('un_recto_ponctué_saisi_exactement_est_juste_sans_frappe', () => {
+  const u = inverse('f1', 'définition dix', 'Ka.erlitum', ['Ka.erlitam']);
+  const { index } = avecIndex(u);
+  expect(jugerLaCarte('Ka.erlitum', u, index)).toEqual(JUSTE);
+});
+
+it('le_recto_ponctué_d_une_autre_carte_voisine_d_une_lettre_est_faux', () => {
+  const autre = inverse('g1', 'définition onze', 'Ka.erlitum');
+  const u = inverse('g2', 'définition douze', 'Ka.erlitom');
+  const { index } = avecIndex(autre, u);
+  expect(jugerLaCarte('Ka.erlitum', u, index)).toEqual(PRESQUE);
+});
+
+it('une_saisie_exacte_n_est_jamais_une_frappe_même_avec_une_voisine_admise_hors_de_l_index', () => {
+  const directe: UniteDeCarte = {
+    ...six,
+    id: 'h1',
+    sens: 'direct',
+    reponse: 'Murmelkrat/Murmelkrot',
+  };
+  expect(jugerLaCarte('Murmelkrat', directe, new Map())).toEqual(JUSTE);
 });

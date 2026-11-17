@@ -320,8 +320,8 @@ Sur le poste, `pnpm` s'appelle par `corepack pnpm …` ; en CI, `corepack enable
   `src/domaine/feuilles/deroulement.ts` et `correction.ts`, de
   `src/domaine/seances/feuilles.ts`, `heute.ts`, `planning.ts`, `rythme.ts`, `pretest.ts`,
   `semestre.ts` et `revisions.ts`, de
-  `src/domaine/contenu/analyse-manuels.ts`, de `src/domaine/cours/manuels.ts`, de `src/domaine/cartes/saisie.ts`, de
-  `src/domaine/notice.ts` et, côté serveur, de `src/serveur/acces/index.ts` (la moitié serveur du
+  `src/domaine/contenu/analyse-manuels.ts`, de `src/domaine/cours/manuels.ts`, de
+  `src/domaine/cartes/saisie.ts`, de `src/domaine/notice.ts` et, côté serveur, de `src/serveur/acces/index.ts` (la moitié serveur du
   module `acces`, ADR-0001), de `src/serveur/comptes/export.ts`, `purge.ts` et `suppression.ts`.
   Échoue sous un score de 90 % ; rapport dans `reports/mutation/`. Les tests de ces fichiers n'ont
   pas de `describe` (Stryker ne retrouve pas un test placé dans une suite). En CI, la passe se fait

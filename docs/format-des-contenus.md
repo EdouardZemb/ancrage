@@ -652,6 +652,11 @@ Règles des cartes :
   - elle compte aussi pour le test de fuite, qui décide si l'unité inverse de la carte existe : il
     se fait avec les mêmes réponses (`canonique(recto)` et celles de `reponses`), et non avec les
     alternatives du recto.
+- Saisie d'une carte (sens « définition vers terme ») : une lettre fausse, en trop ou en moins est
+  tolérée et signalée sur une réponse d'au moins six caractères, comptés après le repli de « ae »,
+  « oe » et « ue » ; « ue » vaut « ü ». La tolérance ne joue pas si la saisie est la réponse d'une
+  autre carte, sauf d'une carte sans sens inverse, qui n'est pas dans l'index. La Prüfung reste
+  stricte.
 
 ## Module `morphologie`
 
@@ -846,7 +851,8 @@ Comment l'application juge une réponse (F1-D4, F1-D5), dans l'onglet comme dans
 - **Orthographe** : la saisie et `reponse` se comparent en forme Unicode NFC, sans les espaces de
   bord, et les espaces internes réduits à un. La casse et les accents comptent : « kartoffel »
   est faux pour « Kartoffel ».
-- **Trous sans liste** : chaque trou se compare comme une réponse de carte (`canonique`). La casse,
+- **Trous sans liste** : chaque trou se compare comme une réponse de carte dans la Prüfung (`canonique`, sans « ue » ni
+  faute tolérée). La casse,
   les guillemets, la ponctuation de fin (`. … ! ?`), les tirets de bord, ae/ä et oe/ö ne comptent
   pas ; la virgule, les deux-points et les parenthèses comptent. Enfin, la lettre c se confond
   avec k (avec z devant e, i, y, ä, ö). Ainsi « c » est jugé juste pour un trou dont la réponse

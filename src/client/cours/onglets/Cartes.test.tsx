@@ -197,7 +197,7 @@ describe('Cartes', () => {
     expect(progression()).toBe('1 beantwortet · 1 übrig');
     expect((screen.getByLabelText(t.cartes_saisie_etiquette) as HTMLInputElement).value).toBe('');
 
-    // Presque : une faute de frappe, comptée fausse.
+    // Presque : une faute de frappe, comptée fausse sur un terme de moins de six caractères (M5-D1).
     taper('Hertz');
     verdict = document.querySelector('.verdict') as HTMLElement;
     expect(verdict.className).toBe('verdict near');

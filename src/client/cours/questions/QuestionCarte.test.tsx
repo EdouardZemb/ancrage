@@ -45,8 +45,8 @@ function Posee(props: {
 const LONG = {
   ...HERZ_INVERSE,
   id: 'c9000001:inverse',
-  question: 'Muskel unter der Lunge',
-  reponse: 'Zwerchfell',
+  question: 'Tierchen im Brummelwald',
+  reponse: 'Murmelkrat',
 };
 
 function saisir(valeur: string) {
@@ -138,11 +138,11 @@ describe('QuestionCarte', () => {
       <Posee unite={LONG} saisie onReponse={onReponse} />,
       contexteDeTest(),
     );
-    saisir('Zwerchfel');
+    saisir('Murmelkat');
     expect(screen.getByText(t.cartes_frappe)).toBeTruthy();
     expect(container.querySelector('.verdict.ok')).not.toBeNull();
-    expect(container.querySelector('s')?.textContent).toBe('Zwerchfel');
-    expect(container.querySelector('b')?.textContent).toBe('Zwerchfell');
+    expect(container.querySelector('s')?.textContent).toBe('Murmelkat');
+    expect(container.querySelector('b')?.textContent).toBe('Murmelkrat');
     expect(screen.queryByRole('button', { name: t.cartes_aussi_juste })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: t.cartes_suivante }));
     expect(onReponse).toHaveBeenCalledTimes(1);
@@ -154,7 +154,7 @@ describe('QuestionCarte', () => {
       <Posee unite={LONG} saisie onReponse={vi.fn()} />,
       contexteDeTest(),
     );
-    saisir('zwerchfell');
+    saisir('murmelkrat');
     expect(screen.getByText(t.cartes_juste)).toBeTruthy();
     expect(screen.queryByText(t.cartes_frappe)).toBeNull();
     expect(container.querySelector('s')).toBeNull();
@@ -163,7 +163,7 @@ describe('QuestionCarte', () => {
   it('une_saisie_fausse_garde_le_bouton_de_correction_et_corrigee', () => {
     const onReponse = vi.fn();
     rendreDansLeCours(<Posee unite={LONG} saisie onReponse={onReponse} />, contexteDeTest());
-    saisir('Bauchfell');
+    saisir('Zimbolwesp');
     expect(screen.queryByText(t.cartes_frappe)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: t.cartes_aussi_juste }));
     expect(onReponse).toHaveBeenCalledWith(true, 'corrigee');

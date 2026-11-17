@@ -29,7 +29,11 @@ export interface Jugement {
 
 /** `judge` : la saisie est-elle l'une des réponses acceptées, ou presque ? */
 export function juger(saisie: string, acceptees: ReadonlySet<string>): Jugement {
-  const g = canonique(saisie);
+  return jugerCanonique(canonique(saisie), acceptees);
+}
+
+/** `juger` d'une saisie déjà ramenée à sa forme canonique (ou pliée par l'appelant). */
+export function jugerCanonique(g: string, acceptees: ReadonlySet<string>): Jugement {
   if (g && acceptees.has(g)) return { juste: true, presque: false };
   const meilleure = Math.min(...[...acceptees].map((x) => distance(g, x)));
   return { juste: false, presque: g.length >= 4 && meilleure <= (g.length > 9 ? 2 : 1) };

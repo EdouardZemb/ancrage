@@ -1,8 +1,9 @@
 /*
  * L'écran d'une question de carte (H:1767-1818, touches H:2240-2243) : la carte qui se retourne,
  * ou, pour une unité inverse quand la saisie est cochée, le terme qu'on tape et son verdict
- * (juste, juste malgré une faute de frappe, presque juste, faux). L'onglet « Karteikarten » et la séance « Heute » la posent de la
- * même façon : le composant ne connaît ni la série, ni les préférences, ni le tirage de l'appelant.
+ * (juste, juste malgré une faute de frappe, presque juste, faux). L'onglet « Karteikarten » et la
+ * séance « Heute » la posent de la même façon : le composant ne connaît ni la série, ni les
+ * préférences, ni le tirage de l'appelant.
  */
 import { jugerLaCarte } from '../../../domaine/cartes/saisie.js';
 import type { UniteDeCarte } from '../../../domaine/cartes/unites.js';

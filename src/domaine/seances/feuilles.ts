@@ -159,8 +159,9 @@ export function optionsDeLElement(element: ElementTirable, hasard: Hasard): stri
 }
 
 /**
- * Une saisie tapée pour un élément (F1-D4) : le trou d'une phrase se juge comme une carte
- * (`canonique`) sans liste, à l'identique avec ; un mot à corriger strictement (`egalOrthographe`).
+ * Une saisie tapée pour un élément (F1-D4) : le trou d'une phrase se juge sans liste comme une
+ * réponse de carte dans la Prüfung (`canonique`, sans « ue » ni faute tolérée), à l'identique
+ * avec ; un mot à corriger strictement (`egalOrthographe`).
  * Une question fermée se répond d'un choix : une saisie n'y répond pas.
  */
 export function saisieJuste(element: ElementTirable, saisie: string): boolean {

@@ -102,7 +102,9 @@ async function attendreLesOnglets(onglets: readonly (readonly [OngletDeTest, str
 function cartesDirectes(): void {
   localStorage.setItem(
     `ancrage.preferences.${ALICE}.${ID}`,
-    JSON.stringify({ cartes: { chapitre: CHAPITRE_1, sens: 'direct', saisie: true } }),
+    JSON.stringify({
+      cartes: { chapitre: CHAPITRE_1, sens: 'direct', saisie: true, saisieChoisie: false },
+    }),
   );
 }
 
@@ -505,7 +507,7 @@ describe('EcranCours', () => {
     localStorage.setItem(
       `ancrage.preferences.${ALICE}.${ID}`,
       JSON.stringify({
-        cartes: { chapitre: CHAPITRE_1, sens: 'direct', saisie: true },
+        cartes: { chapitre: CHAPITRE_1, sens: 'direct', saisie: true, saisieChoisie: false },
         examen: { chapitres: [CHAPITRE_2], taille: 20, chrono: false, avecModules: false },
       }),
     );

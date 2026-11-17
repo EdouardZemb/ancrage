@@ -37,6 +37,8 @@ export interface CoursServi {
   planning?: unknown;
   /** Absent : le cours ne nomme pas ses manuels. À lire par `lireManuels`. */
   manuels?: unknown;
+  /** Absent : le cours ne dit pas sa pose des cartes. À lire par `poseDuCours`. */
+  poseDesCartes?: unknown;
   /** Dans l'ordre de `cours.yaml`. */
   modules: ModuleServi[];
 }
@@ -329,6 +331,7 @@ export function versCoursServi(cours: Cours): CoursServi {
     ...(cours.manuels === undefined
       ? {}
       : { manuels: cours.manuels.map(({ id, titre }) => ({ id, titre })) }),
+    ...(cours.poseDesCartes === undefined ? {} : { poseDesCartes: cours.poseDesCartes }),
     modules: cours.modules.map(moduleServi),
   };
 }
@@ -354,6 +357,14 @@ const leitner = z.object({ intervalles: liste(z.int()).length(6), nouvellesParSe
 /** Les réglages de mémoire du cours, ou `undefined` s'il n'en a pas ou si ce client ne les connaît pas. */
 export function memoireDuCours(cours: CoursServi): ReglagesMemoire | undefined {
   return lireReglagesDeMemoire(cours.memoire);
+}
+
+/**
+ * `poseDesCartes` n'est pas contrôlé avec le cours : une valeur que ce client ne connaît pas
+ * (servie par une version suivante) ne rend pas le cours inutilisable, et vaut `ecrite`.
+ */
+export function poseDuCours(cours: CoursServi): 'ecrite' | 'retournee' {
+  return cours.poseDesCartes === 'retournee' ? 'retournee' : 'ecrite';
 }
 
 const moduleCartes = z.object({

@@ -8,6 +8,7 @@ import {
   effacerPreferences,
   lirePreferences,
   type Preferences,
+  preferencesParDefaut,
 } from './preferences.js';
 
 const ALICE = 'p-alice';
@@ -17,7 +18,7 @@ const cle = (personne: string, idCours: string) => `ancrage.preferences.${person
 
 const PAR_DEFAUT: Preferences = {
   // Le premier module de cartes : le prototype disait « 8 », son premier chapitre de cartes.
-  cartes: { chapitre: CHAPITRE_1, sens: 'mix', saisie: true },
+  cartes: { chapitre: CHAPITRE_1, sens: 'mix', saisie: true, saisieChoisie: false },
   quiz: { chapitre: CHAPITRE_1, sens: 'mix' },
   mots: { mode: 'mix' },
   examen: { chapitres: [CHAPITRE_1, CHAPITRE_2], taille: 30, chrono: true, avecModules: true },
@@ -36,7 +37,7 @@ describe('preferences', () => {
     expect(lirePreferences(ALICE, cours)).toEqual(PAR_DEFAUT);
 
     const choisies: Preferences = {
-      cartes: { chapitre: CHAPITRE_2, sens: 'inverse', saisie: false },
+      cartes: { chapitre: CHAPITRE_2, sens: 'inverse', saisie: false, saisieChoisie: true },
       quiz: { chapitre: 'tous', sens: 'direct' },
       mots: { mode: 'bilden' },
       examen: { chapitres: [CHAPITRE_2], taille: 50, chrono: false, avecModules: false },
@@ -61,7 +62,7 @@ describe('preferences', () => {
     localStorage.setItem(
       cle(ALICE, cours.cours.id),
       JSON.stringify({
-        cartes: { chapitre: 'mc000099', sens: 'rueckwaerts', saisie: 'oui' },
+        cartes: { chapitre: 'mc000099', sens: 'rueckwaerts', saisie: 'oui', saisieChoisie: 'oui' },
         quiz: { chapitre: CHAPITRE_2 },
         mots: { mode: 'zerlegen' },
         examen: { chapitres: [CHAPITRE_2, 'mc000099', CHAPITRE_1], taille: 40, chrono: false },
@@ -72,7 +73,7 @@ describe('preferences', () => {
     );
 
     expect(lirePreferences(ALICE, cours)).toEqual({
-      cartes: { chapitre: CHAPITRE_1, sens: 'mix', saisie: true },
+      cartes: { chapitre: CHAPITRE_1, sens: 'mix', saisie: true, saisieChoisie: false },
       quiz: { chapitre: CHAPITRE_2, sens: 'mix' },
       mots: { mode: 'zerlegen' },
       // Les chapitres connus seulement, dans l'ordre du cours.
@@ -96,10 +97,62 @@ describe('preferences', () => {
     };
     expect(lirePreferences(ALICE, preparerCours(sansModules))).toEqual({
       ...PAR_DEFAUT,
-      cartes: { chapitre: 'tous', sens: 'mix', saisie: true },
+      cartes: { chapitre: 'tous', sens: 'mix', saisie: true, saisieChoisie: false },
       quiz: { chapitre: 'tous', sens: 'mix' },
       examen: { chapitres: [], taille: 0, chrono: true, avecModules: true },
       schemas: { schema: '', mode: 'benennen' },
+    });
+  });
+
+  describe('la pose des cartes du cours (M5-D5, M5-D6)', () => {
+    const coursEn = (pose?: 'ecrite' | 'retournee') =>
+      preparerCours({
+        ...coursServiDeTest(),
+        ...(pose === undefined ? {} : { poseDesCartes: pose }),
+      });
+    const garder = (idCours: string, cartes: Record<string, unknown>) =>
+      localStorage.setItem(cle(ALICE, idCours), JSON.stringify({ cartes }));
+
+    it('pose_des_cartes_le_defaut_suit_la_cle_du_cours', () => {
+      expect(preferencesParDefaut(coursEn()).cartes).toMatchObject({
+        saisie: true,
+        saisieChoisie: false,
+      });
+      expect(preferencesParDefaut(coursEn('ecrite')).cartes.saisie).toBe(true);
+      expect(preferencesParDefaut(coursEn('retournee')).cartes).toMatchObject({
+        saisie: false,
+        saisieChoisie: false,
+      });
+      expect(lirePreferences(ALICE, coursEn('retournee')).cartes.saisie).toBe(false);
+    });
+
+    it('pose_des_cartes_sans_marque_la_valeur_gardee_cede_au_cours_dans_les_deux_sens', () => {
+      const id = coursEn().cours.id;
+      garder(id, { chapitre: CHAPITRE_1, sens: 'mix', saisie: true });
+      expect(lirePreferences(ALICE, coursEn('retournee')).cartes.saisie).toBe(false);
+      garder(id, { chapitre: CHAPITRE_1, sens: 'mix', saisie: false });
+      expect(lirePreferences(ALICE, coursEn('ecrite')).cartes.saisie).toBe(true);
+      expect(lirePreferences(ALICE, coursEn()).cartes.saisie).toBe(true);
+      // Une marque qui n'est pas exactement `true` n'en est pas une.
+      garder(id, { saisie: false, saisieChoisie: 'oui' });
+      expect(lirePreferences(ALICE, coursEn('ecrite')).cartes).toMatchObject({
+        saisie: true,
+        saisieChoisie: false,
+      });
+    });
+
+    it('pose_des_cartes_avec_marque_le_choix_garde_l_emporte_dans_les_deux_sens', () => {
+      const id = coursEn().cours.id;
+      garder(id, { saisie: true, saisieChoisie: true });
+      expect(lirePreferences(ALICE, coursEn('retournee')).cartes).toMatchObject({
+        saisie: true,
+        saisieChoisie: true,
+      });
+      garder(id, { saisie: false, saisieChoisie: true });
+      expect(lirePreferences(ALICE, coursEn('ecrite')).cartes).toMatchObject({
+        saisie: false,
+        saisieChoisie: true,
+      });
     });
   });
 

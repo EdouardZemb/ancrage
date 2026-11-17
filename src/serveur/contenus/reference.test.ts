@@ -422,6 +422,19 @@ describe('calculerReference', () => {
     expect(reference.schemas[0].manuel).toBe(ID_MANUEL_ALPHA);
   });
 
+  it('pose_des_cartes_ecrite_apres_manuels_et_rien_sans_elle', () => {
+    const sans = calculerReference(coursDe(exempleDeCours()));
+    expect(sans.cours).not.toHaveProperty('pose_des_cartes');
+    expect(JSON.stringify(sans)).not.toContain('pose_des_cartes');
+
+    const avec = calculerReference({
+      ...coursDe(exempleAvecManuels()),
+      poseDesCartes: 'retournee',
+    });
+    expect(avec.cours.pose_des_cartes).toBe('retournee');
+    expect(Object.keys(avec.cours).slice(-2)).toEqual(['manuels', 'pose_des_cartes']);
+  });
+
   it('cours_sans_manuels_sans_ces_cles_nulle_part_dans_la_reference', () => {
     const reference = calculerReference(coursDe(exempleDeCours()));
     expect(reference.cours).not.toHaveProperty('manuels');

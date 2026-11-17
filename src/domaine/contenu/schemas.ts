@@ -627,6 +627,9 @@ export const schemaDeCours = z.strictObject({
   memoire: reglagesMemoire.optional(),
   planning: reglagesPlanning.optional(),
   manuels: reglagesManuels.optional(),
+  pose_des_cartes: z
+    .enum(['ecrite', 'retournee'], { error: 'Attendu « ecrite » ou « retournee ».' })
+    .optional(),
   derogation_diffusion: derogationDiffusion.optional(),
   modules: z.array(z.string()),
 });

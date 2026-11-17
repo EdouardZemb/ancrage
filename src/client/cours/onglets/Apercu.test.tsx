@@ -150,7 +150,7 @@ describe('Apercu', () => {
     const contexte = contexteDeTest();
     contexte.preferences = {
       ...contexte.preferences,
-      cartes: { chapitre: CHAPITRE_1, sens: 'direct', saisie: true },
+      cartes: { chapitre: CHAPITRE_1, sens: 'direct', saisie: true, saisieChoisie: false },
     };
     const { aller } = rendreDansUnCoursNavigable(
       { apercu: () => <Apercu />, cartes: () => <Cartes /> },

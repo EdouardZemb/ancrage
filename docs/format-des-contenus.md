@@ -102,6 +102,7 @@ planning:                  # facultative : voir « Le planning »
 manuels:                   # facultative : voir « Les manuels »
   - id: "<id>"
     titre: "Beispielbuch Küche"
+pose_des_cartes: "ecrite"  # facultative : voir « La pose des cartes »
 derogation_diffusion:      # facultative : voir « Dérogation de diffusion »
   motif: "<pourquoi>"
   date: "2026-10-16"
@@ -507,6 +508,30 @@ arrière remet en service, les refuseraient (invariant 8). Exception : le cours 
 l'image, et l'image précédente garde le sien. Le cours d'exemple nomme deux manuels inventés,
 « Beispielbuch Küche » puis « Beispielheft Geräte », et range ses trois modules de cartes dans leur
 ordre à lui, différent de celui du cours.
+
+### La pose des cartes
+
+La clé facultative `pose_des_cartes` dit comment se pose une carte dont la réponse se tape (l'unité
+« définition vers terme »). Une carte de l'autre sens, aux longues définitions, se retourne toujours.
+
+```yaml
+pose_des_cartes: "retournee"
+```
+
+- Deux valeurs : `ecrite` (la carte se pose avec un champ de saisie) ou `retournee` (la carte se
+  retourne). Toute autre valeur est refusée.
+- Absente, elle vaut `ecrite`, le comportement d'avant la clé : un cours qui ne l'écrit pas ne change
+  pas.
+- Elle donne la valeur de la case « Begriffe eintippen » de Karteikarten, et « Heute » la suit,
+  tant que la personne n'a pas touché la case sur cet appareil. Une fois la case touchée, son choix
+  l'emporte, et le cours ne le change plus (M5-D5).
+- Le choix de la case n'est gardé comme un choix que depuis cette clé : une case décochée avant elle
+  n'a pas de marque, et reprend une fois la valeur du cours (M5-D6).
+- L'instantané de référence porte `pose_des_cartes` après `manuels` quand le cours l'écrit, et ne
+  change pas sans elle.
+
+**Un cours monté ne reçoit cette clé qu'une version après celle qui la connaît** : le manifeste est
+strict, et la version en ligne la refuserait (invariant 8).
 
 ### Dérogation de diffusion
 

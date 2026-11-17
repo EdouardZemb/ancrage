@@ -123,7 +123,7 @@ export function Cartes(props: {
             type="checkbox"
             checked={saisie}
             onChange={(e) => {
-              choisir({ saisie: e.currentTarget.checked });
+              choisir({ saisie: e.currentTarget.checked, saisieChoisie: true });
               setCourante({ ...serie, verdict: null });
             }}
           />{' '}

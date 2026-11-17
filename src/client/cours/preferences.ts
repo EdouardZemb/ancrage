@@ -9,11 +9,18 @@
  * (fenêtre privée, données bloquées), les valeurs par défaut servent, et rien n'est gardé.
  */
 import type { CoursPrepare } from '../../domaine/cours/prepare.js';
+import { poseDuCours } from '../../domaine/cours/servi.js';
 import type { SensChoisi } from '../../domaine/seances/cartes.js';
 import { elementsTirables, GENRES_FERMES } from '../../domaine/seances/feuilles.js';
 
 export interface Preferences {
-  cartes: { chapitre: string | 'tous'; sens: SensChoisi; saisie: boolean };
+  cartes: {
+    chapitre: string | 'tous';
+    sens: SensChoisi;
+    saisie: boolean;
+    /** Vrai une fois la case touchée sur cet appareil : son choix l'emporte sur le cours (M5-D5). */
+    saisieChoisie: boolean;
+  };
   quiz: { chapitre: string | 'tous' | 'feuilles'; sens: SensChoisi };
   mots: { mode: 'mix' | 'zerlegen' | 'bilden' };
   examen: { chapitres: string[]; taille: number; chrono: boolean; avecModules: boolean };
@@ -41,7 +48,12 @@ function cle(personne: string, cours: string): string {
 export function preferencesParDefaut(cours: CoursPrepare): Preferences {
   const chapitre = cours.chapitres[0]?.id ?? 'tous';
   return {
-    cartes: { chapitre, sens: 'mix', saisie: true },
+    cartes: {
+      chapitre,
+      sens: 'mix',
+      saisie: poseDuCours(cours.cours) === 'ecrite',
+      saisieChoisie: false,
+    },
     quiz: { chapitre, sens: 'mix' },
     mots: { mode: 'mix' },
     examen: {
@@ -91,6 +103,8 @@ export function lirePreferences(personne: string, cours: CoursPrepare): Preferen
   ).map(partie);
 
   const chapitres = cours.chapitres.map(({ id }) => id);
+  // Sans marque, la valeur gardée n'est pas un choix : le cours donne la sienne (M5-D6).
+  const saisieChoisie = cartes.saisieChoisie === true;
   const nombreDeTextes = cours.textes?.textes.length ?? 0;
   const indice = textes.indice;
 
@@ -98,7 +112,8 @@ export function lirePreferences(personne: string, cours: CoursPrepare): Preferen
     cartes: {
       chapitre: parmi(cartes.chapitre, ['tous', ...chapitres], defaut.cartes.chapitre),
       sens: parmi(cartes.sens, SENS, defaut.cartes.sens),
-      saisie: booleen(cartes.saisie, defaut.cartes.saisie),
+      saisie: saisieChoisie ? booleen(cartes.saisie, defaut.cartes.saisie) : defaut.cartes.saisie,
+      saisieChoisie,
     },
     quiz: {
       // `feuilles` : les questions fermées des feuilles, si le cours en a.

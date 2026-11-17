@@ -363,6 +363,7 @@ function analyserCours(
     ...(ecrit.manuels === undefined
       ? {}
       : { manuels: ecrit.manuels.map(({ id, titre }) => ({ id, titre })) }),
+    ...(ecrit.pose_des_cartes === undefined ? {} : { poseDesCartes: ecrit.pose_des_cartes }),
     ...(ecrit.derogation_diffusion === undefined
       ? {}
       : {

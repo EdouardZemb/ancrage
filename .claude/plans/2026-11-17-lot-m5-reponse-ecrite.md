@@ -39,6 +39,11 @@ et la revue du plan) :
   changent pas.
 - **M5-D9.** Après une faute tolérée, l'écran montre le recto de la carte, même si la saisie était
   proche d'une autre réponse admise de `reponses`.
+- **M5-D10.** Un ou plusieurs trémas oubliés ou en trop sont comptés justes et signalés, quelle que
+  soit la longueur, sous la garde de M5-D2 ; pas sur une carte dont la saisie ou une réponse
+  s'écrit avec « ae », « oe » ou « ue », et sans cumul avec la faute de frappe.
+- **M5-D11.** Une saisie juste qui n'est pas le recto (une autre réponse admise) s'affiche, non
+  barrée, avant le recto.
 
 **Les commandes de vérification**, pour chaque tâche, une à la fois, après la dernière
 modification, avec les nombres dans le rapport : `corepack pnpm test`, `corepack pnpm types`,
@@ -137,15 +142,17 @@ export function jugerLaCarte(
 ): JugementDeCarte;
 ```
 
-La règle, dans cet ordre, avec `plier(s) = canonique(s).replace(/ue/g, 'ü')`, `g = plier(saisie)`
-et `A` les réponses de `reponsesAcceptees(unite, index)`, chacune pliée :
+La règle, dans cet ordre, avec `plier(s) = s.replace(/ue/g, 'ü')`, `g = plier(canonique(saisie))` et
+`A` les réponses de `reponsesAcceptees(unite, index)`, chacune pliée (elles sont déjà canoniques) :
 
-1. `juger(saisie, reponsesAcceptees(unite, index))` dit juste : juste, sans `frappe` ;
-2. `g` est non vide et dans `A` (M5-D8) : juste, sans `frappe` ;
+1. `jugerCanonique(g, A)` (le jugement de `juger`, sur les formes pliées) dit juste : juste, sans
+   `frappe` (M5-D8 compris) ;
+2. ni la saisie brute ni `unite.reponse` ni `unite.reponses` ne contient `ae`, `oe` ou `ue`, un
+   `x` de `A` a le même texte que `g` sans trémas (`ä`, `ö`, `ü`), et `g` n'est dans aucune entrée de
+   l'index, chaque réponse pliée (M5-D2, M5-D10) : `{ juste: true, presque: false, frappe: true }` ;
 3. il existe `x` dans `A` avec `x.length >= LONGUEUR_TOLEREE` et `distance(g, x) === 1`, et `g`
-   n'est dans aucune entrée de l'index, chaque réponse pliée (M5-D2) :
-   `{ juste: true, presque: false, frappe: true }` ;
-4. sinon, le jugement de `juger`, avec `frappe: false`.
+   n'est dans aucune entrée de l'index (M5-D1, M5-D2) : même résultat ;
+4. sinon, le jugement de la règle 1, avec `frappe: false`.
 
 **Les tests, d'abord** (sans `describe`, avec des termes inventés, jamais un texte du cours) :
 
@@ -200,7 +207,7 @@ n'affiche pas la saisie barrée ; une saisie fausse garde le bouton et `corrigee
 - Dans `CoursServi`, `poseDesCartes?: unknown`, que `versCoursServi` n'écrit que présente, et
   `export function poseDuCours(cours: CoursServi): 'ecrite' | 'retournee'`, qui rend `retournee`
   pour cette valeur et `ecrite` pour tout le reste. Le schéma `coursServi` ne change pas.
-- L'instantané de référence porte `pose_des_cartes` après `manuels` quand le cours l'écrit, et ne
+- L'instantané de référence porte `poseDesCartes` après `manuels` quand le cours l'écrit, et ne
   change pas sans elle.
 - `Preferences.cartes` reçoit `saisieChoisie: boolean`. `preferencesParDefaut` donne
   `saisie: poseDuCours(cours.cours) === 'ecrite'` et `saisieChoisie: false`. `lirePreferences` ne
@@ -235,7 +242,7 @@ contenus:client`.
 - Sous une carte d'unité inverse, quand la préférence `saisie` est vraie et qu'aucun verdict n'est
   affiché, un bouton `linkbtn` avec sa `key` : `t.heute_retourner` (« Lieber umdrehen ») passe en
   cartes retournées ; en cartes retournées, tant que la carte n'est pas retournée,
-  `t.heute_saisir` (« Wieder eintippen »), avec une autre `key`, y revient. Le geste ne répond pas
+  `t.heute_saisir` (« Lieber eintippen »), avec une autre `key`, y revient. Le geste ne répond pas
   à la carte, n'écrit rien au journal et ne touche pas la préférence. Après lui, le focus n'est
   plus sur le lien : Espace retourne la carte.
 - Le choix tient à une recomposition de la séance et à « Nächste Runde ».

@@ -12,7 +12,7 @@ import type { Manuel } from '../contenu/modele.js';
 import { planningDuCours } from '../seances/planning.js';
 import { coursSans, coursServiDeTest, coursServiParLaV030 } from './cours.fixture.js';
 import type { CoursServi } from './servi.js';
-import { coursServiUtilisable, memoireDuCours, versCoursServi } from './servi.js';
+import { coursServiUtilisable, memoireDuCours, poseDuCours, versCoursServi } from './servi.js';
 
 /** Le cours de test, dont un module est remplacé par ce que rend `changer`. */
 function avecModule(
@@ -294,6 +294,41 @@ describe('versCoursServi', () => {
     });
     expect(coursServiUtilisable(servi)).toBe(true);
     expect(memoireDuCours(servi)).toEqual(servi.memoire);
+  });
+
+  it('pose_des_cartes_servie_telle_quelle_absente_sans_elle_et_jamais_bloquante', () => {
+    const [cours] = analyserContenus(exempleDeCours()).cours;
+    const sans = versCoursServi(cours);
+    expect(sans).not.toHaveProperty('poseDesCartes');
+    expect(poseDuCours(sans)).toBe('ecrite');
+
+    const servi = versCoursServi({ ...cours, poseDesCartes: 'retournee' });
+    expect(servi.poseDesCartes).toBe('retournee');
+    expect(poseDuCours(servi)).toBe('retournee');
+    expect(poseDuCours({ ...servi, poseDesCartes: 'ecrite' })).toBe('ecrite');
+    expect(coursServiUtilisable(JSON.parse(JSON.stringify(servi)))).toBe(true);
+
+    // Une valeur d'une version suivante : l'écrite, et le cours reste admis.
+    for (const inconnue of ['orale', 42, null, { pose: 'ecrite' }]) {
+      const illisible = { ...coursServiDeTest(), poseDesCartes: inconnue } as unknown as CoursServi;
+      expect(coursServiUtilisable(JSON.parse(JSON.stringify(illisible))), String(inconnue)).toBe(
+        true,
+      );
+      expect(poseDuCours(illisible), String(inconnue)).toBe('ecrite');
+    }
+  });
+
+  it('pose_des_cartes_traverse_du_yaml_au_client', () => {
+    const fichiers = modifier(
+      exempleDeCours(),
+      'essai/cours.yaml',
+      'modules:\n',
+      'pose_des_cartes: "retournee"\nmodules:\n',
+    );
+    const { cours, erreurs } = analyserContenus(fichiers);
+    expect(erreurs).toEqual([]);
+    const servi = JSON.parse(JSON.stringify(versCoursServi(cours[0]))) as CoursServi;
+    expect(poseDuCours(servi)).toBe('retournee');
   });
 
   it('planning_traverse_du_yaml_au_client', () => {

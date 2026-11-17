@@ -32,6 +32,8 @@ const de = {
   heute_fertig: 'Für heute ist alles erledigt.',
   heute_rien_suite: 'In den anderen Bereichen kannst du frei üben.',
   heute_vers_apercu: 'Zur Übersicht',
+  heute_retourner: 'Lieber umdrehen',
+  heute_saisir: 'Lieber eintippen',
   heute_revisions: '{n} zum Auffrischen',
   heute_revision:
     '«{etape}»: Dazu kommen Fragen aus allen bisherigen Etappen, gemischt. ' +
@@ -132,6 +134,7 @@ const de = {
   cartes_saisie_indice: 'Weisst du es nicht? Leer lassen und «Prüfen».',
   cartes_juste: 'Richtig!',
   cartes_presque: 'Fast – achte auf die Schreibweise',
+  cartes_frappe: 'Richtig – achte auf die Schreibweise',
   cartes_fausse: 'Leider falsch',
   cartes_aussi_juste: 'Meine Antwort war auch richtig',
   cartes_suivante: 'Weiter',

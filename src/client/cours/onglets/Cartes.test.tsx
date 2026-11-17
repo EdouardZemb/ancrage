@@ -78,7 +78,7 @@ function contexteDe(
   });
   contexte.preferences = {
     ...contexte.preferences,
-    cartes: { chapitre: CHAPITRE_1, sens: 'direct', saisie: true, ...choix },
+    cartes: { chapitre: CHAPITRE_1, sens: 'direct', saisie: true, saisieChoisie: false, ...choix },
   };
   return contexte;
 }
@@ -197,7 +197,7 @@ describe('Cartes', () => {
     expect(progression()).toBe('1 beantwortet · 1 übrig');
     expect((screen.getByLabelText(t.cartes_saisie_etiquette) as HTMLInputElement).value).toBe('');
 
-    // Presque : une faute de frappe, comptée fausse.
+    // Presque : une faute de frappe, comptée fausse sur un terme de moins de six caractères (M5-D1).
     taper('Hertz');
     verdict = document.querySelector('.verdict') as HTMLElement;
     expect(verdict.className).toBe('verdict near');
@@ -288,7 +288,7 @@ describe('Cartes', () => {
 
     expect(contexte.changerPreferences).toHaveBeenCalledWith({
       ...contexte.preferences,
-      cartes: { chapitre: CHAPITRE_1, sens: 'inverse', saisie: false },
+      cartes: { chapitre: CHAPITRE_1, sens: 'inverse', saisie: false, saisieChoisie: true },
     });
     // Le verdict n'a plus de sens : la carte se retourne.
     expect(document.querySelector('.verdict')).toBeNull();
@@ -456,7 +456,7 @@ describe('Cartes', () => {
 
     expect(contexte.changerPreferences).toHaveBeenLastCalledWith({
       ...contexte.preferences,
-      cartes: { chapitre: CHAPITRE_2, sens: 'direct', saisie: true },
+      cartes: { chapitre: CHAPITRE_2, sens: 'direct', saisie: true, saisieChoisie: false },
     });
     expect((screen.getByLabelText(t.choix_chapitre) as HTMLSelectElement).value).toBe(CHAPITRE_2);
     expect(progression()).toBe('0 beantwortet · 1 übrig');
@@ -474,7 +474,7 @@ describe('Cartes', () => {
 
     expect(contexte.changerPreferences).toHaveBeenLastCalledWith({
       ...contexte.preferences,
-      cartes: { chapitre: CHAPITRE_2, sens: 'inverse', saisie: true },
+      cartes: { chapitre: CHAPITRE_2, sens: 'inverse', saisie: true, saisieChoisie: false },
     });
     expect(progression()).toBe('0 beantwortet · 1 übrig');
     expect(enonce()).toBe('schnell');
@@ -755,7 +755,7 @@ describe('Cartes par manuel', () => {
     const contexte = contexteDeTest({ cours });
     contexte.preferences = {
       ...contexte.preferences,
-      cartes: { chapitre, sens: 'direct', saisie: true },
+      cartes: { chapitre, sens: 'direct', saisie: true, saisieChoisie: false },
     };
     return contexte;
   }
@@ -790,7 +790,7 @@ describe('Cartes par manuel', () => {
 
     expect(contexte.changerPreferences).toHaveBeenLastCalledWith({
       ...contexte.preferences,
-      cartes: { chapitre: CHAPITRE_2, sens: 'direct', saisie: true },
+      cartes: { chapitre: CHAPITRE_2, sens: 'direct', saisie: true, saisieChoisie: false },
     });
     expect((screen.getByLabelText(t.choix_chapitre) as HTMLSelectElement).value).toBe(CHAPITRE_2);
     expect(screen.getByText(/· Kap\. 1$/)).toBeTruthy();

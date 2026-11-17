@@ -28,6 +28,11 @@
  *
  * Un geste, une écriture (M2-P7) : la réponse et le verdict, ou la suite et la question d'après,
  * s'écrivent d'un seul bloc.
+ *
+ * La pose des cartes (M5-D7) : sous une carte à saisir, un lien passe la séance en cartes
+ * retournées, et un autre y rend la saisie. Ce choix est un état d'onglet à part, `heute/pose`,
+ * sans prédicat de séance (il ne retient pas la mise à jour) : il tient d'une série à la suivante,
+ * ne touche ni le journal ni la préférence, et se perd au rechargement.
  */
 import { useMemo, useRef } from 'preact/hooks';
 import type { CoursPrepare } from '../../../domaine/cours/prepare.js';
@@ -253,6 +258,9 @@ export function Heute() {
     () => null,
     pretestEnCours,
   );
+  // La pose des cartes de la séance : à part d'elle, tenue d'une série à la suivante, sans toucher
+  // la préférence, perdue au rechargement (M5-D7). Vrai : les cartes se retournent.
+  const [retournees, setRetournees] = useEtatDOnglet<boolean>('heute/pose', () => false);
   // Un pré-test terminé ne survit pas à l'onglet : au montage, son écran de fin est déjà vu et
   // l'état se vide ; un pré-test en cours, lui, revient tel quel (B-D16).
   const aMonter = useRef(true);
@@ -385,6 +393,26 @@ export function Heute() {
     );
   }
 
+  // Le lien de pose, sous une carte inverse : de la saisie aux cartes retournées tant qu'aucun
+  // verdict n'est affiché, et en retour tant que la carte n'est pas retournée. Chaque lien a sa
+  // `key` : Preact ne réutilise pas le bouton d'un geste à l'autre, qui garderait le focus, et
+  // Espace n'irait plus à la carte.
+  const lienDePose =
+    tete.genre === 'carte' &&
+    question.genre === 'carte' &&
+    tete.unite.sens === 'inverse' &&
+    preferences.cartes.saisie ? (
+      !retournees && question.etat.verdict === null ? (
+        <button key="retourner" type="button" class="linkbtn" onClick={() => setRetournees(true)}>
+          {t.heute_retourner}
+        </button>
+      ) : retournees && !question.etat.retournee ? (
+        <button key="saisir" type="button" class="linkbtn" onClick={() => setRetournees(false)}>
+          {t.heute_saisir}
+        </button>
+      ) : null
+    ) : null;
+
   return (
     <section>
       {offre}
@@ -403,7 +431,7 @@ export function Heute() {
       {tete.genre === 'carte' && question.genre === 'carte' && (
         <QuestionCarte
           unite={tete.unite}
-          saisie={preferences.cartes.saisie}
+          saisie={preferences.cartes.saisie && !retournees}
           etat={question.etat}
           onEtat={(suite) => poser({ genre: 'carte', etat: suite })}
           onReponse={(juste, mode) => {
@@ -412,6 +440,9 @@ export function Heute() {
             setCourante(avancer(juste));
           }}
         />
+      )}
+      {tete.genre === 'carte' && question.genre === 'carte' && lienDePose !== null && (
+        <p class="muted">{lienDePose}</p>
       )}
       {tete.genre === 'mot' && question.genre === 'mot' && cours.morphologie !== undefined && (
         <QuestionMot

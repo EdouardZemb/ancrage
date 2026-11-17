@@ -41,6 +41,19 @@ function Posee(props: {
   );
 }
 
+/** Un terme assez long pour qu'une lettre fausse soit tolérée (M5-D1), absent de l'index du cours. */
+const LONG = {
+  ...HERZ_INVERSE,
+  id: 'c9000001:inverse',
+  question: 'Tierchen im Brummelwald',
+  reponse: 'Murmelkrat',
+};
+
+function saisir(valeur: string) {
+  fireEvent.input(screen.getByLabelText(t.cartes_saisie_etiquette), { target: { value: valeur } });
+  fireEvent.click(screen.getByRole('button', { name: t.cartes_verifier }));
+}
+
 describe('QuestionCarte', () => {
   it('retourner_puis_su_repond_juste', () => {
     const onReponse = vi.fn();
@@ -117,5 +130,83 @@ describe('QuestionCarte', () => {
     expect(onEtat).toHaveBeenCalledTimes(1);
     expect(onEtat).toHaveBeenCalledWith({ retournee: true, verdict: null });
     expect(onReponse).not.toHaveBeenCalled();
+  });
+
+  it('une_faute_de_frappe_est_signalee_sans_bouton_de_correction_et_repond_juste', () => {
+    const onReponse = vi.fn();
+    const { container } = rendreDansLeCours(
+      <Posee unite={LONG} saisie onReponse={onReponse} />,
+      contexteDeTest(),
+    );
+    saisir('Murmelkat');
+    expect(screen.getByText(t.cartes_frappe)).toBeTruthy();
+    expect(container.querySelector('.verdict.ok')).not.toBeNull();
+    expect(container.querySelector('s')?.textContent).toBe('Murmelkat');
+    expect(container.querySelector('b')?.textContent).toBe('Murmelkrat');
+    expect(screen.queryByRole('button', { name: t.cartes_aussi_juste })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: t.cartes_suivante }));
+    expect(onReponse).toHaveBeenCalledTimes(1);
+    expect(onReponse).toHaveBeenCalledWith(true, 'saisie');
+  });
+
+  it('une_saisie_exacte_n_affiche_pas_la_saisie_barree', () => {
+    const { container } = rendreDansLeCours(
+      <Posee unite={LONG} saisie onReponse={vi.fn()} />,
+      contexteDeTest(),
+    );
+    saisir('murmelkrat');
+    expect(screen.getByText(t.cartes_juste)).toBeTruthy();
+    expect(screen.queryByText(t.cartes_frappe)).toBeNull();
+    expect(container.querySelector('s')).toBeNull();
+  });
+
+  it('une_saisie_fausse_garde_le_bouton_de_correction_et_corrigee', () => {
+    const onReponse = vi.fn();
+    rendreDansLeCours(<Posee unite={LONG} saisie onReponse={onReponse} />, contexteDeTest());
+    saisir('Zimbolwesp');
+    expect(screen.queryByText(t.cartes_frappe)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: t.cartes_aussi_juste }));
+    expect(onReponse).toHaveBeenCalledWith(true, 'corrigee');
+  });
+
+  it('une_reponse_admise_differente_du_recto_affiche_la_saisie_non_barree_et_le_recto', () => {
+    const autre = { ...LONG, reponses: ['Brummelwicht'] };
+    const { container } = rendreDansLeCours(
+      <Posee unite={autre} saisie onReponse={vi.fn()} />,
+      contexteDeTest(),
+    );
+    saisir('Brummelwicht');
+    expect(screen.getByText(t.cartes_juste)).toBeTruthy();
+    expect(container.querySelector('s')).toBeNull();
+    const saisieAffichee = [...container.querySelectorAll('.verdict span')].find(
+      (e) => e.textContent === 'Brummelwicht',
+    );
+    expect(saisieAffichee).toBeTruthy();
+    const recto = container.querySelector('b');
+    expect(recto?.textContent).toBe('Murmelkrat');
+    // La saisie vient avant le recto.
+    expect(saisieAffichee?.compareDocumentPosition(recto as Element)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
+  it('une_saisie_qui_ne_differe_que_par_un_repli_de_digramme_n_affiche_pas_la_saisie', () => {
+    const { container } = rendreDansLeCours(
+      <Posee unite={{ ...LONG, reponse: 'Grünwurm' }} saisie onReponse={vi.fn()} />,
+      contexteDeTest(),
+    );
+    saisir('Gruenwurm');
+    expect(screen.getByText(t.cartes_juste)).toBeTruthy();
+    expect(container.querySelectorAll('.verdict span')).toHaveLength(1);
+  });
+
+  it('une_saisie_egale_au_recto_a_la_casse_pres_n_affiche_pas_la_saisie', () => {
+    const { container } = rendreDansLeCours(
+      <Posee unite={LONG} saisie onReponse={vi.fn()} />,
+      contexteDeTest(),
+    );
+    saisir('MURMELKRAT');
+    expect(container.querySelectorAll('.verdict span')).toHaveLength(1);
+    expect(container.querySelector('s')).toBeNull();
   });
 });

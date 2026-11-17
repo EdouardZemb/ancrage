@@ -901,6 +901,13 @@ form.typed input {
   padding: 2px;
 }
 
+/* Le lien de pose de « Heute » : toute la ligne se touche. */
+p.muted > .linkbtn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+}
+
 .options {
   display: grid;
   gap: 8px;

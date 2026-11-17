@@ -3,9 +3,9 @@
  * les cartes dues d'abord, à l'échéance que donne l'algorithme du cours (`ordonnanceur.ts`), puis
  * des neuves. Une unité directe se retourne ; une unité inverse se
  * retourne aussi, sauf si « Begriffe eintippen » est cochée (H:1767) : on tape alors le terme, qui
- * est jugé juste, presque juste (une faute de frappe) ou faux. Une réponse fausse remet la carte en
- * fin de file. Chaque réponse entre au journal ; la fin de la série déclenche la synchronisation
- * (décision 15).
+ * est jugé juste, juste malgré une faute de frappe (signalée, M5), presque juste ou faux. Une
+ * réponse fausse remet la carte en fin de file. Chaque réponse entre au journal ; la fin de la série
+ * déclenche la synchronisation (décision 15).
  *
  * La séance se construit une fois, au premier affichage et à chaque changement de chapitre ou de
  * sens, puis vit dans l'écran du cours (`useEtatDOnglet`) : les réponses qui arrivent au journal ne
@@ -123,7 +123,7 @@ export function Cartes(props: {
             type="checkbox"
             checked={saisie}
             onChange={(e) => {
-              choisir({ saisie: e.currentTarget.checked });
+              choisir({ saisie: e.currentTarget.checked, saisieChoisie: true });
               setCourante({ ...serie, verdict: null });
             }}
           />{' '}

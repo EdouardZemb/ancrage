@@ -102,6 +102,7 @@ planning:                  # facultative : voir « Le planning »
 manuels:                   # facultative : voir « Les manuels »
   - id: "<id>"
     titre: "Beispielbuch Küche"
+pose_des_cartes: "ecrite"  # facultative : voir « La pose des cartes »
 derogation_diffusion:      # facultative : voir « Dérogation de diffusion »
   motif: "<pourquoi>"
   date: "2026-10-16"
@@ -508,6 +509,37 @@ l'image, et l'image précédente garde le sien. Le cours d'exemple nomme deux ma
 « Beispielbuch Küche » puis « Beispielheft Geräte », et range ses trois modules de cartes dans leur
 ordre à lui, différent de celui du cours.
 
+### La pose des cartes
+
+La clé facultative `pose_des_cartes` dit comment se pose une carte dont la réponse se tape (l'unité
+« définition vers terme »). Une carte de l'autre sens, aux longues définitions, se retourne toujours.
+
+```yaml
+pose_des_cartes: "retournee"
+```
+
+- Deux valeurs : `ecrite` (la carte se pose avec un champ de saisie) ou `retournee` (la carte se
+  retourne). Toute autre valeur est refusée.
+- Absente, elle vaut `ecrite`, le comportement d'avant la clé : un cours qui ne l'écrit pas ne change
+  pas.
+- Elle donne la valeur de la case « Begriffe eintippen » de Karteikarten, et « Heute » la suit,
+  tant que la personne n'a pas touché la case sur cet appareil. Une fois la case touchée, son choix
+  l'emporte, et le cours ne le change plus (M5-D5).
+- Le choix de la case n'est gardé comme un choix que depuis cette clé : une case décochée avant elle
+  n'a pas de marque, et reprend une fois la valeur du cours (M5-D6).
+- L'instantané de référence porte `poseDesCartes` après `manuels` quand le cours l'écrit, et ne
+  change pas sans elle.
+
+**Un cours monté ne reçoit cette clé qu'une version après celle qui la connaît** : le manifeste est
+strict, et la version en ligne la refuserait (invariant 8).
+
+**Le client lit sans rigueur.** Une valeur qu'il ne connaît pas (servie par une version suivante) vaut
+`ecrite`, et le cours reste admis. Rien ne le bloque.
+
+**Un appareil resté à la version précédente** ne connaît pas la clé : il ignore la pose du cours, et
+la case « Begriffe eintippen » y reste cochée d'office (sauf si la personne l'a décochée), jusqu'à
+sa mise à jour, au lancement suivant.
+
 ### Dérogation de diffusion
 
 Un cours qui contient au moins un élément `à vérifier` (voir « Statuts ») ne peut être ouvert à un
@@ -627,6 +659,14 @@ Règles des cartes :
   - elle compte aussi pour le test de fuite, qui décide si l'unité inverse de la carte existe : il
     se fait avec les mêmes réponses (`canonique(recto)` et celles de `reponses`), et non avec les
     alternatives du recto.
+- Saisie d'une carte (sens « définition vers terme ») : une lettre fausse, en trop ou en moins est
+  tolérée et signalée sur une réponse d'au moins six caractères, comptés après le repli de « ae »,
+  « oe » et « ue » ; « ue » vaut « ü ». Un ou plusieurs trémas oubliés ou en trop (« u » pour « ü »,
+  « ü » pour « u ») sont de même tolérés et signalés, quelle que soit la longueur, sauf si la saisie
+  ou une réponse de la carte s'écrit avec « ae », « oe » ou « ue ». Un tréma oublié et une lettre
+  fausse ne se cumulent pas : c'est faux. Aucune des deux tolérances ne joue si la saisie est la
+  réponse d'une autre carte, sauf d'une carte sans sens inverse, qui n'est pas dans l'index. La
+  Prüfung reste stricte.
 
 ## Module `morphologie`
 
@@ -821,7 +861,8 @@ Comment l'application juge une réponse (F1-D4, F1-D5), dans l'onglet comme dans
 - **Orthographe** : la saisie et `reponse` se comparent en forme Unicode NFC, sans les espaces de
   bord, et les espaces internes réduits à un. La casse et les accents comptent : « kartoffel »
   est faux pour « Kartoffel ».
-- **Trous sans liste** : chaque trou se compare comme une réponse de carte (`canonique`). La casse,
+- **Trous sans liste** : chaque trou se compare comme une réponse de carte dans la Prüfung (`canonique`, sans « ue » ni
+  faute tolérée). La casse,
   les guillemets, la ponctuation de fin (`. … ! ?`), les tirets de bord, ae/ä et oe/ö ne comptent
   pas ; la virgule, les deux-points et les parenthèses comptent. Enfin, la lettre c se confond
   avec k (avec z devant e, i, y, ä, ö). Ainsi « c » est jugé juste pour un trou dont la réponse

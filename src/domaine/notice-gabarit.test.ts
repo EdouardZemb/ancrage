@@ -164,7 +164,7 @@ describe('notice', () => {
   it('notice_porte_la_version_de_son_dernier_changement', () => {
     // Le texte change avec ADR-0013 (le suivi avec accord), puis d'un geste oublié, l'association :
     // le pré-test (ADR-0014) : la version est celle de ce dernier changement.
-    expect(NOTICE_VERSION).toBe('2026-11-16');
+    expect(NOTICE_VERSION).toBe('2026-11-17');
   });
 
   it('notice_dit_les_limites_de_ce_qu_elle_promet', () => {

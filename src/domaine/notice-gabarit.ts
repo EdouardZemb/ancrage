@@ -19,7 +19,7 @@
 import { composerNotice, dateAffichee, type Notice, type ValeursDeNotice } from './notice.js';
 
 /** La version du gabarit : la date de fusion de la PR qui l'a changé, `AAAA-MM-JJ`. */
-export const NOTICE_VERSION = '2026-11-16';
+export const NOTICE_VERSION = '2026-11-17';
 
 /** Les langues de la notice, celles de l'interface. */
 export type LangueDeNotice = keyof ValeursDeNotice['valeurs'];

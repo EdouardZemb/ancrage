@@ -527,11 +527,17 @@ pose_des_cartes: "retournee"
   l'emporte, et le cours ne le change plus (M5-D5).
 - Le choix de la case n'est gardé comme un choix que depuis cette clé : une case décochée avant elle
   n'a pas de marque, et reprend une fois la valeur du cours (M5-D6).
-- L'instantané de référence porte `pose_des_cartes` après `manuels` quand le cours l'écrit, et ne
+- L'instantané de référence porte `poseDesCartes` après `manuels` quand le cours l'écrit, et ne
   change pas sans elle.
 
 **Un cours monté ne reçoit cette clé qu'une version après celle qui la connaît** : le manifeste est
 strict, et la version en ligne la refuserait (invariant 8).
+
+**Le client lit sans rigueur.** Une valeur qu'il ne connaît pas (servie par une version suivante) vaut
+`ecrite`, et le cours reste admis. Rien ne le bloque.
+
+**Un appareil resté à la version précédente** ne connaît pas la clé : il ignore la pose du cours, et
+la case « Begriffe eintippen » y reste cochée d'office, jusqu'à sa mise à jour, au lancement suivant.
 
 ### Dérogation de diffusion
 

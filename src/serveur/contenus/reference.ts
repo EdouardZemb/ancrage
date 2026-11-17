@@ -60,7 +60,7 @@ export interface Reference {
     /** Présent seulement si le cours l'écrit, après `planning`. */
     manuels?: Manuel[];
     /** Présent seulement si le cours l'écrit, après `manuels`. */
-    pose_des_cartes?: 'ecrite' | 'retournee';
+    poseDesCartes?: 'ecrite' | 'retournee';
   };
   /**
    * L'état de relecture du cours : `aVerifier` s'il a au moins un élément « à vérifier », sa
@@ -256,7 +256,7 @@ export function calculerReference(cours: Cours): Reference {
       ...(cours.manuels === undefined
         ? {}
         : { manuels: cours.manuels.map(({ id, titre }) => ({ id, titre })) }),
-      ...(cours.poseDesCartes === undefined ? {} : { pose_des_cartes: cours.poseDesCartes }),
+      ...(cours.poseDesCartes === undefined ? {} : { poseDesCartes: cours.poseDesCartes }),
     },
     diffusion: {
       // La règle même de l'invariant 9, que le module `acces` applique à chaque requête.

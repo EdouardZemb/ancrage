@@ -200,7 +200,7 @@ n'affiche pas la saisie barrée ; une saisie fausse garde le bouton et `corrigee
 - Dans `CoursServi`, `poseDesCartes?: unknown`, que `versCoursServi` n'écrit que présente, et
   `export function poseDuCours(cours: CoursServi): 'ecrite' | 'retournee'`, qui rend `retournee`
   pour cette valeur et `ecrite` pour tout le reste. Le schéma `coursServi` ne change pas.
-- L'instantané de référence porte `pose_des_cartes` après `manuels` quand le cours l'écrit, et ne
+- L'instantané de référence porte `poseDesCartes` après `manuels` quand le cours l'écrit, et ne
   change pas sans elle.
 - `Preferences.cartes` reçoit `saisieChoisie: boolean`. `preferencesParDefaut` donne
   `saisie: poseDuCours(cours.cours) === 'ecrite'` et `saisieChoisie: false`. `lirePreferences` ne
@@ -235,7 +235,7 @@ contenus:client`.
 - Sous une carte d'unité inverse, quand la préférence `saisie` est vraie et qu'aucun verdict n'est
   affiché, un bouton `linkbtn` avec sa `key` : `t.heute_retourner` (« Lieber umdrehen ») passe en
   cartes retournées ; en cartes retournées, tant que la carte n'est pas retournée,
-  `t.heute_saisir` (« Wieder eintippen »), avec une autre `key`, y revient. Le geste ne répond pas
+  `t.heute_saisir` (« Lieber eintippen »), avec une autre `key`, y revient. Le geste ne répond pas
   à la carte, n'écrit rien au journal et ne touche pas la préférence. Après lui, le focus n'est
   plus sur le lien : Espace retourne la carte.
 - Le choix tient à une recomposition de la séance et à « Nächste Runde ».

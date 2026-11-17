@@ -1750,6 +1750,7 @@ describe('la_pose_des_cartes_de_la_seance', () => {
     cliquer(t.heute_retourner);
 
     expect(document.activeElement).not.toBe(lien(t.heute_saisir));
+    expect(document.activeElement).toBe(document.body);
     expect(document.querySelector('.back')).toBeNull();
     fireEvent.keyDown(document.activeElement ?? document.body, { key: ' ' });
     expect(document.querySelector('.back')?.textContent).toBe('Herz');
@@ -1795,17 +1796,22 @@ describe('la_pose_des_cartes_de_la_seance', () => {
     expect(lien(t.heute_saisir)).toBeTruthy();
   });
 
-  it('le_choix_tient_a_une_recomposition_et_a_un_remontage_pas_au_rechargement', () => {
+  it('le_choix_tient_a_une_vraie_recomposition_et_a_un_remontage_pas_au_rechargement', () => {
     const memoire = new Map<string, unknown>();
     const contexte = contexteDe({ memoire });
     amorcer(contexte, memoire, [INVERSE]);
     rendreDansLeCours(<Heute />, contexte);
     cliquer(t.heute_retourner);
+    const avant = etatGarde(memoire).cle;
     cleanup();
 
-    // Un détour par un autre onglet : la mémoire des onglets garde le choix.
-    rendreDansLeCours(<Heute />, contexteDe({ memoire }));
+    // Le journal change avant le geste suivant : la clé du jour change, la séance se recompose.
+    const evenements = manquees(INVERSE, AUTRE_INVERSE);
+    rendreDansLeCours(<Heute />, contexteDe({ memoire, evenements }));
+    expect(etatGarde(memoire).cle).not.toBe(avant);
+    expect(fileDe(memoire).slice(0, 2)).toEqual([INVERSE, AUTRE_INVERSE]);
     expect(screen.queryByLabelText(t.cartes_saisie_etiquette)).toBeNull();
+    expect(screen.getByRole('button', { name: t.cartes_retourner })).toBeTruthy();
     expect(lien(t.heute_saisir)).toBeTruthy();
     cleanup();
 
@@ -1818,13 +1824,22 @@ describe('la_pose_des_cartes_de_la_seance', () => {
   });
 
   it('le_choix_n_est_pas_une_seance_en_cours', () => {
-    const { memoire } = poserUneInverse();
+    const memoire = new Map<string, unknown>();
+    const predicats: PredicatsDeSeance = new Map();
+    const contexte = contexteDe({ memoire });
+    contexte.useEtatDOnglet = etatDOngletSur(memoire, predicats);
+    amorcer(contexte, memoire, [INVERSE]);
+    rendreDansLeCours(<Heute />, contexte);
     cliquer(t.heute_retourner);
 
+    expect(memoire.get('heute/pose')).toBe(true);
+    // Aucun prédicat de séance pour ce choix : seul `heute` en pose un, et la séance n'est pas entamée.
+    expect(predicats.has('heute/pose')).toBe(false);
+    expect(predicats.has('heute')).toBe(true);
+    expect(seanceDansLaMemoire(memoire, predicats)).toBeNull();
     expect(heuteEnCours(etatGarde(memoire))).toBe(false);
     expect(Object.keys(etatGarde(memoire)).sort()).toEqual(
       ['cle', 'question', 'repondue', 'seance'].sort(),
     );
-    expect(memoire.get('heute/pose')).toBe(true);
   });
 });

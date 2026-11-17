@@ -33,7 +33,7 @@ const de = {
   heute_rien_suite: 'In den anderen Bereichen kannst du frei üben.',
   heute_vers_apercu: 'Zur Übersicht',
   heute_retourner: 'Lieber umdrehen',
-  heute_saisir: 'Wieder eintippen',
+  heute_saisir: 'Lieber eintippen',
   heute_revisions: '{n} zum Auffrischen',
   heute_revision:
     '«{etape}»: Dazu kommen Fragen aus allen bisherigen Etappen, gemischt. ' +

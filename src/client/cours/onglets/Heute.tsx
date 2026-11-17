@@ -28,6 +28,11 @@
  *
  * Un geste, une écriture (M2-P7) : la réponse et le verdict, ou la suite et la question d'après,
  * s'écrivent d'un seul bloc.
+ *
+ * La pose des cartes (M5-D7) : sous une carte à saisir, un lien passe la séance en cartes
+ * retournées, et un autre y rend la saisie. Ce choix est un état d'onglet à part, `heute/pose`,
+ * sans prédicat de séance (il ne retient pas la mise à jour) : il tient d'une série à la suivante,
+ * ne touche ni le journal ni la préférence, et se perd au rechargement.
  */
 import { useMemo, useRef } from 'preact/hooks';
 import type { CoursPrepare } from '../../../domaine/cours/prepare.js';

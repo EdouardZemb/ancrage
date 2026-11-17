@@ -110,20 +110,20 @@ it('pas_de_pretest_avant_une_etape_revision', () => {
 });
 
 it('pas_de_pretest_pour_une_etape_d_une_seule_carte', () => {
-  const cours = coursDe(carte('c1000001', 'b', 'Herz', 'Organ im Brustkorb'));
+  const cours = coursDe(carte('c1000001', 'b', 'Topf', 'Gefäß zum Kochen'));
   expect(propose(dans(2), [], cours)).toBeUndefined();
 });
 
 it('pas_de_pretest_quand_les_directes_n_ont_qu_une_reponse_distincte', () => {
   const cours = coursDe(
-    carte('c1000001', 'b', 'Herz', 'Organ'),
-    carte('c1000002', 'b', 'Leber', 'Organ'),
+    carte('c1000001', 'b', 'Topf', 'Gerät'),
+    carte('c1000002', 'b', 'Messer', 'Gerät'),
   );
   expect(propose(dans(2), [], cours)).toBeUndefined();
   // Avec deux versos distincts, il se propose.
   const deux = coursDe(
-    carte('c1000001', 'b', 'Herz', 'Organ'),
-    carte('c1000002', 'b', 'Leber', 'Drüse'),
+    carte('c1000001', 'b', 'Topf', 'Gerät'),
+    carte('c1000002', 'b', 'Messer', 'Werkzeug'),
   );
   expect(propose(dans(2), [], deux)).toBeDefined();
 });
@@ -190,9 +190,9 @@ it('questions_au_plus_cinq_cartes_distinctes_au_sens_direct', () => {
 
 it('questions_moins_de_cinq_quand_l_etape_en_a_moins', () => {
   const cours = coursDe(
-    carte('c1000001', 'b', 'Herz', 'Organ'),
-    carte('c1000002', 'b', 'Leber', 'Drüse'),
-    carte('c1000003', 'b', 'Niere', 'Filter'),
+    carte('c1000001', 'b', 'Topf', 'Gerät'),
+    carte('c1000002', 'b', 'Messer', 'Werkzeug'),
+    carte('c1000003', 'b', 'Löffel', 'Besteck'),
   );
   expect(questions(cours, dans(2))).toHaveLength(3);
   // Cinq cartes neuves : cinq questions, pas une de plus.
@@ -201,11 +201,11 @@ it('questions_moins_de_cinq_quand_l_etape_en_a_moins', () => {
 
 it('questions_options_du_pool_de_l_etape_avec_la_bonne_reponse', () => {
   const cours = coursDe(
-    carte('c1000001', 'b', 'Herz', 'Organ'),
-    carte('c1000002', 'b', 'Leber', 'Drüse'),
+    carte('c1000001', 'b', 'Topf', 'Gerät'),
+    carte('c1000002', 'b', 'Messer', 'Werkzeug'),
   );
   for (const { unite, options } of questions(cours, dans(2))) {
-    expect(options.slice().sort()).toStrictEqual(['Drüse', 'Organ']);
+    expect(options.slice().sort()).toStrictEqual(['Gerät', 'Werkzeug']);
     expect(options).toContain(unite.reponse);
   }
   const grand = leCours();
@@ -345,8 +345,8 @@ it('une_etape_sans_deux_reponses_distinctes_n_arrete_pas_la_recherche', () => {
   const premier = base.modules[0];
   if (premier?.type !== 'cartes') throw new Error('fixture');
   const cartes = [
-    carte('c1000001', 'b', 'Herz', 'Organ'),
-    carte('c1000002', 'b', 'Leber', 'Organ'),
+    carte('c1000001', 'b', 'Topf', 'Gerät'),
+    carte('c1000002', 'b', 'Messer', 'Gerät'),
   ];
   const cours = preparerCours({
     ...base,

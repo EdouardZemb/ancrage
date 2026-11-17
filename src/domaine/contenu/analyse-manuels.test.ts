@@ -308,3 +308,10 @@ it('manuels_un_manuel_que_aucun_module_ne_cite_est_admis', () => {
   verrouille(fichiers, [AUTRE]);
   expect(erreurs(fichiers)).toEqual([]);
 });
+
+it('manuels_le_meme_numero_de_chapitre_dans_deux_manuels_n_est_pas_un_doublon', () => {
+  // Le chapitre 2 du manuel Alpha, et le chapitre 2 du manuel Beta : deux chapitres différents.
+  const fichiers = exempleAvecManuels();
+  modifier(fichiers, CARTES_2, 'chapitre: 1', 'chapitre: 2');
+  expect(erreurs(fichiers)).toEqual([]);
+});

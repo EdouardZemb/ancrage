@@ -1,9 +1,9 @@
 /*
  * Le pré-test d'une étape dans « Heute » (M4, B-D13 à B-D16) : l'offre, qui paraît de un à trois
- * jours avant l'ouverture d'une étape de cours, puis ses cinq questions à choix sur ses cartes
- * neuves. Une erreur n'y est pas une faute : l'option choisie, fausse, garde un style neutre, et
- * aucun compte de justes ne se dit. Chaque réponse va au journal à son geste, sous le mode
- * `pretest`, que rien ne compte dans la progression (B-D9).
+ * jours avant l'ouverture d'une étape de cours, puis ses questions à choix, cinq au plus, sur ses
+ * cartes neuves. Une erreur n'y est pas une faute : l'option choisie, fausse, garde un style
+ * neutre, et aucun compte de justes ne se dit. Chaque réponse va au journal à son geste, sous le
+ * mode `pretest`, que rien ne compte dans la progression (B-D9).
  *
  * Les questions sont figées au démarrage dans l'état de l'onglet : un détour par un autre onglet
  * retrouve la même question, et le pré-test commencé retient la mise à jour de l'application

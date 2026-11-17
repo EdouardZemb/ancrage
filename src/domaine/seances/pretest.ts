@@ -9,9 +9,10 @@ import { ouvertureDe } from './planning.js';
 import { optionsQcm } from './quiz.js';
 
 /*
- * Le pré-test d'une étape (M4, B-D11 à B-D13) : trois jours avant l'ouverture d'une étape de cours,
- * « Heute » propose cinq questions à choix sur ses cartes neuves. Le domaine ne lit ni l'horloge ni
- * le hasard : le jour et le hasard sont des paramètres. « Fait » se lit dans le journal seul.
+ * Le pré-test d'une étape (M4, B-D11 à B-D13) : de un à trois jours avant l'ouverture d'une étape
+ * de cours, « Heute » propose au plus cinq questions à choix sur ses cartes neuves. Le domaine ne lit
+ * ni l'horloge ni le hasard : le jour et le hasard sont des paramètres. « Fait » se lit dans le
+ * journal seul.
  */
 
 /** Le nombre de questions d'un pré-test, au plus (B-D13). */

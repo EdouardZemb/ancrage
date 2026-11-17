@@ -51,8 +51,8 @@ const de = {
   planning_retard_1: '1 neue Karte zum Nachholen',
   planning_retard_n: '{n} neue Karten zum Nachholen',
 
-  // Le pré-test d'une étape, trois jours avant son ouverture (M4, B-D15). Une erreur n'y est pas
-  // une faute : aucun compte de justes.
+  // Le pré-test d'une étape, de un à trois jours avant son ouverture (M4, B-D15). Une erreur n'y
+  // est pas une faute : aucun compte de justes.
   heute_pretest_angebot: 'Bald beginnt «{etape}». Ein kurzer Vortest, bevor du die Karten lernst?',
   heute_pretest_warum:
     'Wer vor dem Lernen rät, merkt sich danach mehr – auch falsch geratene Antworten helfen dabei und zählen nicht als Fehler.',

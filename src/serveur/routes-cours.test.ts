@@ -300,7 +300,7 @@ describe('GET /api/cours/:id', () => {
       const corps = reponse.json() as Record<string, unknown> & { modules: object[] };
       expect(Object.keys(corps).sort()).toEqual(
         cours === COURS_SOURCE
-          ? ['id', 'langue', 'leitner', 'manuels', 'modules', 'titre', 'typesDeCarte']
+          ? ['id', 'langue', 'leitner', 'manuels', 'modules', 'planning', 'titre', 'typesDeCarte']
           : ['id', 'langue', 'leitner', 'modules', 'titre', 'typesDeCarte'],
       );
       expect(corps.leitner).toStrictEqual({
@@ -308,6 +308,15 @@ describe('GET /api/cours/:id', () => {
         nouvellesParSeance: 15,
       });
       expect(corps).toStrictEqual(contenuAttendu(cours));
+      // Le planning est un champ du cours servi, donc après le contrôle des droits (M4).
+      if (cours === COURS_SOURCE) {
+        expect(corps.planning).toStrictEqual({
+          etapes: [
+            { titre: 'Woche 1 – Anfang', semaine: 1, genre: 'cours', modules: ['epas79zz'] },
+            { titre: 'Woche 2 – Wiederholung', semaine: 2, genre: 'revision', modules: [] },
+          ],
+        });
+      }
       // Ce qui ne regarde que le serveur ou l'administration n'est servi à aucun niveau.
       expect(corps).not.toHaveProperty('dossier');
       expect(corps).not.toHaveProperty('derogationDiffusion');

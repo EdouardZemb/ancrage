@@ -79,17 +79,33 @@ const RELUS: readonly { chemin: string; avant: string; apres: string }[] = [
     apres: '        reponse: "der"\n        statut: "vérifié"\n        verifie_le: "2026-10-05"\n',
   },
 ];
+/** Un planning inventé : une étape de cours, puis une de révision (le premier module de cartes). */
+const PLANNING = `planning:
+  etapes:
+    - titre: "Woche 1 – Anfang"
+      semaine: 1
+      modules: ["epas79zz"]
+    - titre: "Woche 2 – Wiederholung"
+      semaine: 2
+      genre: "revision"
+      modules: []
+`;
 /**
  * Une variante où chaque élément « à vérifier » devient `source`, sauf `RELUS` qui passent à
  * `vérifié` : chaque clé facultative d'état est ainsi servie au moins une fois
  * (`cles_servies_de_chaque_type_de_module`). Il nomme aussi deux manuels, et range ses modules de
- * cartes et son schéma dans l'un d'eux : les clés des manuels sont servies elles aussi.
+ * cartes et son schéma dans l'un d'eux : les clés des manuels sont servies elles aussi. Il porte
+ * enfin un planning de deux étapes : la clé `planning` est servie, elle aussi (M4).
  */
 export const COURS_SOURCE = variante(
   ID_SOURCE,
   'Quellenkurs',
   (chemin, texte) => {
-    const propre = texte.replace(/^( *)statut: "à vérifier"$/gm, '$1statut: "source"');
+    const propre = texte
+      .replace(/^( *)statut: "à vérifier"$/gm, '$1statut: "source"')
+      .replace(/^modules:$/m, (debut) =>
+        chemin === 'essai/cours.yaml' ? PLANNING + debut : debut,
+      );
     return RELUS.filter((relu) => relu.chemin === chemin).reduce((texteRelu, relu) => {
       if (!texteRelu.includes(relu.avant)) {
         throw new Error(`RELUS : « ${relu.avant} » introuvable dans ${relu.chemin}`);

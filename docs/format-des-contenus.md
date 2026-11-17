@@ -335,7 +335,9 @@ planning reçoit l'onglet dès la version qui le livre.
 - **L'étape en cours** : la dernière étape ouverte, tant qu'aujourd'hui précède l'horizon ; elle
   porte la pastille « Jetzt ». Une dernière étape `revision` reste en cours jusqu'au jour de
   l'examen compris quand il tombe sept jours ou plus après son ouverture ; le rythme des cartes
-  neuves ne change pas.
+  neuves ne change pas. Quand l'examen tombe moins de sept jours après l'ouverture de cette
+  dernière étape, elle reste en cours sept jours, comme une dernière étape de cours, donc au-delà
+  de l'examen.
 - **Le retard** : les cartes neuves d'une étape dépassée, c'est-à-dire ouverte avant la dernière
   ouverture passée et qui n'est pas en cours, au sens choisi dans Karteikarten ; une ligne le dit,
   et rien n'est bloqué. Un module qu'aucune étape ne nomme n'est pas dans la vue. Un planning posé

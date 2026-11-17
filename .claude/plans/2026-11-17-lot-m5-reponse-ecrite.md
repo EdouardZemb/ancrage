@@ -1,8 +1,8 @@
 # Lot M5 : la réponse écrite sur une carte (ancrage#33)
 
-**Objectif.** Finir la réponse écrite : une faute de frappe est tolérée et signalée, le cours choisit
-la pose de ses cartes dans son manifeste, et « Heute » laisse revenir à la carte retournée pour une
-séance.
+**Objectif.** Finir la réponse écrite : une faute de frappe est tolérée et signalée, le tréma écrit
+« ue » est admis, le cours choisit la pose de ses cartes dans son manifeste, et « Heute » laisse
+revenir à la carte retournée pour une séance.
 
 **Le constat de départ.** L'essentiel de l'issue existe depuis le prototype : sur le sens
 « définition vers terme » (l'unité inverse), la carte se pose avec un champ, la saisie est cochée
@@ -11,24 +11,34 @@ saisie, « Meine Antwort war auch richtig » corrige le verdict, et le journal d
 `corrigee`. Le sens direct, aux longues définitions, reste en carte retournée. Le lot n'ajoute donc
 aucun mode au journal, et rien n'attend une version de plus (invariant 8).
 
-**Les décisions** (« M5-D<n> », accordées par Edouard le 17/11/2026 avec les défauts du cadrage) :
+**Les décisions** (« M5-D<n> », d'après les défauts du cadrage accordés par Edouard le 17/11/2026
+et la revue du plan) :
 
 - **M5-D1.** Une saisie à une lettre d'une réponse admise d'au moins six caractères (une lettre
-  changée, en trop ou en moins ; distance de Levenshtein de 1 sur les formes canoniques) est
-  comptée juste, et l'écran le signale avec la bonne graphie. Deux lettres échangées restent
-  « Fast » : fausse, avec le bouton de correction.
-- **M5-D2.** La tolérance ne joue pas quand la saisie est la réponse admise d'une autre carte du
-  cours : deux termes voisins d'une lettre ne se confondent pas.
+  changée, en trop ou en moins ; distance de Levenshtein de 1) est comptée juste, et l'écran le
+  signale. Deux lettres échangées valent 2 : elles gardent le jugement d'aujourd'hui, faux, et
+  « Fast » seulement quand la saisie dépasse neuf caractères.
+- **M5-D2.** La tolérance ne joue pas quand la saisie est une réponse admise de l'index du cours :
+  deux termes voisins d'une lettre ne se confondent pas. Limite : une carte sans unité inverse
+  n'est pas dans l'index.
 - **M5-D3.** Au journal, une faute tolérée est une réponse `saisie` juste : aucun mode nouveau.
-- **M5-D4.** La Prüfung garde son jugement strict (`juger(…).juste`) : une faute de frappe y reste
-  fausse.
+- **M5-D4.** La Prüfung garde son jugement strict (`juger(…).juste`) : ni la faute de frappe ni
+  « ue » n'y sont admis.
 - **M5-D5.** La clé facultative `pose_des_cartes` du manifeste vaut `ecrite` ou `retournee`.
-  Absente, elle vaut `ecrite`, le comportement d'aujourd'hui. Elle donne la valeur par défaut de la
-  case « Begriffe eintippen » ; le choix gardé sur l'appareil l'emporte. Un cours monté ne la reçoit
-  qu'une version après celle qui la connaît.
-- **M5-D6.** Dans « Heute », sous une carte à saisir, un lien passe la séance en cartes retournées,
-  et un autre y revient. Le choix vit dans l'état de la séance : il ne touche pas la préférence, et
-  finit avec la séance.
+  Absente, elle vaut `ecrite`, le comportement d'aujourd'hui. Elle donne la valeur de la case
+  « Begriffe eintippen » tant que la personne n'a pas touché la case sur cet appareil ; ensuite son
+  choix l'emporte. Un cours monté ne la reçoit qu'une version après celle qui la connaît.
+- **M5-D6.** Le choix de la case n'est gardé comme un choix que depuis ce lot. Une case décochée
+  avant lui n'a pas de marque : elle reprend une fois la valeur du cours, et se décoche de nouveau
+  d'un geste.
+- **M5-D7.** Dans « Heute », sous une carte à saisir, un lien passe en cartes retournées, et un
+  autre y revient. Le choix vit dans la mémoire des onglets, à part de la séance : il tient d'une
+  série à la suivante, ne touche pas la préférence, et se perd au rechargement.
+- **M5-D8.** « ue » tapé pour « ü » est admis comme « ae » et « oe » le sont déjà. Le repli se fait
+  dans le jugement de la carte, pas dans `canonique` : les réponses admises et les instantanés ne
+  changent pas.
+- **M5-D9.** Après une faute tolérée, l'écran montre le recto de la carte, même si la saisie était
+  proche d'une autre réponse admise de `reponses`.
 
 **Les commandes de vérification**, pour chaque tâche, une à la fois, après la dernière
 modification, avec les nombres dans le rapport : `corepack pnpm test`, `corepack pnpm types`,
@@ -40,6 +50,8 @@ modification, avec les nombres dans le rapport : `corepack pnpm test`, `corepack
   admises, et dit « presque » sans jamais compter juste une faute de frappe
 - `src/domaine/correction.ts:35` — `g.length >= 4` — le « presque » d'aujourd'hui : à une lettre
   près dès quatre caractères, à deux près au-delà de neuf
+- `src/domaine/cartes/reponses.ts:14` — `.replace(/ae/g, 'ä')` — `normaliser` replie « ae » et
+  « oe », pas « ue »
 - `src/domaine/cartes/unites.ts:99` — `export function reponsesAcceptees` — les réponses admises
   d'une unité, d'après l'index du cours
 - `src/domaine/cartes/unites.ts:29` — `IndexDesReponses` — pour chaque question inverse, ses
@@ -49,16 +61,20 @@ modification, avec les nombres dans le rapport : `corepack pnpm test`, `corepack
 - `src/client/cours/questions/QuestionCarte.tsx:91` — `onReponse(true, 'corrigee')` — la personne
   corrige un verdict faux, et le journal le dit
 - `src/client/cours/preferences.ts:44` — `saisie: true` — la saisie est cochée par défaut
+- `src/client/cours/preferences.ts:150` — `export function ecrirePreferences` — l'objet entier est
+  écrit à chaque changement : `saisie` est gardé même si la personne n'a jamais touché la case
 - `src/client/cours/onglets/Heute.tsx:406` — `saisie={preferences.cartes.saisie}` — « Heute » suit
   la préférence de Karteikarten
-- `src/client/cours/onglets/Heute.tsx:249` — `useEtatDOnglet<EtatDeHeute>` — l'état de la séance du
-  jour, gardé d'un onglet à l'autre
+- `src/client/cours/EcranCours.tsx:215` — `memoireDesOnglets` — la mémoire des onglets est une
+  `Map` en mémoire : elle ne survit pas à un rechargement, donc pas à une mise à jour
+- `src/client/cours/clavier.ts:41` — `TOUCHES_D_ACTIVATION` — Espace et Entrée restent au bouton
+  qui a le focus
 - `src/domaine/contenu/schemas.ts:620` — `schemaDeCours = z.strictObject` — le manifeste est
   strict : une version qui ne connaît pas une clé la refuse
 - `src/domaine/cours/servi.ts:320` — `export function versCoursServi` — ce qui part au téléphone,
   en liste blanche
-- `src/domaine/cours/servi.ts:532` — `const coursServi = z.object` — le contrôle du cours reçu
-  n'est pas strict : un champ de plus ne casse pas un client d'avant
+- `src/domaine/cours/servi.ts:355` — `export function memoireDuCours` — un champ facultatif du
+  cours servi n'est pas contrôlé avec le cours : il est `unknown`, lu par une fonction
 - `src/domaine/seances/examen.ts:436` — `reponsesAcceptees(question.unite, cours.index)).juste` —
   la Prüfung ne lit que `juste`
 - `src/domaine/journal/evenement.ts:33` — `'saisie'` — le mode d'une réponse tapée existe déjà
@@ -67,8 +83,12 @@ modification, avec les nombres dans le rapport : `corepack pnpm test`, `corepack
 
 - Stryker — il ne retrouve pas un test placé dans un `describe` — les tests de
   `src/domaine/cartes/saisie.test.ts` s'écrivent sans `describe`, et le groupe `domaine` tient 90 %
-- Levenshtein (`distance`) — deux lettres échangées valent 2, pas 1 — un test dit qu'un échange
-  reste « presque »
+- Levenshtein (`distance`) — deux lettres échangées valent 2, pas 1 — deux tests : un échange sur
+  une saisie de dix caractères ou plus reste « presque », et sur six à neuf caractères il est faux
+  sans « presque »
+- Preact — il réutilise le même `<button>` pour deux liens rendus au même endroit, qui garde alors
+  le focus — chaque lien de « Heute » a sa `key`, et un test dit qu'Espace retourne la carte après
+  le geste
 
 ## Effets cherchés
 
@@ -78,11 +98,11 @@ modification, avec les nombres dans le rapport : `corepack pnpm test`, `corepack
 - La clé `pose_des_cartes` (M5-D5) — le cours monté du dépôt de données, que la version en prod
   refuserait avec la clé — `docs/format-des-contenus.md` dit « une version après » ; absente, la clé
   vaut `ecrite`, et le cours de l'instance n'a rien à changer
-- `poseDesCartes` dans le cours servi — le client précaché de la version d'avant, et le cours gardé
-  dans IndexedDB — un test de `servi` : le champ absent est admis, le champ présent aussi
-- `frappe` dans l'état d'une carte, et le choix de la séance dans l'état de « Heute » (M5-D6) — une
-  séance gardée par la version d'avant, relue par celle-ci — des tests de `seances-en-cours` : un
-  état sans ces champs se relit
+- `poseDesCartes` dans le cours servi — le client précaché de la version d'avant, et un client de
+  ce lot devant une valeur d'une version suivante — le champ est `unknown`, lu par `poseDuCours` ;
+  un test : absent ou inconnu, il vaut `ecrite`, et le cours reste admis
+- La marque du choix de la case (M5-D5, M5-D6) — les préférences déjà gardées sur un appareil, sans
+  marque — des tests de `preferences` : sans marque, la valeur du cours ; avec, le choix gardé
 - La Prüfung reste stricte (M5-D4) — `src/domaine/seances/examen.ts` — ses tests, inchangés, passent
 
 ## Revues
@@ -117,20 +137,25 @@ export function jugerLaCarte(
 ): JugementDeCarte;
 ```
 
-La règle : `juger(saisie, reponsesAcceptees(unite, index))` d'abord ; s'il dit juste, `frappe` est
-faux. Sinon, avec `g = canonique(saisie)` : s'il existe une réponse admise `x` avec
-`x.length >= LONGUEUR_TOLEREE` et `distance(g, x) === 1`, et si `g` n'est la réponse admise d'aucune
-autre question de l'index (toute entrée dont la clé n'est pas `canonique(unite.question)`), le
-jugement est `{ juste: true, presque: false, frappe: true }`. Sinon, c'est celui de `juger`, avec
-`frappe: false`.
+La règle, dans cet ordre, avec `plier(s) = canonique(s).replace(/ue/g, 'ü')`, `g = plier(saisie)`
+et `A` les réponses de `reponsesAcceptees(unite, index)`, chacune pliée :
+
+1. `juger(saisie, reponsesAcceptees(unite, index))` dit juste : juste, sans `frappe` ;
+2. `g` est non vide et dans `A` (M5-D8) : juste, sans `frappe` ;
+3. il existe `x` dans `A` avec `x.length >= LONGUEUR_TOLEREE` et `distance(g, x) === 1`, et `g`
+   n'est dans aucune entrée de l'index, chaque réponse pliée (M5-D2) :
+   `{ juste: true, presque: false, frappe: true }` ;
+4. sinon, le jugement de `juger`, avec `frappe: false`.
 
 **Les tests, d'abord** (sans `describe`, avec des termes inventés, jamais un texte du cours) :
 
 - une saisie exacte : juste, sans `frappe` ;
+- « ue » pour « ü » : juste, sans `frappe`, sur un terme court comme sur un long ;
 - une lettre changée, une lettre en trop, une lettre en moins sur un terme de six caractères :
   juste, `frappe` ;
 - la même faute sur un terme de cinq caractères : fausse, `presque` ;
-- deux lettres échangées sur un terme long : fausse, `presque` ;
+- deux lettres échangées : sur une saisie de dix caractères ou plus, fausse, `presque` ; sur six à
+  neuf caractères, fausse, sans `presque` ;
 - deux termes de l'index voisins d'une lettre : saisir l'un pour l'autre est faux, `presque` ;
 - la tolérance joue sur une réponse admise par `reponses`, pas seulement sur le recto ;
 - une saisie vide : fausse, ni `presque` ni `frappe` ;
@@ -143,22 +168,20 @@ jugement est `{ juste: true, presque: false, frappe: true }`. Sinon, c'est celui
 ### Tâche 2 : la carte saisie signale la faute tolérée
 
 **Fichiers.** Modifier `src/client/cours/questions/QuestionCarte.tsx` et son test,
-`src/client/cours/textes-cours.ts`, `src/client/cours/seances-en-cours.ts` et son test si l'état
-d'une carte y est contrôlé.
+`src/client/cours/textes-cours.ts`, et le commentaire de tête de
+`src/client/cours/onglets/Cartes.tsx`, qui dit encore « presque juste (une faute de frappe) ».
 
 **Ce que la tâche produit.**
 
 - `EtatDeCarte.verdict` devient `{ juste: boolean; presque: boolean; frappe?: boolean; donnee: string } | null`.
 - `verifier` appelle `jugerLaCarte(donnee, unite, cours.index)`.
 - Avec `frappe` : le bloc `verdict ok`, le texte `t.cartes_frappe` (« Richtig – achte auf die
-  Schreibweise »), la saisie barrée puis la bonne réponse en gras, et pas de bouton « Meine Antwort
-  war auch richtig ». « Weiter » envoie `onReponse(true, 'saisie')`.
-- Un état de carte gardé sans `frappe` se relit comme avant.
+  Schreibweise »), la saisie barrée puis `unite.reponse` en gras (M5-D9), et pas de bouton « Meine
+  Antwort war auch richtig ». « Weiter » envoie `onReponse(true, 'saisie')`.
 
 **Les tests, d'abord.** Une faute tolérée affiche le texte, la saisie barrée et la réponse, sans
 bouton de correction, et « Weiter » appelle `onReponse(true, 'saisie')` ; une saisie exacte
-n'affiche pas la saisie barrée ; une saisie fausse garde le bouton et `corrigee` ; un état gardé
-sans `frappe` est admis.
+n'affiche pas la saisie barrée ; une saisie fausse garde le bouton et `corrigee`.
 
 **Vérification.** Les quatre commandes.
 
@@ -166,51 +189,62 @@ sans `frappe` est admis.
 
 **Fichiers.** Modifier `src/domaine/contenu/schemas.ts`, `modele.ts`, `analyse.ts`,
 `src/domaine/cours/servi.ts`, `src/serveur/contenus/reference.ts`,
-`src/client/cours/preferences.ts`, leurs tests, et `docs/format-des-contenus.md`.
+`src/client/cours/preferences.ts`, `src/client/cours/onglets/Cartes.tsx`, leurs tests, et
+`docs/format-des-contenus.md`.
 
 **Ce que la tâche produit.**
 
-- `pose_des_cartes: z.enum(['ecrite', 'retournee']).optional()` dans `schemaDeCours`, avec un
-  message d'erreur en français ; `poseDesCartes?: 'ecrite' | 'retournee'` dans `Cours` et dans
-  `CoursServi` ; `versCoursServi` ne l'écrit que présente ; le contrôle du cours reçu l'admet
-  absente, et refuse une autre valeur.
-- L'instantané de référence porte la clé quand le cours l'écrit, et ne change pas sans elle.
-- `preferencesParDefaut(cours).cartes.saisie` vaut `cours.cours.poseDesCartes !== 'retournee'`.
-  Une préférence gardée l'emporte toujours.
-- `docs/format-des-contenus.md`, une section « La pose des cartes » après « Les manuels » : la clé,
-  ses deux valeurs, son défaut, la préférence de l'appareil qui l'emporte, et « un cours monté ne
-  la reçoit qu'une version après celle qui la connaît ».
+- `pose_des_cartes: z.enum(['ecrite', 'retournee']).optional()` dans `schemaDeCours`, après
+  `manuels`, avec un message d'erreur en français ; `poseDesCartes?: 'ecrite' | 'retournee'` dans
+  `Cours`.
+- Dans `CoursServi`, `poseDesCartes?: unknown`, que `versCoursServi` n'écrit que présente, et
+  `export function poseDuCours(cours: CoursServi): 'ecrite' | 'retournee'`, qui rend `retournee`
+  pour cette valeur et `ecrite` pour tout le reste. Le schéma `coursServi` ne change pas.
+- L'instantané de référence porte `pose_des_cartes` après `manuels` quand le cours l'écrit, et ne
+  change pas sans elle.
+- `Preferences.cartes` reçoit `saisieChoisie: boolean`. `preferencesParDefaut` donne
+  `saisie: poseDuCours(cours.cours) === 'ecrite'` et `saisieChoisie: false`. `lirePreferences` ne
+  rend le `saisie` gardé que si `saisieChoisie` gardé vaut `true` ; sinon, la valeur par défaut. La
+  case de Karteikarten écrit `saisie` et `saisieChoisie: true`.
+- `docs/format-des-contenus.md` : la clé dans l'exemple de `cours.yaml`, et une section « La pose
+  des cartes » après « Les manuels » : ses deux valeurs, son défaut, le choix de l'appareil qui
+  l'emporte une fois fait (M5-D5, M5-D6), et « un cours monté ne la reçoit qu'une version après
+  celle qui la connaît ».
 - Le cours d'exemple ne change pas.
 
 **Les tests, d'abord.** Le manifeste admet les deux valeurs et l'absence, refuse une troisième ;
-le cours servi porte le champ ou non ; un cours servi sans le champ est admis ; le défaut de la
-préférence suit la clé ; une préférence gardée `saisie: true` l'emporte sur `retournee`, et
-`saisie: false` sur `ecrite` ; l'instantané de l'exemple est inchangé.
+le cours servi porte le champ ou non ; `poseDuCours` rend `ecrite` sans champ et pour une valeur
+inconnue, et un cours servi qui porte une valeur inconnue reste admis ; le défaut de la préférence
+suit la clé ; une préférence gardée sans marque suit le cours, dans les deux sens ; avec la marque,
+le choix gardé l'emporte, dans les deux sens ; cocher la case pose la marque ; l'instantané de
+l'exemple est inchangé.
 
 **Vérification.** Les quatre commandes, puis `corepack pnpm build` et `corepack pnpm
 contenus:client`.
 
-### Tâche 4 : revenir à la carte retournée pour une séance, dans « Heute »
+### Tâche 4 : revenir à la carte retournée, dans « Heute »
 
-**Fichiers.** Modifier `src/client/cours/onglets/Heute.tsx` et son test,
-`src/client/cours/seances-en-cours.ts` et son test, `src/client/cours/textes-cours.ts`.
+**Fichiers.** Modifier `src/client/cours/onglets/Heute.tsx` et son test, et
+`src/client/cours/textes-cours.ts`.
 
 **Ce que la tâche produit.**
 
-- `EtatDeHeute` reçoit `retournees?: true`. `QuestionCarte` reçoit
-  `saisie={preferences.cartes.saisie && courante.retournees !== true}`.
+- Un état d'onglet à part, `useEtatDOnglet<boolean>('heute/pose', () => false, …)`, sur le modèle
+  de `'heute/pretest'` : vrai, la séance pose ses cartes retournées. `QuestionCarte` reçoit
+  `saisie={preferences.cartes.saisie && !retournees}`. `EtatDeHeute` ne change pas.
 - Sous une carte d'unité inverse, quand la préférence `saisie` est vraie et qu'aucun verdict n'est
-  affiché, un bouton `linkbtn` : `t.heute_retourner` (« In dieser Runde lieber umdrehen ») pose
-  `retournees: true` ; en cartes retournées, tant que la carte n'est pas retournée,
-  `t.heute_saisir` (« Wieder eintippen ») le retire. Le geste ne répond pas à la carte et ne touche
-  pas la préférence.
-- Une séance recomposée (clé changée) repart sans `retournees`. Une séance gardée sans le champ se
-  relit ; avec le champ, elle le retrouve au retour d'un autre onglet.
+  affiché, un bouton `linkbtn` avec sa `key` : `t.heute_retourner` (« Lieber umdrehen ») passe en
+  cartes retournées ; en cartes retournées, tant que la carte n'est pas retournée,
+  `t.heute_saisir` (« Wieder eintippen »), avec une autre `key`, y revient. Le geste ne répond pas
+  à la carte, n'écrit rien au journal et ne touche pas la préférence. Après lui, le focus n'est
+  plus sur le lien : Espace retourne la carte.
+- Le choix tient à une recomposition de la séance et à « Nächste Runde ».
 - Sans préférence `saisie`, ou sur une unité directe, aucun lien.
 
 **Les tests, d'abord.** Le lien paraît sous une carte à saisir et pas ailleurs ; le geste pose une
-carte à retourner, sans écrire au journal ni changer la préférence ; la carte suivante de la séance
-reste retournée ; le lien de retour rend la saisie ; l'état gardé avec et sans le champ se relit.
+carte à retourner, sans écrire au journal ni changer la préférence ; Espace retourne alors la
+carte ; la carte suivante reste retournée, et la série suivante aussi ; le lien de retour rend la
+saisie.
 
 **Vérification.** Les quatre commandes, puis `corepack pnpm build`, `corepack pnpm e2e` et
 `corepack pnpm e2e:mise-a-jour`.

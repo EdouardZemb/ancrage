@@ -327,6 +327,31 @@ describe('ongletsDuCours', () => {
     );
   });
 
+  it('onglets_avec_un_planning_le_lernplan_suit_heute', () => {
+    const planning = { etapes: [{ titre: 'Woche 1', semaine: 1, modules: [] }] };
+
+    expect(onglets({ ...coursServiDeTest(), planning })).toEqual([
+      'heute',
+      'planning',
+      ...TOUS.slice(1),
+    ]);
+    // Même sans module : le planning seul fait l'onglet.
+    expect(onglets({ ...coursServiDeTest(), modules: [], planning })).toEqual([
+      'heute',
+      'planning',
+      'apercu',
+      'progression',
+    ]);
+  });
+
+  it('onglets_avec_un_planning_illisible_sans_lernplan', () => {
+    // Une étape sans `seance` ni `semaine` : ce client ne le comprend pas (A1-D9).
+    const illisible = { etapes: [{ titre: 'Woche 1', modules: [] }] };
+
+    expect(onglets({ ...coursServiDeTest(), planning: illisible })).toEqual(TOUS);
+    expect(onglets({ ...coursServiDeTest(), planning: 'nein' })).toEqual(TOUS);
+  });
+
   it('onglets_d_un_cours_sans_module_gardent_heute_l_apercu_et_la_progression', () => {
     expect(onglets({ ...coursServiDeTest(), modules: [] })).toEqual([
       'heute',

@@ -458,3 +458,24 @@ it('neuves_du_jour_une_unite_absente_des_posables_n_est_pas_candidate', () => {
     'c1000005',
   ]);
 });
+
+it('neuves_du_jour_pendant_un_trou_rien_au_dela_des_etapes_ouvertes', () => {
+  // La semaine du 01/10 cite CHAPITRE_1 ; celle du 01/12 cite CHAPITRE_2 : le 17/10, un trou de
+  // 45 jours sépare les deux (C-D14).
+  const planning = datees(['2026-10-01', [CHAPITRE_1]], ['2026-12-01', [CHAPITRE_2]]);
+  const cours = leCours();
+  const ordre = unitesDuPlanning(planning, '2026-10-01', AUJOURDHUI, cours.unites);
+  expect(ordre.length).toBeGreaterThan(0);
+  expect(ordre.every(({ module }) => module === CHAPITRE_1)).toBe(true);
+  expect(horizonDuRythme(planning, '2026-10-01', AUJOURDHUI, undefined)).toBe('2026-12-01');
+  // Quinze cartes neuves à répartir sur 45 jours : une par jour, de CHAPITRE_1 seulement.
+  const trou = { planning, depart: '2026-10-01' };
+  const rendu = neuves([], TOUS, trou);
+  expect(rendu.quota).toBe(1);
+  expect(rendu.ids).toEqual(['c1000001']);
+  // CHAPITRE_1 entièrement vu : aucune candidate, un quota nul, malgré les neuves de CHAPITRE_2.
+  const vus = cours.unites
+    .filter(({ module }) => module === CHAPITRE_1)
+    .map(({ id }, i) => reponseDeTest(i + 1, id, true, HIER_A_10H));
+  expect(neuves(vus, TOUS, trou)).toEqual({ ids: [], quota: 0 });
+});

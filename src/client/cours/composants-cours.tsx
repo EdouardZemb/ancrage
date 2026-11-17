@@ -2,8 +2,8 @@
  * Ce que les onglets se partagent : les deux listes de choix des cartes (chapitre et sens,
  * H:1703-1705), l'énoncé d'une carte (son type, son sens, sa question, H:1705-1706), le focus d'un
  * bouton qui apparaît, un libellé dont les valeurs sont en gras, le libellé et les boutons des
- * options d'une question à choix, le champ où l'on tape une réponse et la barre d'avancement d'une
- * ligne de liste.
+ * options d'une question à choix, le champ où l'on tape une réponse, la barre d'avancement d'une
+ * ligne de liste, la barre des boîtes d'un chapitre et le compte à rebours avant l'examen.
  */
 import type { ComponentChildren } from 'preact';
 import type { UniteDeCarte } from '../../domaine/cartes/unites.js';
@@ -282,4 +282,48 @@ export function SaisieDeLaReponse(props: {
       </button>
     </form>
   );
+}
+
+/** La couleur de chaque boîte, de 0 (neuve) à 5 (H:1700). */
+export const COULEUR_DES_BOITES: readonly string[] = [
+  '--box1',
+  '--box1',
+  '--box2',
+  '--box3',
+  '--box4',
+  '--box5',
+];
+export const BOITES_REMPLIES: readonly number[] = [1, 2, 3, 4, 5];
+/** La barre d'un chapitre : la part de chaque boîte de 1 à 5 ; les neuves restent au fond. */
+export function Barre(props: { boites: number[]; total: number }) {
+  const { boites, total } = props;
+  return (
+    <div class="bar" aria-hidden="true">
+      {total > 0 &&
+        BOITES_REMPLIES.map(
+          (boite) =>
+            boites[boite] > 0 && (
+              <i
+                key={boite}
+                style={{
+                  width: `${(boites[boite] / total) * 100}%`,
+                  background: `var(${COULEUR_DES_BOITES[boite]})`,
+                }}
+              />
+            ),
+        )}
+    </div>
+  );
+}
+
+/** Le compte à rebours avant l'examen (A1-D8) ; rien sans examen ou après lui. */
+export function ligneDExamen(jours: number | undefined, t: Record<CleTexteCours, string>) {
+  if (jours === undefined) return null;
+  const texte =
+    jours === 0
+      ? t.heute_examen_0
+      : jours === 1
+        ? t.heute_examen_1
+        : formater(t.heute_examen_n, { n: jours });
+  return <span class="examenline">{texte}</span>;
 }

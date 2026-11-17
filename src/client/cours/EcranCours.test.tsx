@@ -60,6 +60,7 @@ const ID = servi.id;
 type OngletDeTest =
   | 'apercu'
   | 'heute'
+  | 'planning'
   | 'cartes'
   | 'quiz'
   | 'mots'
@@ -379,6 +380,35 @@ describe('EcranCours', () => {
     expect(screen.queryByRole('tab', { name: t.onglet_feuilles })).toBeNull();
     expect(document.getElementById('onglet-feuilles')).toBeNull();
     await waitFor(() => expect(location.pathname).toBe(`/cours/${ID}`));
+  });
+
+  it('onglet_lernplan_apres_heute_quand_le_cours_a_un_planning', async () => {
+    const planning = { etapes: [{ titre: 'Woche 1', semaine: 1, modules: [CHAPITRE_1] }] };
+    vi.mocked(lireCours).mockResolvedValue({ ...servi, planning });
+    history.replaceState(null, '', `/cours/${ID}/planning`);
+
+    afficher('planning');
+
+    const barre = await screen.findByRole('tablist');
+    const onglets = within(barre).getAllByRole('tab');
+    expect(onglets.slice(0, 3).map((onglet) => onglet.textContent)).toEqual([
+      t.onglet_heute,
+      t.onglet_planning,
+      t.onglet_apercu,
+    ]);
+    expect(screen.getByRole('tab', { selected: true }).id).toBe('onglet-planning');
+    expect(await screen.findByText('Woche 1')).toBeTruthy();
+    expect(location.pathname).toBe(`/cours/${ID}/planning`);
+  });
+
+  it('l_adresse_du_lernplan_sans_planning_mene_a_l_apercu', async () => {
+    history.replaceState(null, '', `/cours/${ID}/planning`);
+
+    afficher('planning');
+
+    expect(await screen.findByText(t.apercu_sures)).toBeTruthy();
+    await waitFor(() => expect(location.pathname).toBe(`/cours/${ID}`));
+    expect(screen.queryByRole('tab', { name: t.onglet_planning })).toBeNull();
   });
 
   it('onglet_absent_du_cours_mene_a_l_apercu', async () => {

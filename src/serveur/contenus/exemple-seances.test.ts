@@ -3,19 +3,23 @@ import { alternativesDeCarte, canonique } from '../../domaine/cartes/reponses.js
 import { reponsesAcceptees, type UniteDeCarte } from '../../domaine/cartes/unites.js';
 import { idsDeFeuille } from '../../domaine/contenu/feuille.js';
 import { ongletsDuCours, preparerCours } from '../../domaine/cours/prepare.js';
-import { coursServiUtilisable } from '../../domaine/cours/servi.js';
+import { coursServiUtilisable, memoireDuCours } from '../../domaine/cours/servi.js';
 import { hasardDeterministe } from '../../domaine/hasard.js';
+import { ajouterJours } from '../../domaine/journal/temps.js';
 import { statistiquesDeChapitre } from '../../domaine/progression/statistiques.js';
 import { construireSeance, unitesDuChoix } from '../../domaine/seances/cartes.js';
 import { choisirExercice } from '../../domaine/seances/exercices.js';
+import { posablesDuCours } from '../../domaine/seances/heute.js';
 import {
   choisirMot,
   motBienForme,
   optionsDeSens,
   tuilesDuMot,
 } from '../../domaine/seances/mots.js';
+import { planningDuCours } from '../../domaine/seances/planning.js';
 import { optionsQcm, questionDeQuiz } from '../../domaine/seances/quiz.js';
 import { tacheDeSchema } from '../../domaine/seances/schemas.js';
+import { etapesDuSemestre, modulesDesPosables } from '../../domaine/seances/semestre.js';
 import { jetonsDuModule, optionsDeJeton, optionsDeQuestion } from '../../domaine/seances/textes.js';
 import { coursDExempleServi } from './exemple.disque.fixture.js';
 
@@ -46,6 +50,7 @@ describe("cours d'exemple : cours préparé", () => {
     expect(prepare.examen).toBeDefined();
     expect(ongletsDuCours(prepare)).toEqual([
       'heute',
+      'planning',
       'apercu',
       'cartes',
       'quiz',
@@ -284,5 +289,51 @@ describe("cours d'exemple : unités par chapitre", () => {
 
     expect(ids(parChapitre)).toEqual(ids(prepare.unites));
     expect(new Set(ids(parChapitre)).size).toBe(parChapitre.length);
+  });
+});
+
+describe("cours d'exemple : Lernplan", () => {
+  // Un compte neuf : le départ est le premier jour. L'examen inventé (2030-06-30) est lointain, si
+  // bien que la quatrième étape, de révision, reste en cours (C-D3). Le jour est figé : le garde
+  // ci-dessous dit que l'examen inventé doit rester après le jour +60, sans quoi la quatrième
+  // étape cesserait d'être en cours.
+  const servi = coursDExempleServi();
+  const planning = planningDuCours(servi);
+  const examen = memoireDuCours(servi)?.examen;
+
+  function etapesAu(jours: number) {
+    if (planning === undefined) throw new Error("le cours d'exemple a un planning");
+    return etapesDuSemestre(
+      posablesDuCours(prepare),
+      modulesDesPosables(prepare),
+      new Map(),
+      { planning, depart: AUJOURDHUI, examen },
+      ajouterJours(AUJOURDHUI, jours),
+      'mix',
+    );
+  }
+
+  it('garde_l_examen_de_l_exemple_lointain', () => {
+    expect(examen).toBeDefined();
+    // Des dates `AAAA-MM-JJ` se comparent comme des chaînes.
+    expect((examen ?? '') > ajouterJours(AUJOURDHUI, 60)).toBe(true);
+  });
+
+  it('le_lernplan_du_cours_d_exemple_finit_par_une_etape_de_revision', () => {
+    const premier = etapesAu(0);
+
+    expect(premier).toHaveLength(4);
+    expect(premier.map((e) => e.etat)).toEqual(['ouverte', 'a-venir', 'a-venir', 'a-venir']);
+    expect(premier.map((e) => e.enCours)).toEqual([true, false, false, false]);
+    expect(premier[3]?.etape.genre).toBe('revision');
+    expect(premier[3]?.total).toBe(0);
+
+    for (const jours of [21, 60]) {
+      const plusTard = etapesAu(jours);
+      expect(
+        plusTard.map((e) => e.enCours),
+        `jour +${jours}`,
+      ).toEqual([false, false, false, true]);
+    }
   });
 });

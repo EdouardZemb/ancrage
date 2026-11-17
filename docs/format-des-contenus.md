@@ -172,8 +172,8 @@ memoire:
 - `examen` : une date `AAAA-MM-JJ` qui existe, entre guillemets doubles. Facultatif. Une réponse
   donnée `n` jours avant elle reçoit une échéance d'au plus la moitié de `n` jours (arrondie vers le
   bas, un jour au moins) ; le jour de l'examen et après, rien ne la plafonne. Admis avec `fsrs` et
-  `par-chapitre`, refusé avec `leitner`. « Heute » en tire aussi un compte à rebours (voir « Le
-  planning »).
+  `par-chapitre`, refusé avec `leitner`. « Heute » et le « Lernplan » en tirent aussi un compte à
+  rebours (voir « Le planning »).
 - `chapitres` : une liste d'identifiants de modules de cartes du cours, sans doublon. Obligatoire et
   non vide avec `par-chapitre`, refusée avec tout autre algorithme. Un identifiant qui n'est pas celui
   d'un module de cartes du cours est refusé, avec le fichier et la clé dans le message.
@@ -230,7 +230,9 @@ planning:
 - `modules` : des identifiants de modules du cours, de tout type. Vide pour une étape `revision`
   seulement, jamais pour une étape `cours`. Un module est cité une fois au plus dans tout le
   planning. Les `modules` d'une étape `revision` sont ceux qu'on y révise : ils s'ouvrent avec elle,
-  comme ceux d'une étape `cours`, et rien d'autre ne les distingue pour « Heute ».
+  comme ceux d'une étape `cours`. Pour les cartes neuves, rien d'autre ne les distingue, sinon
+  qu'une étape `revision` n'a pas de pré-test ; en plus, quand elle est l'étape en cours, « Heute »
+  mêle des révisions à la séance (voir « Les révisions »).
 
 **Quand une étape est ouverte.** Une étape datée s'ouvre le jour de sa séance (`seance` au plus
 égale à aujourd'hui). Une étape relative s'ouvre au jour `départ + 7 × (semaine − 1)`. Le départ est
@@ -258,7 +260,8 @@ neuves, la règle dépend du planning.
   du jour, puis les mélange ; quand les dues lui laissent moins de place, elle tire au hasard parmi
   ces premières : l'ordre ne vaut qu'au grain du nombre du jour.
 
-Aucun autre onglet ne change : Karteikarten, le quiz et les autres onglets proposent tout le cours.
+Hors de « Heute » et du « Lernplan », aucun onglet ne change : Karteikarten, le quiz et les autres
+onglets proposent tout le cours.
 
 **Le rythme.** Avec un planning, « Heute » ne pose pas toutes les cartes neuves que le plafond
 admet : il répartit ce qui est ouvert sur les jours qui restent.
@@ -287,8 +290,13 @@ S'il n'y en a plus, c'est la dernière ouverture plus sept jours, le pas d'un pl
 d'aujourd'hui ou passé vaut un jour. Une étape relative suit la même règle, sur ses ouvertures
 calculées depuis le départ : l'horizon bouge avec lui, dans la limite dite plus haut. Une étape
 `revision` compte comme une autre pour l'horizon, et ses modules comme ceux de toute étape ouverte ;
-ce qu'elle mêle d'autre à la séance n'est pas encore décidé. Pendant un trou du planning (aucune
-étape ne s'ouvre avant longtemps), `J` est grand et le rythme bas, et rien ne s'ouvre de plus.
+ce qu'elle mêle d'autre à la séance est dit dans « Les révisions ».
+
+**Un trou du planning.** Pendant un trou du planning, aucune carte neuve n'est ajoutée au-delà des
+étapes ouvertes. Aucune étape ne s'ouvre avant longtemps : `J` est grand et le rythme bas ; un
+module qu'une étape cite, mais qu'aucune étape ouverte ne cite, reste fermé ; les cartes neuves ne
+viennent que des modules ouverts (un module qu'aucune étape ne nomme reste ouvert). Les dues passent
+d'abord, et la place qui reste ne se remplit pas d'avance.
 
 **Le retard** n'a pas de calcul à lui : ce qui reste neuf dans une étape ouverte avant la dernière
 ouverture passée est dans `R`, se répartit sur les jours qui restent jusqu'à l'horizon, et passe en
@@ -306,15 +314,69 @@ cartes neuves ce jour-là, à comparer aux 15 d'avant le rythme. Si l'apprenante
 jour, dans Karteikarten, une carte du premier module, il en reste 2 pour « Heute » (3 pour une carte
 d'un module fermé, qui ne pèse que sur le plafond).
 
-**La clé du jour** de la séance ne change pas : le rythme y entre par les cartes neuves et leur
-nombre, qu'elle porte déjà. Avant le premier geste d'une séance, une clé qui change recompose la
+**La clé du jour** de la séance ne change pas pour le rythme : il y entre par les cartes neuves et
+leur nombre, qu'elle porte déjà. À une étape de révision, elle gagne les révisions en cinquième part
+(voir « Les révisions »). Avant le premier geste d'une séance, une clé qui change recompose la
 séance ; après, la séance ne bouge plus.
+
+**Le « Lernplan ».** Un cours qui a un planning lisible a un onglet de plus, « Lernplan », juste
+après « Heute », à `/cours/<id>/planning`. Sans planning, ou sur un appareil d'une version d'avant,
+cette adresse mène à l'aperçu. Il ne s'ajoute ni clé de manifeste ni route d'API : tout se dérive du
+manifeste, du journal et du jour (invariant 5). L'écran porte d'abord le compte à rebours, puis une
+ligne par étape, dans l'ordre du planning : son rang, son titre (un texte du cours), le jour où elle
+s'ouvre, son avancement, son état et, pour une étape dépassée, un retard. Un cours qui a déjà un
+planning reçoit l'onglet dès la version qui le livre.
+
+- **L'état** : « sûre » si l'étape a au moins un élément et que tous sont en boîte 4 ou 5, même
+  avant son ouverture ; sinon « à venir » si elle s'ouvre après aujourd'hui ; sinon « ouverte ». Les
+  éléments d'une étape sont les cartes de ses modules, comptées dans les deux sens, quel que soit le
+  sens choisi dans Karteikarten (comme l'« Übersicht »), puis les mots, les points de schéma, les
+  exercices et les questions fermées de fiche. L'avancement, « sûrs/total », en reprend le compte.
+- **L'étape en cours** : la dernière étape ouverte, tant qu'aujourd'hui précède l'horizon ; elle
+  porte la pastille « Jetzt ». Une dernière étape `revision` reste en cours jusqu'au jour de
+  l'examen compris quand il tombe sept jours ou plus après son ouverture ; le rythme des cartes
+  neuves ne change pas.
+- **Le retard** : les cartes neuves d'une étape dépassée, c'est-à-dire ouverte avant la dernière
+  ouverture passée et qui n'est pas en cours, au sens choisi dans Karteikarten ; une ligne le dit,
+  et rien n'est bloqué. Un module qu'aucune étape ne nomme n'est pas dans la vue. Un planning posé
+  en cours de semestre affiche d'un coup le retard de toutes les étapes déjà passées, que la
+  personne n'a pas couvertes dans Karteikarten.
+- Ni pourcentage, ni comparaison avec d'autres personnes, ni bouton : « Heute » reste l'entrée de la
+  séance. Les dates s'écrivent `JJ.MM.AAAA`.
+
+**Les révisions.** Tant que l'étape en cours est une étape `revision`, « Heute » mêle aux dues et
+aux cartes neuves des révisions : des éléments déjà vus des étapes ouvertes, de tout genre, que
+l'ordonnanceur ne rend pas dus aujourd'hui. Elles ne demandent aucune clé : un cours qui porte déjà
+une étape `revision` les reçoit dès la version qui les livre, sans changer son manifeste.
+
+- **Qui est révisable** : un élément vu (boîte 1 au moins : une réponse de pré-test n'en fait pas
+  un), d'un module que cite une étape ouverte (l'étape de révision comprise), pas dû, sans réponse
+  aujourd'hui, et parvenu à la moitié au moins de son intervalle : deux fois le nombre de jours
+  depuis sa dernière réponse, au moins égal au nombre de jours entre sa dernière réponse et son
+  échéance. Un module qu'aucune étape ne nomme n'en donne pas.
+- **Pourquoi la moitié** : une deuxième récupération le même jour n'apporte presque rien, et sans ce
+  seuil, une révision juste chaque jour mènerait en Leitner de la boîte 2 à la boîte 5 en trois
+  jours. À mi-intervalle, le rappel demande un effort, et une boîte ne monte qu'une fois par
+  demi-intervalle.
+- **L'ordre et le nombre** : tour à tour, une étape ouverte après l'autre dans l'ordre du planning,
+  et dans une étape les plus fragiles d'abord (la boîte croissante, puis l'échéance). Le nombre du
+  jour est 20 moins les éléments déjà répondus aujourd'hui, jamais négatif ; la séance n'en prend
+  que ce que ses 20 places laissent après les dues et les cartes neuves du jour, qui passent avant
+  elles. Les cartes neuves gardent leur rythme et restent en fin de file.
+- **Ce que c'est** : une réponse comme une autre, sous le mode de son geste : juste, elle compte
+  comme toute réponse juste (en Leitner, la boîte monte et repart de l'intervalle de la nouvelle
+  boîte ; en FSRS, la stabilité croît, d'autant moins que l'élément est frais), et ce gain reste au
+  journal ; manquée, elle revient une fois et devient due.
+- **À l'écran** : la ligne de compte de « Heute » ajoute « · {n} zum Auffrischen », et une phrase
+  dit l'étape et la raison. L'écran de fin ne propose « Nächste Runde » que pour des dues : une
+  révision n'en relance pas. La clé de la séance gagne les révisions en cinquième part, seulement
+  quand il y en a ; sans révision, elle est celle d'avant.
 
 **Le compte à rebours** ne dépend pas du planning : « Heute » dit « Noch {n} Tage bis zur Prüfung »
 dès que `memoire.examen` est écrit, sur la séance, sur l'écran de fin et sur « Heute ist nichts
-fällig », tant qu'il reste zéro jour ou plus (à un jour : « Noch 1 Tag bis zur Prüfung » ; le jour
-même : « Heute ist die Prüfung »). Après
-l'examen, rien ne s'affiche. Un cours en `leitner` n'a pas d'`examen`, donc pas de compte à rebours.
+fällig », et en tête du « Lernplan », tant qu'il reste zéro jour ou plus (à un jour : « Noch 1 Tag
+bis zur Prüfung » ; le jour même : « Heute ist die Prüfung »). Après l'examen, rien ne s'affiche. Un
+cours en `leitner` n'a pas d'`examen`, donc pas de compte à rebours.
 
 **Le pré-test** (lot M4, partie B ; ADR-0014). De un à trois jours avant l'ouverture d'une étape de cours,
 « Heute » propose un pré-test d'au plus cinq questions à choix sur les cartes neuves des modules
@@ -364,7 +426,9 @@ reste utilisable.
 manifeste est strict : l'image précédente, que le retour arrière remet en service, refuserait un
 manifeste qui porte une clé qu'elle ignore (invariant 8). Exception : le cours d'exemple vit dans
 l'image, et l'image précédente garde le sien. Le cours d'exemple a un planning relatif : son premier
-module de cartes en semaine 1, le deuxième en semaine 2, le troisième en semaine 3.
+module de cartes en semaine 1, le deuxième en semaine 2, le troisième en semaine 3, puis une
+quatrième étape, « Woche 4 – Wiederholung », de genre `revision` et sans module. Son examen inventé
+étant lointain (2030-06-30), cette étape reste en cours jusqu'à ce jour.
 
 ### Les manuels
 

@@ -14,7 +14,9 @@ import {
   TAILLE_DE_SEANCE,
 } from '../../../domaine/seances/heute.js';
 import { departDuPlanning, planningDuCours } from '../../../domaine/seances/planning.js';
+import { revisionsDuJour } from '../../../domaine/seances/revisions.js';
 import { neuvesDuJour } from '../../../domaine/seances/rythme.js';
+import { modulesDesPosables } from '../../../domaine/seances/semestre.js';
 import {
   AUJOURDHUI_DE_TEST,
   contexteDeTest,
@@ -104,20 +106,25 @@ function cleDe(contexte: ContexteCours): string {
   const dues = duesDuJour(posables, contexte.etats, contexte.aujourdhui);
   const { chapitre, sens } = contexte.preferences.cartes;
   const planning = planningDuCours(contexte.cours.cours);
-  const neuves = neuvesDuJour(
-    contexte.cours,
-    posables,
-    { etats: contexte.etats, evenements: contexte.evenements, aujourdhui: contexte.aujourdhui },
-    { chapitre, sens },
+  const lu =
     planning === undefined
       ? undefined
       : {
           planning,
           depart: departDuPlanning(contexte.evenements, contexte.aujourdhui),
           examen: memoireDuCours(contexte.cours.cours)?.examen,
-        },
-  );
-  return cleDuJour(contexte.aujourdhui, dues, neuves.candidates, neuves.quota);
+        };
+  const journal = {
+    etats: contexte.etats,
+    evenements: contexte.evenements,
+    aujourdhui: contexte.aujourdhui,
+  };
+  const neuves = neuvesDuJour(contexte.cours, posables, journal, { chapitre, sens }, lu);
+  const revisions =
+    lu === undefined
+      ? undefined
+      : revisionsDuJour(posables, modulesDesPosables(contexte.cours), journal, lu);
+  return cleDuJour(contexte.aujourdhui, dues, neuves.candidates, neuves.quota, revisions);
 }
 
 /** La mémoire de l'onglet, amorcée avec une file écrite à la main : le premier élément est posé. */
@@ -1370,5 +1377,296 @@ describe('Heute', () => {
       expect(screen.getByText(formater(t.heute_pretest_frage, { i: 2, n: 5 }))).toBeTruthy();
       expect(document.querySelector('.card .front')?.textContent).toBe(posee);
     });
+  });
+});
+
+// Les révisions de la séance à une étape de révision (M4, C-D8 à C-D14). Le cours de test aux
+// intervalles [0, 3, 6, 9, 12, 15] : une carte répondue juste le 15/10 est en boîte 1, à revoir le
+// 18/10, et à la moitié de son intervalle le 17/10. Les étapes sont datées, le planning ne dépend
+// donc pas du journal.
+describe('les_revisions', () => {
+  const INTERVALLES = { intervalles: [0, 3, 6, 9, 12, 15], nouvellesParSeance: 15 };
+  const LA_REVISION = 'Woche 3 – Wiederholung';
+  const SIX = [HERZ, LEBER, 'c1000003', 'c2000001', 'c2000002', 'c2000003'];
+
+  /** Trois étapes datées ; la troisième, ouverte aujourd'hui, est de ce genre. */
+  const planningDe = (genre: 'revision' | 'cours' = 'revision') => ({
+    etapes: [
+      { titre: 'Woche 1', seance: '2026-10-10', genre: 'cours', modules: [CHAPITRE_1] },
+      { titre: 'Woche 2', seance: '2026-10-13', genre: 'cours', modules: [CHAPITRE_2] },
+      {
+        titre: LA_REVISION,
+        seance: '2026-10-17',
+        genre,
+        modules: genre === 'cours' ? ['sc000001'] : [],
+      },
+    ],
+  });
+  const leCours = (planning: unknown = planningDe()): CoursServi => ({
+    ...coursServiDeTest(),
+    leitner: INTERVALLES,
+    planning,
+  });
+  const vues = (ids: string[], jour = '2026-10-15', depuis = 0) =>
+    ids.map((id, n) => reponseDeTest(depuis + n, id, true, jour));
+  const memoire = () => new Map<string, unknown>();
+  const rendre = (ids: string[], planning: unknown = planningDe()) => {
+    const m = memoire();
+    const contexte = contexteDe({ memoire: m, cours: leCours(planning), evenements: vues(ids) });
+    rendreDansLeCours(<Heute />, contexte);
+    return { m, contexte };
+  };
+  // Les révisions que la séance a retenues, et qui sont bien dans sa file : une carte neuve de la
+  // liste, qui n'a pas été vue, n'en est pas une.
+  const desRevisions = (m: Map<string, unknown>) =>
+    fileDe(m).filter((id) => etatGarde(m).revisions?.includes(id));
+  /** Des éléments du cours, hors des six, répondus aujourd'hui : ils comptent dans la séance. */
+  const repondusAujourdhui = (nombre: number) =>
+    posablesDuCours(contexteDe({ cours: leCours() }).cours)
+      .map(({ id }) => id)
+      .filter((id) => !SIX.includes(id))
+      .slice(0, nombre);
+
+  it('a_une_etape_de_revision_la_seance_mele_des_revisions_des_etapes_ouvertes', () => {
+    const { m, contexte } = rendre(SIX);
+
+    expect(new Set(desRevisions(m))).toEqual(new Set(SIX));
+    expect(etatGarde(m).revisions).toHaveLength(SIX.length);
+    expect(new Set(etatGarde(m).revisions)).toEqual(new Set(SIX));
+    expect(etatGarde(m).cle).toBe(cleDe(contexte));
+    // Les cartes neuves restent en fin de file (M2-P2).
+    const rangs = fileDe(m).map((id) => (SIX.includes(id) ? 0 : 1));
+    expect(rangs).toEqual([...rangs].sort());
+  });
+
+  it('les_revisions_viennent_tour_a_tour_de_chaque_etape_ouverte', () => {
+    // Dix-huit réponses aujourd'hui : il reste deux places, une par étape ouverte, les plus
+    // fragiles d'abord, dans l'ordre du cours.
+    const aujourdhui = repondusAujourdhui(TAILLE_DE_SEANCE - 2);
+    const m = memoire();
+    const evenements = [...vues(SIX), ...vues(aujourdhui, AUJOURDHUI_DE_TEST, SIX.length)];
+    rendreDansLeCours(<Heute />, contexteDe({ memoire: m, cours: leCours(), evenements }));
+
+    expect(aujourdhui).toHaveLength(TAILLE_DE_SEANCE - 2);
+    expect(new Set(desRevisions(m))).toEqual(new Set([HERZ, 'c2000001']));
+  });
+
+  it('la_ligne_de_compte_dit_les_revisions_et_l_etape', () => {
+    rendre(SIX);
+
+    expect(progression()).toContain(` · ${formater(t.heute_revisions, { n: SIX.length })} · `);
+    expect(screen.getByText(formater(t.heute_revision, { etape: LA_REVISION }))).toBeTruthy();
+    expect(screen.getAllByText(/Wiederholung/)).toHaveLength(1);
+  });
+
+  it('une_revision_manquee_passe_dans_les_dues', () => {
+    const m = memoire();
+    const contexte = contexteDe({ memoire: m, cours: leCours(), evenements: vues([HERZ]) });
+    const revision = posable(contexte, HERZ);
+    const seance: SeanceDuJour = { file: [revision], revenus: [], faites: 0, justes: 0 };
+    m.set('heute', {
+      cle: cleDe(contexte),
+      seance,
+      question: questionDe(revision, contexte.cours, contexte.hasard),
+      repondue: null,
+      revisions: [HERZ],
+    } satisfies EtatDeHeute);
+    rendreDansUnCoursVivant(<Heute />, contexte);
+    expect(progression()).toContain(formater(t.heute_revisions, { n: 1 }));
+    expect(screen.getByText(formater(t.heute_revision, { etape: LA_REVISION }))).toBeTruthy();
+
+    cliquer(t.cartes_retourner);
+    cliquer(t.cartes_pas_su);
+    // Le même mode qu'une réponse ordinaire de « Heute » (ADR-0013).
+    expect(contexte.enregistrer).toHaveBeenLastCalledWith(HERZ, false, 'retournee');
+
+    // Manquée, elle revient une fois et devient due : elle n'est plus une révision.
+    expect(fileDe(m)).toEqual([HERZ]);
+    expect(progression()).toContain(formater(t.heute_compte, { dues: 1, neues: 0 }));
+    expect(progression()).not.toContain('Auffrischen');
+    expect(screen.queryByText(/Etappen, gemischt/)).toBeNull();
+  });
+
+  it('pas_de_revision_a_une_etape_de_cours', () => {
+    const { m, contexte } = rendre(SIX, planningDe('cours'));
+
+    // Les six sont vues et pas dues : sans révision, aucune n'est dans la file.
+    expect(fileDe(m).filter((id) => SIX.includes(id))).toEqual([]);
+    expect(etatGarde(m).revisions).toBeUndefined();
+    expect(etatGarde(m).cle).toBe(cleDe(contexte));
+    expect(etatGarde(m).cle.split('|')).toHaveLength(4);
+    expect(progression()).not.toContain('Auffrischen');
+    expect(screen.queryByText(/Etappen, gemischt/)).toBeNull();
+  });
+
+  it('sans_revisable_l_etape_de_revision_compose_la_seance_d_une_etape_de_cours', () => {
+    // Les mêmes objets d'un rendu à l'autre ; seul le planning change.
+    const evenements: Evenement[] = [];
+    const [revision, cours] = [planningDe(), planningDe('cours')].map((planning) => {
+      const m = memoire();
+      const contexte = contexteDe({ memoire: m, cours: leCours(planning), evenements });
+      let tirages = 0;
+      contexte.hasard = () => {
+        tirages += 1;
+        return 0;
+      };
+      rendreDansLeCours(<Heute />, contexte);
+      const releve = {
+        cle: etatGarde(m).cle,
+        file: fileDe(m),
+        ecran: document.body.textContent,
+        tirages,
+      };
+      cleanup();
+      return releve;
+    });
+
+    expect(revision).toEqual(cours);
+    expect(revision?.cle.split('|')).toHaveLength(4);
+    // Aucun tirage de plus que la séance seule : la composition et la question de tête (C-D11).
+    expect(revision?.tirages).toBe(3);
+  });
+
+  it('avec_le_planning_relatif_les_revisions_suivent_le_depart_et_les_etapes_ouvertes', () => {
+    const relatif = {
+      etapes: [
+        { titre: 'Woche 1', semaine: 1, modules: [CHAPITRE_1] },
+        { titre: 'Woche 2', semaine: 2, modules: [CHAPITRE_2, 'sc000001'] },
+        { titre: LA_REVISION, semaine: 3, genre: 'revision', modules: [] },
+        { titre: 'Woche 4', semaine: 4, modules: ['ex000001'] },
+      ],
+    };
+    const cours = leCours(relatif);
+    const vus = vues([HERZ, 'c2000001', MITTE, ARTIKEL, GASTRITIS]);
+    // Le départ, le 03/10, par une réponse hors du cours : la semaine 3 s'ouvre aujourd'hui.
+    const ancre = reponseDeTest(99, 'zz000000', true, '2026-10-03');
+    const m = memoire();
+    rendreDansLeCours(<Heute />, contexteDe({ memoire: m, cours, evenements: [ancre, ...vus] }));
+
+    // ARTIKEL, de la semaine 4 fermée, n'y est pas ; ni GASTRITIS, qu'aucune étape ne nomme.
+    expect(new Set(desRevisions(m))).toEqual(new Set([HERZ, 'c2000001', MITTE]));
+    expect(screen.getByText(formater(t.heute_revision, { etape: LA_REVISION }))).toBeTruthy();
+    cleanup();
+
+    // Sans l'ancre, le départ est le 15/10 : la semaine en cours est la première.
+    const m2 = memoire();
+    rendreDansLeCours(<Heute />, contexteDe({ memoire: m2, cours, evenements: vus }));
+    expect(etatGarde(m2).revisions).toBeUndefined();
+    expect(screen.queryByText(/Etappen, gemischt/)).toBeNull();
+  });
+
+  it('une_unite_repondue_hier_n_est_pas_revisee', () => {
+    const m = memoire();
+    // Hier, la moitié de l'intervalle (3 jours) n'est pas atteinte ; il y a deux jours, si.
+    const evenements = [
+      reponseDeTest(0, HERZ, true, '2026-10-16'),
+      reponseDeTest(1, LEBER, true, '2026-10-15'),
+    ];
+    rendreDansLeCours(<Heute />, contexteDe({ memoire: m, cours: leCours(), evenements }));
+
+    expect(desRevisions(m)).toEqual([LEBER]);
+  });
+
+  it.each([20, 25])(
+    'apres_une_seance_pleine_le_rechargement_n_apporte_pas_de_revision_%i',
+    (repondues) => {
+      const m = memoire();
+      const aujourdhui = repondusAujourdhui(repondues);
+      const evenements = [...vues(SIX), ...vues(aujourdhui, AUJOURDHUI_DE_TEST, SIX.length)];
+      rendreDansLeCours(<Heute />, contexteDe({ memoire: m, cours: leCours(), evenements }));
+
+      expect(aujourdhui).toHaveLength(repondues);
+      expect(fileDe(m).filter((id) => SIX.includes(id))).toEqual([]);
+      expect(etatGarde(m).revisions).toBeUndefined();
+    },
+  );
+
+  it('la_cle_porte_les_revisions_et_les_recompose_avant_le_premier_geste', () => {
+    const m = memoire();
+    const cours = leCours();
+    const avant = contexteDe({ memoire: m, cours, evenements: vues([HERZ, LEBER]) });
+    const vue = rendreDansLeCours(<Heute />, avant);
+    const cle = etatGarde(m).cle;
+    expect(cle).toBe(cleDe(avant));
+    expect(cle.endsWith(`|${HERZ},${LEBER}`)).toBe(true);
+    expect(new Set(desRevisions(m))).toEqual(new Set([HERZ, LEBER]));
+
+    // LEBER est répondue juste aujourd'hui dans un autre onglet. Elle n'est ni due (boîte 2,
+    // échéance le 23/10), ni neuve, ni découverte du jour : seules les révisions changent.
+    const apres = contexteDe({
+      memoire: m,
+      cours,
+      evenements: [...vues([HERZ, LEBER]), reponseDeTest(50, LEBER, true, AUJOURDHUI_DE_TEST)],
+    });
+    vue.rerender(
+      <ContexteDuCours.Provider value={apres}>
+        <Heute />
+      </ContexteDuCours.Provider>,
+    );
+
+    expect(etatGarde(m).cle.split('|').slice(0, 4)).toEqual(cle.split('|').slice(0, 4));
+    expect(etatGarde(m).cle).toBe(cleDe(apres));
+    expect(etatGarde(m).cle).not.toBe(cle);
+    expect(desRevisions(m)).toEqual([HERZ]);
+  });
+
+  it('une_seance_entamee_ne_change_pas_de_file_quand_une_revision_apparait', () => {
+    const m = memoire();
+    const cours = leCours();
+    const contexte = contexteDe({ memoire: m, cours, evenements: vues([HERZ]) });
+    amorcer(contexte, m, [HERZ, 'c1000004']);
+    rendreDansLeCours(<Heute />, contexte);
+    cliquer(t.cartes_retourner);
+    cliquer(t.cartes_su);
+    const garde = etatGarde(m);
+    cleanup();
+
+    const apres = contexteDe({ memoire: m, cours, evenements: vues([HERZ, LEBER]) });
+    expect(cleDe(apres)).not.toBe(garde.cle);
+    rendreDansLeCours(<Heute />, apres);
+
+    expect(etatGarde(m)).toBe(garde);
+    expect(fileDe(m)).toEqual(['c1000004']);
+  });
+
+  it('la_cle_ne_change_pas_d_un_rendu_a_l_autre_du_meme_contexte', () => {
+    const m = memoire();
+    const contexte = contexteDe({ memoire: m, cours: leCours(), evenements: vues(SIX) });
+    const vue = rendreDansLeCours(<Heute />, contexte);
+    const avant = etatGarde(m);
+
+    // Les mêmes objets d'un rendu à l'autre : la clé est la même, et la séance gardée telle quelle.
+    vue.rerender(
+      <ContexteDuCours.Provider value={{ ...contexte }}>
+        <Heute />
+      </ContexteDuCours.Provider>,
+    );
+
+    expect(etatGarde(m)).toBe(avant);
+  });
+
+  it('pendant_un_trou_du_planning_aucune_carte_neuve_au_dela_des_etapes_ouvertes', () => {
+    // Un trou de 45 jours entre l'étape du 01/10 (CHAPITRE_1) et celle du 01/12 (CHAPITRE_2).
+    const planning = {
+      etapes: [
+        { titre: 'Etappe 1', seance: '2026-10-01', genre: 'cours', modules: [CHAPITRE_1] },
+        { titre: 'Etappe 2', seance: '2026-12-01', genre: 'cours', modules: [CHAPITRE_2] },
+      ],
+    };
+    const cours = leCours(planning);
+    const premier = contexteDe({ cours }).cours.unites.filter((u) => u.module === CHAPITRE_1);
+    const fileAvec = (vus: typeof premier) => {
+      const m = memoire();
+      const evenements = vus.map(({ id }, n) => reponseDeTest(n, id, true, '2026-10-16'));
+      rendreDansLeCours(<Heute />, contexteDe({ memoire: m, cours, evenements }));
+      const file = fileDe(m);
+      cleanup();
+      return file;
+    };
+
+    // CHAPITRE_1 entièrement vu : rien n'est dû, et rien de neuf n'arrive de CHAPITRE_2.
+    expect(fileAvec(premier)).toEqual([]);
+    // Une carte de CHAPITRE_1 reste neuve : elle seule se pose.
+    expect(fileAvec(premier.slice(1))).toEqual([premier[0]?.id]);
   });
 });

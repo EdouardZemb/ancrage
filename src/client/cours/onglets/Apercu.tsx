@@ -18,37 +18,12 @@ import { examensPasses, reponsesParJour, serie } from '../../../domaine/progress
 import { reussis, statistiquesDeChapitre } from '../../../domaine/progression/statistiques.js';
 import { unitesDuChoix } from '../../../domaine/seances/cartes.js';
 import { duesDuJour, posablesDuCours } from '../../../domaine/seances/heute.js';
-import { Avancement, enGras } from '../composants-cours.js';
+import { Avancement, Barre, COULEUR_DES_BOITES, enGras } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
 import { formater } from '../textes-cours.js';
 
-/** La couleur de chaque boîte, de 0 (neuve) à 5 (H:1700). */
-const COULEUR_DES_BOITES = ['--box1', '--box1', '--box2', '--box3', '--box4', '--box5'];
-const BOITES_REMPLIES = [1, 2, 3, 4, 5];
 /** La note quand aucun examen n'a été remis. */
 const SANS_NOTE = '–';
-
-/** La barre d'un chapitre : la part de chaque boîte de 1 à 5 ; les neuves restent au fond. */
-function Barre(props: { boites: number[]; total: number }) {
-  const { boites, total } = props;
-  return (
-    <div class="bar" aria-hidden="true">
-      {total > 0 &&
-        BOITES_REMPLIES.map(
-          (boite) =>
-            boites[boite] > 0 && (
-              <i
-                key={boite}
-                style={{
-                  width: `${(boites[boite] / total) * 100}%`,
-                  background: `var(${COULEUR_DES_BOITES[boite]})`,
-                }}
-              />
-            ),
-        )}
-    </div>
-  );
-}
 
 function Chiffre(props: { valeur: string | number; sur?: number; libelle: string }) {
   return (

@@ -25,6 +25,10 @@ planning:
     - titre: "Woche 3 – Zubereitung"
       semaine: 3
       modules: ["cntctqb2"]
+    - titre: "Woche 4 – Wiederholung"
+      semaine: 4
+      genre: "revision"
+      modules: []
 manuels:
   - id: "dfyhpe2p"
     titre: "Beispielbuch Küche"

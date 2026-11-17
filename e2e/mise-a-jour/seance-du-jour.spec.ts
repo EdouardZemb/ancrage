@@ -7,10 +7,15 @@
  * Il tourne avec les tests des deux versions (`pnpm e2e:mise-a-jour`) : le lien du propriétaire ne
  * sert qu'une fois, et la suite principale le consomme pour son parcours de compte. Ici, le test
  * lance son propre serveur, sur sa propre base, et sert la version A.
+ *
+ * Puis, cinq jours plus tard, le Lernplan dit les étapes de l'exemple et leur état, et la ligne de
+ * l'étape en cours tient à 360 px.
  */
 import { expect, type Page } from '@playwright/test';
 import { formater, TEXTES_COURS } from '../../src/client/cours/textes-cours.js';
 import { textes } from '../../src/client/textes.js';
+import { ajouterJours } from '../../src/domaine/journal/temps.js';
+import { jourAffiche } from '../../src/domaine/seances/semestre.js';
 import {
   compteDeHeute,
   type GenreDeHeute,
@@ -52,6 +57,28 @@ const SEMAINE_2 = 'Woche 2 – Zutaten';
 const JOURS_PLUS_TARD = 5;
 /** Les questions du pré-test : le module de la semaine 2 a 8 cartes, et le pré-test en pose 5. */
 const QUESTIONS_DU_PRETEST = 5;
+
+/**
+ * Les étapes du planning du cours d'exemple, dans l'ordre
+ * (`exemple-contenu/kueche/cours.yaml`).
+ */
+const ETAPES_DE_L_EXEMPLE = [
+  'Woche 1 – Küchengeräte',
+  SEMAINE_2,
+  'Woche 3 – Zubereitung',
+  'Woche 4 – Wiederholung',
+];
+/** Les jours entre deux ouvertures d'un planning relatif. */
+const JOURS_PAR_SEMAINE = 7;
+/** La largeur d'un petit téléphone, et la plus petite largeur du titre d'une étape qu'on admet. */
+const LARGEUR_ETROITE = 360;
+const TITRE_MINIMAL = 120;
+
+/** Un jour local `AAAA-MM-JJ`, comme celui que l'onglet lit sur l'horloge. */
+function jourLocal(date: Date): string {
+  const deux = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${deux(date.getMonth() + 1)}-${deux(date.getDate())}`;
+}
 
 /** L'examen inventé du cours d'exemple (`memoire.examen`, `exemple-contenu/kueche/cours.yaml`). */
 const EXAMEN_DE_L_EXEMPLE = [2030, 6, 30] as const;
@@ -128,6 +155,8 @@ async function fauteSurUnExercice(page: Page): Promise<void> {
 test('la_seance_du_jour_mele_les_types', async ({ page }) => {
   test.setTimeout(120_000);
   await ajouterAuthentificateur(page);
+  // Le jour du premier geste : le départ du planning relatif, d'où se datent ses étapes.
+  const premierJour = jourLocal(new Date());
 
   await test.step('1. un compte neuf arrive sur « Heute »', async () => {
     serveur = await servirVersion('a', test.info().outputPath('ancrage.sqlite'));
@@ -246,5 +275,57 @@ test('la_seance_du_jour_mele_les_types', async ({ page }) => {
     // L'offre a disparu (une seule fois), et la séance est celle d'avant : rien n'a compté.
     await expect(offre).toHaveCount(0);
     expect(await compteDeHeute(page), 'la séance gardée').toEqual(avant);
+  });
+
+  await test.step('7. le Lernplan dit les étapes et leur état', async () => {
+    // L'horloge de l'étape 6 tient encore : la semaine 1 est en cours, les trois autres à venir.
+    await ouvrirOnglet(page, 'planning');
+    const lignes = page.locator('.cours ol.chapters li.chap');
+    await expect(lignes).toHaveCount(ETAPES_DE_L_EXEMPLE.length);
+    for (const [rang, titre] of ETAPES_DE_L_EXEMPLE.entries()) {
+      const ligne = lignes.nth(rang);
+      const ouverture = jourAffiche(ajouterJours(premierJour, JOURS_PAR_SEMAINE * rang));
+      await expect(ligne, titre).toContainText(titre);
+      await expect(ligne, titre).toContainText(formater(deCours.planning_ab, { datum: ouverture }));
+      if (rang === 0) {
+        await expect(ligne).toHaveAttribute('aria-current', 'step');
+        await expect(ligne).toContainText(deCours.planning_jetzt);
+        await expect(ligne).toContainText(deCours.planning_ouverte);
+      } else {
+        await expect(ligne).not.toHaveAttribute('aria-current', /.*/);
+        await expect(ligne).not.toContainText(deCours.planning_jetzt);
+        await expect(ligne).toContainText(deCours.planning_a_venir);
+      }
+    }
+    // Seule la quatrième étape est de révision : son libellé est dans sa ligne de détail.
+    await expect(lignes.locator('.meta', { hasText: deCours.planning_revision })).toHaveCount(1);
+    await expect(lignes.nth(3).locator('.meta')).toContainText(deCours.planning_revision);
+  });
+
+  // Dernière étape : la fenêtre réduite ne sert à rien d'autre. Une étape ajoutée après elle
+  // hériterait de 360 px et remettrait d'abord la largeur du Pixel 7.
+  await test.step('8. à 360 px, l’étape en cours tient et garde son titre', async () => {
+    const hauteur = page.viewportSize()?.height ?? 915;
+    await page.setViewportSize({ width: LARGEUR_ETROITE, height: hauteur });
+    const ligne = page.locator('.cours ol.chapters li.chap[aria-current="step"]');
+    await expect(ligne).toBeVisible();
+    const boite = await ligne.boundingBox();
+    const titre = await ligne.locator('.title').boundingBox();
+    const contenu = await ligne.evaluate((li) => ({
+      defile: li.scrollWidth,
+      visible: li.clientWidth,
+    }));
+    expect(boite, 'la ligne').not.toBeNull();
+    expect(titre, 'son titre').not.toBeNull();
+    // Les mesures, pour la revue si l'une échoue.
+    test.info().annotations.push({
+      type: 'mesures à 360 px',
+      description: JSON.stringify({ ligne: boite, titre, contenu }),
+    });
+    expect((boite?.x ?? 0) + (boite?.width ?? 0), 'bord droit de la ligne').toBeLessThanOrEqual(
+      LARGEUR_ETROITE,
+    );
+    expect(contenu.defile, 'la ligne ne déborde pas').toBeLessThanOrEqual(contenu.visible);
+    expect(titre?.width ?? 0, 'largeur du titre').toBeGreaterThanOrEqual(TITRE_MINIMAL);
   });
 });

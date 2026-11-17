@@ -1078,6 +1078,36 @@ form.typed input {
   color: var(--muted);
 }
 
+.pill.frei {
+  background: var(--accent-soft);
+  color: var(--box5);
+}
+
+.pill.jetzt {
+  background: var(--accent);
+  color: var(--surface);
+}
+
+/* Les pastilles d'une étape du Lernplan : « Jetzt », puis son état. */
+.chap .etat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.chap .etat .pill {
+  white-space: nowrap;
+}
+
+ol.chapters .title {
+  hyphens: auto;
+}
+
+ol.chapters .meta .morceau {
+  white-space: nowrap;
+}
+
 .pill.unit {
   background: var(--line);
   color: var(--muted);

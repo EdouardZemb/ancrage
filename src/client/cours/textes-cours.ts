@@ -12,6 +12,7 @@
 const de = {
   // Les onglets dont le libellé n'est pas le titre d'un module (H:199-208).
   onglet_heute: 'Heute',
+  onglet_planning: 'Lernplan',
   onglet_apercu: 'Übersicht',
   onglet_cartes: 'Karteikarten',
   onglet_quiz: 'Quiz',
@@ -31,9 +32,24 @@ const de = {
   heute_fertig: 'Für heute ist alles erledigt.',
   heute_rien_suite: 'In den anderen Bereichen kannst du frei üben.',
   heute_vers_apercu: 'Zur Übersicht',
+  heute_revisions: '{n} zum Auffrischen',
+  heute_revision:
+    '«{etape}»: Dazu kommen Fragen aus allen bisherigen Etappen, gemischt. ' +
+    'So behältst du das Gelernte länger.',
   heute_examen_n: 'Noch {n} Tage bis zur Prüfung',
   heute_examen_1: 'Noch 1 Tag bis zur Prüfung',
   heute_examen_0: 'Heute ist die Prüfung',
+
+  // Le Lernplan (M4, C-D7) : l'état de chaque étape, son jour, son avancement et son retard.
+  planning_a_venir: 'Kommt noch',
+  planning_ouverte: 'Freigeschaltet',
+  planning_sure: 'Sicher',
+  planning_jetzt: 'Jetzt',
+  planning_revision: 'Wiederholung',
+  planning_ab: 'ab {datum}',
+  planning_sicher: '{sures}/{total} sicher',
+  planning_retard_1: '1 neue Karte zum Nachholen',
+  planning_retard_n: '{n} neue Karten zum Nachholen',
 
   // Le pré-test d'une étape, trois jours avant son ouverture (M4, B-D15). Une erreur n'y est pas
   // une faute : aucun compte de justes.

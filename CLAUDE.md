@@ -213,7 +213,7 @@ Le lot M2 a donné au cours sa séance du jour, « Heute » (ancrage#14) :
   (cartes, mots, points de schéma, exercices, questions fermées de fiche), les plus en retard
   d'abord, puis des cartes neuves (`src/domaine/seances/heute.ts`). Une faute revient une fois ;
 - les cartes neuves viennent du chapitre choisi dans Karteikarten, et `nouvelles_par_seance` y est
-  un plafond par jour ;
+  un plafond par jour (sans planning ; avec un planning, elles suivent le rythme du lot M4) ;
 - la question de chaque onglet est un composant commun (`src/client/cours/questions/`), que l'onglet
   et « Heute » posent tous deux. Ni l'API, ni le manifeste, ni le journal n'ont changé.
 
@@ -236,12 +236,35 @@ cours de l'instance reste en Leitner jusqu'à son passage, qui est une PR du dé
   (`caseAdmise`), avec des limites déclarées (`docs/exploitation.md`, « Le rapport de suivi »).
 
 Ses décisions et ses arbitrages (« M3-P<n> », « M3-R<n> ») sont dans `docs/conception/lot-m3.md`.
-Parmi les lots suivants de la milestone : le planning d'un cours (ancrage#30) et le rejeu d'une
+
+Le lot M4 a donné à un cours son planning (ancrage#30). Le cours de l'instance a le sien au staging
+depuis le 17/11/2026, par une PR du dépôt de données, et pas encore de manuels ; en prod, il attend
+une étiquette de données, et la version qui suit la `v0.17.0` pour le pré-test et le Lernplan :
+- la clé facultative `planning` du manifeste : des étapes, datées ou relatives (« en semaine 3 »),
+  chacune avec ses modules et son genre, `cours` ou `revision`. Un module qu'aucune étape ne nomme
+  reste ouvert. Un cours monté ne la reçoit qu'une version après la `v0.16.0`
+  (`src/domaine/seances/planning.ts`) ;
+- la clé facultative `manuels` : chaque module de cartes dit son manuel, son chapitre et sa Unit, et
+  « Übersicht », le choix du chapitre et la Prüfung se rangent par manuel. Un cours monté la reçoit
+  une version après la `v0.17.0` (`src/domaine/cours/manuels.ts`, `analyse-manuels.ts`) ;
+- « Heute » dit les jours avant l'examen (avec `memoire.examen`), tire ses cartes neuves des étapes
+  ouvertes à un rythme d'après l'étape (`rythme.ts`), et propose, de un à trois jours avant une
+  étape de cours, un pré-test de cinq questions au plus (`pretest.ts`). Le pré-test s'écrit au
+  journal sous un dixième mode, `pretest`, que rien de ce qui s'en dérive ne compte (ADR-0014). Il
+  s'émet depuis la version qui suit la `v0.17.0` : une fois elle en ligne, on ne redescend plus
+  sous la `v0.17.0`, et la notice le dit ;
+- un onglet « Lernplan », à `/cours/<id>/planning`, seulement avec un planning : les étapes dans
+  l'ordre, leur état et leur retard (`semestre.ts`, `Planning.tsx`). Pendant une étape `revision`,
+  « Heute » mêle des révisions anticipées d'éléments déjà vus (`revisions.ts`). Rien de nouveau
+  n'est gardé : tout se dérive du journal, du manifeste et du jour.
+
+Ses décisions et ses arbitrages (« M4-C<n> », « A1-D<n> », « A2-D<n> », « B-D<n> », « C-D<n> »)
+sont dans `docs/conception/lot-m4.md`. Parmi les lots suivants de la milestone : le rejeu d'une
 seule unité (ancrage#31).
 
 Les suites sans urgence d'un lot vont dans une issue « Au prochain passage »
 (ancrage-donnees#81 est fermée ; celle des lots 2c, 2d, F3, S1 et S2 est ancrage-donnees#156 ; celle
-des lots M1, M2 et M3 est ancrage#11). Une
+des lots M1, M2, M3 et M4 est ancrage#11). Une
 PR qui touche un fichier de cette liste regarde sa case, et la coche si elle la règle.
 
 Le déploiement est aligné sur la cible `serveur` de `modele-projet` (l'alignement date du lot 2 du

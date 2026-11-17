@@ -1,11 +1,11 @@
 /*
  * L'écran d'une question de carte (H:1767-1818, touches H:2240-2243) : la carte qui se retourne,
  * ou, pour une unité inverse quand la saisie est cochée, le terme qu'on tape et son verdict
- * (juste, presque juste, faux). L'onglet « Karteikarten » et la séance « Heute » la posent de la
+ * (juste, juste malgré une faute de frappe, presque juste, faux). L'onglet « Karteikarten » et la séance « Heute » la posent de la
  * même façon : le composant ne connaît ni la série, ni les préférences, ni le tirage de l'appelant.
  */
-import { reponsesAcceptees, type UniteDeCarte } from '../../../domaine/cartes/unites.js';
-import { juger } from '../../../domaine/correction.js';
+import { jugerLaCarte } from '../../../domaine/cartes/saisie.js';
+import type { UniteDeCarte } from '../../../domaine/cartes/unites.js';
 import type { ModeDeReponse } from '../../../domaine/journal/evenement.js';
 import { etatDe } from '../../../domaine/progression/etat.js';
 import { useTouches } from '../clavier.js';
@@ -16,7 +16,7 @@ import { formater } from '../textes-cours.js';
 /** L'état d'une carte posée : retournée ou non, et le jugement de la saisie, avec ce qui fut tapé. */
 export interface EtatDeCarte {
   retournee: boolean;
-  verdict: { juste: boolean; presque: boolean; donnee: string } | null;
+  verdict: { juste: boolean; presque: boolean; frappe?: boolean; donnee: string } | null;
 }
 
 /** L'état d'une carte qu'on vient de poser. */
@@ -47,7 +47,7 @@ export function QuestionCarte(props: {
     if (!etat.retournee) onEtat({ ...etat, retournee: true });
   };
   const verifier = (donnee: string) => {
-    const jugement = juger(donnee, reponsesAcceptees(unite, cours.index));
+    const jugement = jugerLaCarte(donnee, unite, cours.index);
     onEtat({ ...etat, verdict: { ...jugement, donnee } });
   };
 
@@ -79,13 +79,17 @@ export function QuestionCarte(props: {
                 class={`verdict ${etat.verdict.juste ? 'ok' : etat.verdict.presque ? 'near' : 'ko'}`}
               >
                 <span>
-                  {etat.verdict.juste
-                    ? t.cartes_juste
-                    : etat.verdict.presque
-                      ? t.cartes_presque
-                      : t.cartes_fausse}
+                  {etat.verdict.frappe
+                    ? t.cartes_frappe
+                    : etat.verdict.juste
+                      ? t.cartes_juste
+                      : etat.verdict.presque
+                        ? t.cartes_presque
+                        : t.cartes_fausse}
                 </span>
-                {etat.verdict.donnee !== '' && !etat.verdict.juste && <s>{etat.verdict.donnee}</s>}
+                {etat.verdict.donnee !== '' && (!etat.verdict.juste || etat.verdict.frappe) && (
+                  <s>{etat.verdict.donnee}</s>
+                )}
                 <b>{unite.reponse}</b>
                 {!etat.verdict.juste && (
                   <button type="button" class="linkbtn" onClick={() => onReponse(true, 'corrigee')}>

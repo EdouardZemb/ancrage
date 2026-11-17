@@ -41,6 +41,19 @@ function Posee(props: {
   );
 }
 
+/** Un terme assez long pour qu'une lettre fausse soit tolérée (M5-D1), absent de l'index du cours. */
+const LONG = {
+  ...HERZ_INVERSE,
+  id: 'c9000001:inverse',
+  question: 'Muskel unter der Lunge',
+  reponse: 'Zwerchfell',
+};
+
+function saisir(valeur: string) {
+  fireEvent.input(screen.getByLabelText(t.cartes_saisie_etiquette), { target: { value: valeur } });
+  fireEvent.click(screen.getByRole('button', { name: t.cartes_verifier }));
+}
+
 describe('QuestionCarte', () => {
   it('retourner_puis_su_repond_juste', () => {
     const onReponse = vi.fn();
@@ -117,5 +130,42 @@ describe('QuestionCarte', () => {
     expect(onEtat).toHaveBeenCalledTimes(1);
     expect(onEtat).toHaveBeenCalledWith({ retournee: true, verdict: null });
     expect(onReponse).not.toHaveBeenCalled();
+  });
+
+  it('une_faute_de_frappe_est_signalee_sans_bouton_de_correction_et_repond_juste', () => {
+    const onReponse = vi.fn();
+    const { container } = rendreDansLeCours(
+      <Posee unite={LONG} saisie onReponse={onReponse} />,
+      contexteDeTest(),
+    );
+    saisir('Zwerchfel');
+    expect(screen.getByText(t.cartes_frappe)).toBeTruthy();
+    expect(container.querySelector('.verdict.ok')).not.toBeNull();
+    expect(container.querySelector('s')?.textContent).toBe('Zwerchfel');
+    expect(container.querySelector('b')?.textContent).toBe('Zwerchfell');
+    expect(screen.queryByRole('button', { name: t.cartes_aussi_juste })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: t.cartes_suivante }));
+    expect(onReponse).toHaveBeenCalledTimes(1);
+    expect(onReponse).toHaveBeenCalledWith(true, 'saisie');
+  });
+
+  it('une_saisie_exacte_n_affiche_pas_la_saisie_barree', () => {
+    const { container } = rendreDansLeCours(
+      <Posee unite={LONG} saisie onReponse={vi.fn()} />,
+      contexteDeTest(),
+    );
+    saisir('zwerchfell');
+    expect(screen.getByText(t.cartes_juste)).toBeTruthy();
+    expect(screen.queryByText(t.cartes_frappe)).toBeNull();
+    expect(container.querySelector('s')).toBeNull();
+  });
+
+  it('une_saisie_fausse_garde_le_bouton_de_correction_et_corrigee', () => {
+    const onReponse = vi.fn();
+    rendreDansLeCours(<Posee unite={LONG} saisie onReponse={onReponse} />, contexteDeTest());
+    saisir('Bauchfell');
+    expect(screen.queryByText(t.cartes_frappe)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: t.cartes_aussi_juste }));
+    expect(onReponse).toHaveBeenCalledWith(true, 'corrigee');
   });
 });

@@ -132,6 +132,7 @@ const de = {
   cartes_saisie_indice: 'Weisst du es nicht? Leer lassen und «Prüfen».',
   cartes_juste: 'Richtig!',
   cartes_presque: 'Fast – achte auf die Schreibweise',
+  cartes_frappe: 'Richtig – achte auf die Schreibweise',
   cartes_fausse: 'Leider falsch',
   cartes_aussi_juste: 'Meine Antwort war auch richtig',
   cartes_suivante: 'Weiter',

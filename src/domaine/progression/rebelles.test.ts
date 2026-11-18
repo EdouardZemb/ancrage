@@ -102,26 +102,52 @@ it('un_jour_local_qui_recule_ne_fait_pas_deux_fautes', () => {
   expect(fautesDuJournal(journal).get('u1')).toEqual({ fautes: 1, suite: 0 });
 });
 
-it('un_pretest_faux_et_un_doublon_ne_comptent_pas', () => {
-  const premiere = reponseDeTest(1, 'u1', true, '2026-03-01T12:00:00.000+01:00');
+it('un_pretest_faux_ne_compte_pas', () => {
   const journal = [
-    premiere,
+    reponseDeTest(1, 'u1', true, '2026-03-01T12:00:00.000+01:00'),
     pretestDeTest(2, 'u1', false, '2026-03-02T12:00:00.000+01:00'),
-    reponseDeTest(3, 'u1', false, '2026-03-03T12:00:00.000+01:00'),
     reponseDeTest(3, 'u1', false, '2026-03-03T12:00:00.000+01:00'),
   ];
   expect(fautesDuJournal(journal).get('u1')).toEqual({ fautes: 1, suite: 0 });
 });
 
-it('une_carte_et_son_sens_inverse_sont_jugees_a_part', () => {
+it('un_doublon_ne_compte_pas', () => {
+  // Sans dédoublonnage : juste, faute, juste, juste, juste, soit trois succès de suite et 0 faute.
+  const juste3 = reponseDeTest(3, 'u1', true, '2026-03-03T12:00:00.000+01:00');
   const journal = [
     reponseDeTest(1, 'u1', true, '2026-03-01T12:00:00.000+01:00'),
-    reponseDeTest(2, 'u1~r', true, '2026-03-01T12:01:00.000+01:00'),
-    reponseDeTest(3, 'u1', false, '2026-03-02T12:00:00.000+01:00'),
+    reponseDeTest(2, 'u1', false, '2026-03-02T12:00:00.000+01:00'),
+    juste3,
+    juste3,
+    reponseDeTest(4, 'u1', true, '2026-03-04T12:00:00.000+01:00'),
+  ];
+  expect(fautesDuJournal(journal).get('u1')).toEqual({ fautes: 1, suite: 2 });
+});
+
+it('une_carte_et_son_sens_inverse_sont_jugees_a_part', () => {
+  const journal = [
+    reponseDeTest(1, 'abcd2345', true, '2026-03-01T12:00:00.000+01:00'),
+    reponseDeTest(2, 'abcd2345:inverse', true, '2026-03-01T12:01:00.000+01:00'),
+    reponseDeTest(3, 'abcd2345', false, '2026-03-02T12:00:00.000+01:00'),
     examenRemisDeTest('cm5r8t23', 4, '2026-03-02T13:00:00.000+01:00'),
   ];
   const etats = fautesDuJournal(journal);
-  expect(etats.get('u1')).toEqual({ fautes: 1, suite: 0 });
-  expect(etats.get('u1~r')).toEqual({ fautes: 0, suite: 1 });
-  expect([...etats.keys()]).toEqual(['u1', 'u1~r']);
+  expect(etats.get('abcd2345')).toEqual({ fautes: 1, suite: 0 });
+  expect(etats.get('abcd2345:inverse')).toEqual({ fautes: 0, suite: 1 });
+  expect([...etats.keys()]).toEqual(['abcd2345', 'abcd2345:inverse']);
+});
+
+it('une_faute_d_avant_le_premier_succes_ne_prend_pas_le_jour', () => {
+  const jour = '2026-03-01';
+  expect(etat([X, O, X], [jour, jour, jour])).toEqual({ fautes: 1, suite: 0 });
+});
+
+it('un_quatrieme_succes_de_suite_garde_les_fautes_a_zero', () => {
+  expect(etat([O, X, O, O, O, O])).toEqual({ fautes: 0, suite: 4 });
+});
+
+it('un_journal_vide_n_a_aucune_entree_et_une_unite_de_fautes_seules_a_la_sienne', () => {
+  expect(fautesDuJournal([]).size).toBe(0);
+  const journal = [reponseDeTest(1, 'u1', false, '2026-03-01T12:00:00.000+01:00')];
+  expect(fautesDuJournal(journal).get('u1')).toEqual({ fautes: 0, suite: 0 });
 });

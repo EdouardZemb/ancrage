@@ -554,11 +554,14 @@ rebelles:
 ```
 
 - `rebelles` est un objet strict : `fautes` y est obligatoire, un entier de 2 à 20. Une valeur
-  hors de ces bornes, une chaîne, un nombre à virgule ou une clé de plus sont refusés.
+  hors de ces bornes, une chaîne, un nombre qui n'est pas entier (4.5) ou une clé de plus sont refusés ; `4.0`, qui
+  est l'entier 4, est admis.
 - Absente, le seuil vaut 4 : un cours qui ne l'écrit pas ne change pas.
 - Une unité est celle du journal : une carte et son sens inverse sont deux unités (M6-C1).
 - Une faute ne compte qu'après une première réponse juste de l'unité, et une seule par jour : la
-  faute d'une ronde et celle de son retour, le même jour, n'en font qu'une (T1-D4).
+  faute d'une ronde et celle de son retour, le même jour, n'en font qu'une (T1-D4). Le jour de cette
+  faute ne s'oublie pas quand les fautes reviennent à zéro : une faute, trois succès, puis une
+  faute le même jour, laissent zéro faute.
 - Trois réponses justes de suite remettent à zéro les fautes de l'unité, qu'elle soit rebelle ou
   non (T1-D5). Une faute coupe la suite. L'unité est rebelle quand ses fautes valent le seuil ou
   plus ; le nombre de rebelles ne peut donc que baisser quand le seuil monte.

@@ -4,9 +4,11 @@ import type { ReglagesMemoire } from '../contenu/modele.js';
 
 /*
  * Les règles du manifeste qui ne regardent que leur valeur : pour la clé `memoire`, les poids de
- * FSRS-6 et la date de l'examen ; pour la clé `planning`, la borne d'une semaine (`SEMAINE_MAX`).
+ * FSRS-6 et la date de l'examen ; pour la clé `planning`, la borne d'une semaine (`SEMAINE_MAX`) ;
+ * pour la clé `rebelles`, les bornes du seuil (`FAUTES_MINIMUM`, `FAUTES_MAXIMUM`).
  * L'analyse du contenu (`contenu/schemas.ts`) les applique en strict, et le client les applique en
- * tolérant (`lireReglagesDeMemoire`, `lirePlanning`) : un seul texte de règle pour les deux.
+ * tolérant (`lireReglagesDeMemoire`, `lirePlanning`, `lireSeuilDesRebelles`) : un seul texte de
+ * règle pour les deux.
  */
 
 /**

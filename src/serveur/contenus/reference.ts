@@ -47,25 +47,20 @@ export type TacheDeReference = SansEtats<Tache>;
  */
 
 export interface Reference {
-  cours: {
-    id: string;
-    titre: string;
-    langue: string;
-    typesDeCarte: Record<string, string>;
-    leitner: ReglagesLeitner;
-    /** Présent seulement si le cours l'écrit : l'instantané d'un cours sans lui ne change pas. */
-    memoire?: ReglagesMemoire;
-    /** Présent seulement si le cours l'écrit, après `memoire`. */
-    planning?: Planning;
-    /** Présent seulement si le cours l'écrit, après `planning`. */
-    manuels?: Manuel[];
-    // jscpd:ignore-start — les clés du cours, que le modèle déclare dans le même ordre
-    /** Présent seulement si le cours l'écrit, après `manuels`. */
-    poseDesCartes?: 'ecrite' | 'retournee';
-    /** Présent seulement si le cours l'écrit, après `poseDesCartes`. */
-    rebelles?: Cours['rebelles'];
-    // jscpd:ignore-end
-  };
+  /** Les clés du cours que l'instantané garde, dans l'ordre où il les écrit (les facultatives après `leitner`, seulement si le cours les écrit). */
+  cours: Pick<
+    Cours,
+    | 'id'
+    | 'titre'
+    | 'langue'
+    | 'typesDeCarte'
+    | 'leitner'
+    | 'memoire'
+    | 'planning'
+    | 'manuels'
+    | 'poseDesCartes'
+    | 'rebelles'
+  >;
   /**
    * L'état de relecture du cours : `aVerifier` s'il a au moins un élément « à vérifier », sa
    * dérogation de diffusion, et pour chaque module à statut (tous, sauf l'examen), dans l'ordre du

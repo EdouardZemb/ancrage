@@ -5,6 +5,8 @@ import {
   modifier,
   valeursDeNoticeDExemple,
 } from '../domaine/contenu/exemple.fixture.js';
+import type { Cours } from '../domaine/contenu/modele.js';
+import { seuilDesRebelles, versCoursServi } from '../domaine/cours/servi.js';
 import { lireConfig } from './config.js';
 import {
   creerDepotTemporaire,
@@ -51,6 +53,15 @@ describe('contenusAuDemarrage', () => {
     expect(contenus?.cours.map((c) => c.dossier)).toEqual(['kueche']);
     expect(contenus?.notice.liens.length).toBeGreaterThan(0);
     expect(lignes).toEqual(['contenus chargés : 1 cours']);
+  });
+
+  it('le_cours_d_exemple_sert_un_seuil_de_rebelles_autre_que_le_defaut', () => {
+    const contenus = contenusAuDemarrage(DOSSIER_EXEMPLE, () => undefined);
+    const [cours] = contenus?.cours ?? [];
+
+    expect(cours).toBeDefined();
+    // T1-D8 : 3, et non le défaut de 4, pour qu'une valeur écrite traverse toute la chaîne.
+    expect(seuilDesRebelles(versCoursServi(cours as Cours))).toBe(3);
   });
 
   it('demarrage_refuse_une_notice_absente_ou_invalide', () => {

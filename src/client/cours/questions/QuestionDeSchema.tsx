@@ -11,6 +11,7 @@ import { enGras, focaliser, Options } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
 import { DessinSchema } from '../DessinSchema.js';
 import { formater } from '../textes-cours.js';
+import { AideDuRebelle, MarqueDeRebelle } from './AideDuRebelle.js';
 
 /** Les touches 1 à 4 choisissent le premier à le quatrième nom (H:2248). */
 const NUMEROS_D_OPTIONS = ['1', '2', '3', '4'];
@@ -30,8 +31,12 @@ export function QuestionDeSchema(props: {
   /** Le point choisi, et le geste : `choix` (un nom parmi quatre) ou `pointage` (un point touché). */
   repondre(j: number, mode: ModeDeReponse): void;
   suivante(): void;
+  /** Un élément rebelle (M6) : sa question porte « schwierig ». */
+  rebelle?: boolean;
+  /** Le texte montré à un rebelle une fois répondu (la note du schéma, dans « Heute »). */
+  aide?: string;
 }) {
-  const { schema, mode, tache, repondre, suivante } = props;
+  const { schema, mode, tache, repondre, suivante, rebelle, aide } = props;
   const { t } = useCours();
   const point = schema.points[tache.cible];
   const repondue = tache.choisi !== null;
@@ -63,6 +68,7 @@ export function QuestionDeSchema(props: {
         </b>
         <span class="muted">{point.sens}</span>
       </div>
+      {rebelle === true && aide !== undefined && <AideDuRebelle aide={{ texte: aide }} />}
       <button type="button" class="primary" ref={focaliser} onClick={suivante}>
         {t.suivante}
       </button>
@@ -72,6 +78,7 @@ export function QuestionDeSchema(props: {
   if (mode === 'benennen') {
     return (
       <>
+        {rebelle === true && <MarqueDeRebelle bloc />}
         <div class="card">
           <DessinSchema
             schema={schema}
@@ -97,6 +104,7 @@ export function QuestionDeSchema(props: {
   }
   return (
     <>
+      {rebelle === true && <MarqueDeRebelle bloc />}
       <div class="card">
         <p>
           {enGras(t.schemas_tippe_auf, { terme: point.terme })}{' '}

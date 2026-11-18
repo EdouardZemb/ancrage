@@ -8,13 +8,14 @@
 
 import { canonique } from '../../../domaine/cartes/reponses.js';
 import { jugerLaCarte, plier } from '../../../domaine/cartes/saisie.js';
-import type { UniteDeCarte } from '../../../domaine/cartes/unites.js';
+import { aideDeLUnite, type UniteDeCarte } from '../../../domaine/cartes/unites.js';
 import type { ModeDeReponse } from '../../../domaine/journal/evenement.js';
 import { etatDe } from '../../../domaine/progression/etat.js';
 import { useTouches } from '../clavier.js';
 import { Enonce, focaliser } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
 import { formater } from '../textes-cours.js';
+import { AideDuRebelle, MarqueDeRebelle } from './AideDuRebelle.js';
 
 /** L'état d'une carte posée : retournée ou non, et le jugement de la saisie, avec ce qui fut tapé. */
 export interface EtatDeCarte {
@@ -40,8 +41,10 @@ export function QuestionCarte(props: {
    * juge le terme tapé), `corrigee` (une saisie jugée fausse, déclarée juste par la personne).
    */
   onReponse(juste: boolean, mode: ModeDeReponse): void;
+  /** Un élément rebelle (M6) : la carte porte « schwierig » et montre son aide une fois cherchée. */
+  rebelle?: boolean;
 }) {
-  const { unite, saisie, etat, onEtat, onReponse } = props;
+  const { unite, saisie, etat, onEtat, onReponse, rebelle } = props;
   const { cours, t, etats } = useCours();
   // La saisie ne vaut que pour une inverse (H:1767).
   const saisieAttendue = unite.sens === 'inverse' && saisie;
@@ -66,8 +69,15 @@ export function QuestionCarte(props: {
 
   const boite = etatDe(etats, unite.id).boite;
   const meta = (
-    <span class="meta">{boite > 0 ? formater(t.cartes_boite, { n: boite }) : t.cartes_neuve}</span>
+    <>
+      {rebelle === true && <MarqueDeRebelle />}
+      <span class="meta">
+        {boite > 0 ? formater(t.cartes_boite, { n: boite }) : t.cartes_neuve}
+      </span>
+    </>
   );
+  // L'aide ne vient qu'après la recherche : avec le verdict d'une saisie, au verso d'une carte retournée.
+  const aide = rebelle === true ? aideDeLUnite(unite, cours.unites) : undefined;
 
   if (saisieAttendue) {
     return (
@@ -99,6 +109,7 @@ export function QuestionCarte(props: {
                     <span>{etat.verdict.donnee}</span>
                   )}
                 <b>{unite.reponse}</b>
+                <AideDuRebelle aide={aide} />
                 {!etat.verdict.juste && (
                   <button type="button" class="linkbtn" onClick={() => onReponse(true, 'corrigee')}>
                     {t.cartes_aussi_juste}
@@ -135,7 +146,10 @@ export function QuestionCarte(props: {
       >
         <Enonce unite={unite} avecChapitre />
         {etat.retournee ? (
-          <span class="back">{unite.reponse}</span>
+          <>
+            <span class="back">{unite.reponse}</span>
+            <AideDuRebelle aide={aide} />
+          </>
         ) : (
           <span class="hint">{t.cartes_indice}</span>
         )}

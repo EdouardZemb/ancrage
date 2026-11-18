@@ -37,8 +37,16 @@ export function Mots() {
 
 function MotsDuModule(props: { module: ModuleServiDe<'morphologie'> }) {
   const { module } = props;
-  const { t, etats, enregistrer, preferences, changerPreferences, hasard, useEtatDOnglet } =
-    useCours();
+  const {
+    t,
+    etats,
+    enregistrer,
+    preferences,
+    changerPreferences,
+    hasard,
+    useEtatDOnglet,
+    rebelles,
+  } = useCours();
   const choix = preferences.mots.mode;
 
   // Un mot sans segment n'a rien à zerlegen ni à bâtir.
@@ -110,6 +118,7 @@ function MotsDuModule(props: { module: ModuleServiDe<'morphologie'> }) {
         <QuestionMot
           module={module}
           tache={tache}
+          rebelle={rebelles.has(tache.mot.id)}
           onTache={surTache}
           onSuivante={() => setCourante({ ...serie, tache: tirer() })}
         />

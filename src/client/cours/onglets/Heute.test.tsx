@@ -34,7 +34,7 @@ import {
 import { heuteEnCours } from '../seances-en-cours.js';
 import { formater, TEXTES_COURS } from '../textes-cours.js';
 import { cleDuJour, type EtatDeHeute, Heute, questionDe } from './Heute.js';
-import { boutons, progression, texteDe } from './onglets.fixture.js';
+import { boutons, choisir, cliquer, progression, texteDe } from './onglets.fixture.js';
 import type { EtatDuPretest } from './PretestDeHeute.js';
 
 afterEach(cleanup);
@@ -156,16 +156,6 @@ function etatGarde(memoire: Map<string, unknown>): EtatDeHeute {
 
 function fileDe(memoire: Map<string, unknown>): string[] {
   return etatGarde(memoire).seance.file.map(({ id }) => id);
-}
-
-function cliquer(libelle: string): void {
-  fireEvent.click(screen.getByRole('button', { name: libelle }));
-}
-
-function choisir(option: string): void {
-  const choisie = boutons().find((x) => texteDe(x) === option);
-  if (choisie === undefined) throw new Error(`Pas d'option « ${option} »`);
-  fireEvent.click(choisie);
 }
 
 function sensDuMorpheme(contexte: ContexteCours, id: string): string {

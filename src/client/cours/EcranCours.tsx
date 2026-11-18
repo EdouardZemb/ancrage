@@ -240,8 +240,17 @@ function CoursOuvert(props: { personne: string; servi: CoursServi; onglet: Ongle
     if (sessionTerminee) definirMoi(undefined);
   }, [sessionTerminee, definirMoi]);
 
-  const { evenements, etats, aujourdhui, enregistrer, enregistrerExamen, finDeSeance } =
-    progression;
+  const {
+    evenements,
+    etats,
+    aujourdhui,
+    fautes,
+    rebelles,
+    ecartes,
+    enregistrer,
+    enregistrerExamen,
+    finDeSeance,
+  } = progression;
   const contexte = useMemo<ContexteCours>(
     () => ({
       cours,
@@ -249,6 +258,9 @@ function CoursOuvert(props: { personne: string; servi: CoursServi; onglet: Ongle
       evenements,
       etats,
       aujourdhui,
+      fautes,
+      rebelles,
+      ecartes,
       enregistrer,
       enregistrerExamen,
       finDeSeance,
@@ -265,6 +277,9 @@ function CoursOuvert(props: { personne: string; servi: CoursServi; onglet: Ongle
       evenements,
       etats,
       aujourdhui,
+      fautes,
+      rebelles,
+      ecartes,
       enregistrer,
       enregistrerExamen,
       finDeSeance,

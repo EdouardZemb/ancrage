@@ -13,6 +13,7 @@ import type { Affirmation, QuestionAChoix } from '../../../domaine/contenu/model
 import { FAUX, optionsDeQcm, VRAI } from '../../../domaine/feuilles/correction.js';
 import { Options } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
+import { MarqueDeRebelle } from '../questions/AideDuRebelle.js';
 import { type PropsDeTache, useEtatDesElements } from './tache.js';
 
 interface Choix {
@@ -24,7 +25,7 @@ interface Choix {
 
 export function TacheAChoix(props: PropsDeTache<'qcm'>) {
   const { tache, onRepondu } = props;
-  const { hasard } = useCours();
+  const { hasard, rebelles } = useCours();
   const [choix, changer] = useEtatDesElements<QuestionAChoix, Choix>(
     tache,
     tache.questions,
@@ -45,6 +46,7 @@ export function TacheAChoix(props: PropsDeTache<'qcm'>) {
         return (
           <fieldset key={question.id} class="element">
             <legend>{question.question}</legend>
+            {rebelles.has(question.id) && <MarqueDeRebelle bloc />}
             <Options
               options={options}
               choisir={(i) => choisir(question, i)}
@@ -67,7 +69,7 @@ const CODES = [VRAI, FAUX];
  */
 export function TacheVraiFaux(props: PropsDeTache<'vrai-faux'>) {
   const { tache, onRepondu } = props;
-  const { t } = useCours();
+  const { t, rebelles } = useCours();
   const libelles = [t.feuille_richtig, t.feuille_falsch];
   const [choix, changer] = useEtatDesElements<Affirmation, string | null>(
     tache,
@@ -90,6 +92,7 @@ export function TacheVraiFaux(props: PropsDeTache<'vrai-faux'>) {
         return (
           <fieldset key={affirmation.id} class="element">
             <legend>{affirmation.affirmation}</legend>
+            {rebelles.has(affirmation.id) && <MarqueDeRebelle bloc />}
             <Options
               options={libelles}
               choisir={(i) => choisir(affirmation, i)}

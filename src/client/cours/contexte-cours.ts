@@ -10,6 +10,7 @@ import type { CoursPrepare, Onglet } from '../../domaine/cours/prepare.js';
 import type { Hasard } from '../../domaine/hasard.js';
 import type { Evenement, ModeDeReponse, ResultatExamen } from '../../domaine/journal/evenement.js';
 import type { EtatUnite } from '../../domaine/progression/etat.js';
+import type { EtatDeRebelle } from '../../domaine/progression/rebelles.js';
 import type { Seance } from '../seance.js';
 import type { Preferences } from './preferences.js';
 import type { CleTexteCours } from './textes-cours.js';
@@ -23,6 +24,12 @@ export interface ContexteCours {
   etats: ReadonlyMap<string, EtatUnite>;
   /** Le jour local de l'appareil, `AAAA-MM-JJ`. */
   aujourdhui: string;
+  /** Les fautes de chaque unité du journal, sans seuil (M6). */
+  fautes: ReadonlyMap<string, EtatDeRebelle>;
+  /** Les éléments rebelles du cours, au seuil du cours (T2-D2). */
+  rebelles: ReadonlySet<string>;
+  /** Les rebelles déjà répondus aujourd'hui : « Heute » ne les pose plus le jour même (T2-D3). */
+  ecartes: ReadonlySet<string>;
   /**
    * Journalise une réponse à une unité (décision 8). Elle ne rejette jamais : `false` si
    * l'appareil n'a pas pu la ranger (l'écran le signale), et l'onglet continue comme si de rien

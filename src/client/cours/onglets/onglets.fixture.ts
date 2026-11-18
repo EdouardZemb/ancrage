@@ -32,6 +32,18 @@ export function choisirDans(groupe: string, option: string): void {
   fireEvent.click(choisie);
 }
 
+/** Clique le bouton que nomme `libelle`. */
+export function cliquer(libelle: string): void {
+  fireEvent.click(screen.getByRole('button', { name: libelle }));
+}
+
+/** Choisit l'option de ce texte dans la question posée. */
+export function choisir(option: string): void {
+  const choisie = boutons().find((x) => texteDe(x) === option);
+  if (choisie === undefined) throw new Error(`Pas d'option « ${option} »`);
+  fireEvent.click(choisie);
+}
+
 export function touche(key: string): void {
   fireEvent.keyDown(window, { key });
 }

@@ -17,9 +17,14 @@ import { dernieresReponses, scoreDeFeuille } from '../../../domaine/feuilles/der
 import { examensPasses, reponsesParJour, serie } from '../../../domaine/progression/etat.js';
 import { reussis, statistiquesDeChapitre } from '../../../domaine/progression/statistiques.js';
 import { unitesDuChoix } from '../../../domaine/seances/cartes.js';
-import { duesDuJour, posablesDuCours } from '../../../domaine/seances/heute.js';
+import { duesDuJour, posablesDuCours, sansLesEcartes } from '../../../domaine/seances/heute.js';
 import { Avancement, Barre, COULEUR_DES_BOITES, enGras } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
+import {
+  CLE_REBELLES_REPONDUS,
+  ecartesDuMoment,
+  type RebellesRepondus,
+} from '../ecartes-du-jour.js';
 import { formater } from '../textes-cours.js';
 
 /** La note quand aucun examen n'a été remis. */
@@ -174,18 +179,35 @@ function Legende() {
 }
 
 export function Apercu() {
-  const { cours, t, evenements, etats, aujourdhui, preferences, changerPreferences, aller } =
-    useCours();
+  const {
+    cours,
+    t,
+    evenements,
+    etats,
+    aujourdhui,
+    preferences,
+    changerPreferences,
+    aller,
+    ecartes: ecartesDuJournal,
+    useEtatDOnglet,
+  } = useCours();
+  // Les rebelles que « Heute » ne pose plus aujourd'hui : ceux du journal, et ceux qu'il a notés.
+  const [repondus] = useEtatDOnglet<RebellesRepondus>(CLE_REBELLES_REPONDUS, () => ({
+    jour: aujourdhui,
+    ids: [],
+  }));
   const parJour = useMemo(() => reponsesParJour(evenements), [evenements]);
   const dernierExamen = useMemo(() => examensPasses(evenements).at(-1), [evenements]);
   const dernieres = useMemo(() => dernieresReponses(evenements), [evenements]);
 
   const tout = statistiquesDeChapitre(cours.unites, etats, aujourdhui);
-  // « À revoir aujourd'hui » est le compte de « Heute » : tout ce que la séance peut poser (M2-P5).
-  const dues = useMemo(
-    () => duesDuJour(posablesDuCours(cours), etats, aujourdhui).length,
-    [cours, etats, aujourdhui],
-  );
+  // « À revoir aujourd'hui » est le compte de « Heute » : tout ce que la séance peut poser (M2-P5),
+  // sans les rebelles écartés pour aujourd'hui (M6). La ligne « fällig » d'un chapitre ne change pas :
+  // Karteikarten pose encore ces cartes.
+  const dues = useMemo(() => {
+    const ecartes = ecartesDuMoment(ecartesDuJournal, repondus, aujourdhui);
+    return duesDuJour(sansLesEcartes(posablesDuCours(cours), ecartes), etats, aujourdhui).length;
+  }, [cours, etats, aujourdhui, ecartesDuJournal, repondus]);
   const { morphologie, textes, exercices, feuilles } = cours;
 
   /**

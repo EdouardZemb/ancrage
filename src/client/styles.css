@@ -901,6 +901,22 @@ form.typed input {
   padding: 2px;
 }
 
+/* Un élément rebelle (M6) : l'étiquette au-dessus de sa question, et son aide une fois répondu. */
+p.rebelle {
+  margin: 0 0 4px;
+}
+
+.aide-rebelle {
+  margin: 8px 0;
+  padding: 6px 10px;
+  border-left: 3px solid var(--accent);
+  text-align: left;
+}
+
+.aide-rebelle p {
+  margin: 2px 0 0;
+}
+
 /* Le lien de pose de « Heute » : toute la ligne se touche. */
 p.muted > .linkbtn {
   display: inline-flex;

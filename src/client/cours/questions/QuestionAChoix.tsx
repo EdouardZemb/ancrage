@@ -21,6 +21,7 @@ import {
   Options,
 } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
+import { AideDuRebelle, MarqueDeRebelle } from './AideDuRebelle.js';
 
 /** Les touches 1 à 4 choisissent la première à la quatrième option (H:2245). */
 const NUMEROS_D_OPTIONS = ['1', '2', '3', '4'];
@@ -61,8 +62,12 @@ export function QuestionAChoix(props: {
   /** Le choix de l'option `i`, jugé : appelé une fois, tant que la question n'est pas répondue. */
   onChoix(i: number, juste: boolean, mode: ModeDeReponse): void;
   onSuivante(): void;
+  /** Un élément rebelle (M6) : sa question porte « schwierig ». Jamais dans le Quiz ni la Prüfung. */
+  rebelle?: boolean;
+  /** Le texte montré à un rebelle une fois répondu (la `correction`, dans « Heute »). */
+  aide?: string;
 }) {
-  const { question, libelleSuivante, sansFaute, onChoix, onSuivante } = props;
+  const { question, libelleSuivante, sansFaute, onChoix, onSuivante, rebelle, aide } = props;
   const { t } = useCours();
 
   const repondre = (i: number) => {
@@ -80,6 +85,7 @@ export function QuestionAChoix(props: {
 
   return (
     <>
+      {rebelle === true && <MarqueDeRebelle bloc />}
       <div class="card" style={{ minHeight: '160px' }}>
         {'unite' in question.enonce ? (
           <Enonce unite={question.enonce.unite} avecChapitre={false} />
@@ -97,6 +103,9 @@ export function QuestionAChoix(props: {
             : { choisie: question.choisie, reponse: libelle(question.reponse) }
         }
       />
+      {question.choisie !== null && rebelle === true && aide !== undefined && (
+        <AideDuRebelle aide={{ texte: aide }} />
+      )}
       {question.choisie === null ? (
         <p class="kbd">{t.quiz_touches}</p>
       ) : (

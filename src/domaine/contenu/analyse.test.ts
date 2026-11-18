@@ -1332,6 +1332,20 @@ modules: ["${CHAPITRE_2}"]`),
     expect(avec('x')).toEqual([erreur(CARTES_2, 'cartes[0].confondu_avec', /mal formé/)]);
   });
 
+  it('le_refus_d_un_confondu_avec_nomme_le_rang_de_la_carte', () => {
+    // La deuxième carte du module, puis la troisième d'un autre : l'index du chemin suit la carte.
+    expect(
+      erreursApres(CARTES_2, 'verso: "gegen"', 'verso: "gegen"\n    confondu_avec: "zzzzzzzz"'),
+    ).toEqual([erreur(CARTES_2, 'cartes[1].confondu_avec', /aucune carte de ce cours/)]);
+    expect(
+      erreursApres(
+        CARTES_1,
+        'verso: "Gegensatzpaar zum Üben"',
+        'verso: "Gegensatzpaar zum Üben"\n    confondu_avec: "586my7a4"',
+      ),
+    ).toEqual([erreur(CARTES_1, 'cartes[2].confondu_avec', /elle-même/)]);
+  });
+
   it('refuse_une_carte_confondue_avec_elle_meme', () => {
     expect(
       erreursApres(

@@ -58,7 +58,7 @@ export function fautesDuJournal(
 }
 
 /** Vrai quand l'unité a au moins `seuil` fautes ; une unité sans réponse n'est pas rebelle. */
-export function estRebelle(etat: EtatDeRebelle | undefined, seuil: number): boolean {
+export function estRebelle(etat: EtatDeRebelle | undefined, seuil: number): etat is EtatDeRebelle {
   return etat !== undefined && etat.fautes >= seuil;
 }
 
@@ -103,9 +103,7 @@ export function aReprendre<P extends { id: string }>(
   for (const posable of posables) {
     const etat = fautes.get(posable.id);
     const module = modules.get(posable.id);
-    // Stryker disable next-line ConditionalExpression: `estRebelle` refuse déjà un état absent ; le
-    // test sur `etat` ne sert qu'à rétrécir le type (équivalent).
-    if (module === undefined || etat === undefined || !estRebelle(etat, seuil)) continue;
+    if (module === undefined || !estRebelle(etat, seuil)) continue;
     const groupe = parModule.get(module) ?? [];
     groupe.push({ posable, fautes: etat.fautes });
     parModule.set(module, groupe);

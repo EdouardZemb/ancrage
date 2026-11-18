@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, screen } from '@testing-library/preact';
-import { afterEach, describe, expect, it } from 'vitest';
-import { coursServiDeTest } from '../../../domaine/cours/cours.fixture.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { CHAPITRE_1, CHAPITRE_2, coursServiDeTest } from '../../../domaine/cours/cours.fixture.js';
 import type { CoursServi } from '../../../domaine/cours/servi.js';
 import type { Evenement } from '../../../domaine/journal/evenement.js';
 import {
@@ -380,5 +380,87 @@ describe('Heute, l_aide du rebelle', () => {
     choisir(t.feuille_richtig);
 
     expect(screen.queryByText('Der Magen ist ein Hohlorgan.')).toBeNull();
+  });
+});
+
+describe('Heute, les rebelles à une étape de révision et selon le sens', () => {
+  const PLANNING = {
+    etapes: [
+      { titre: 'Woche 1', seance: '2026-10-10', genre: 'cours', modules: [CHAPITRE_1] },
+      { titre: 'Woche 2', seance: '2026-10-13', genre: 'cours', modules: [CHAPITRE_2] },
+      { titre: 'Woche 3', seance: '2026-10-17', genre: 'revision', modules: [] },
+    ],
+  };
+  // Intervalles longs : un élément juste hier n'est pas dû, il est révisable.
+  const coursDeRevision = (): CoursServi => ({
+    ...cours({ planning: PLANNING }),
+    leitner: { intervalles: [0, 3, 6, 9, 12, 15], nouvellesParSeance: 0 },
+  });
+  /** Rebelle (deux fautes, deux succès de suite) mais pas due : sa dernière réponse juste est du 10. */
+  const rebelleRevisable = (unite: string): Evenement[] =>
+    [
+      ['04', true],
+      ['05', true],
+      ['06', true],
+      ['07', false],
+      ['08', false],
+      ['09', true],
+      ['10', true],
+    ].map(([jour, juste]) => reponseDeTest(prochain(), unite, juste === true, `2026-10-${jour}`));
+
+  it('a_une_etape_de_revision_un_rebelle_deja_repondu_aujourd_hui_n_est_pas_dans_la_file', () => {
+    const revisables = [HERZ, LEBER, 'c1000003'];
+    const autres = revisables
+      .slice(1)
+      .map((id) => reponseDeTest(prochain(), id, true, '2026-10-15'));
+    const avant = new Map<string, unknown>();
+    rendreDansLeCours(
+      <Heute />,
+      contexteDe({
+        cours: coursDeRevision(),
+        evenements: [...rebelleRevisable(HERZ), ...autres],
+        memoire: avant,
+      }),
+    );
+    // Sans réponse du jour, le rebelle est une révision de la séance.
+    expect(etatGarde(avant).seance.file.map(({ id }) => id)).toContain(HERZ);
+    cleanup();
+
+    const apres = new Map<string, unknown>();
+    const repondu = reponseDeTest(prochain(), HERZ, true, AUJOURDHUI_DE_TEST);
+    rendreDansLeCours(
+      <Heute />,
+      contexteDe({
+        cours: coursDeRevision(),
+        evenements: [...rebelleRevisable(HERZ), ...autres, repondu],
+        memoire: apres,
+      }),
+    );
+
+    expect(etatGarde(apres).seance.file.map(({ id }) => id)).not.toContain(HERZ);
+    expect(etatGarde(apres).revisions ?? []).not.toContain(HERZ);
+  });
+
+  it('le_sens_direct_manque_revient_et_le_sens_inverse_rebelle_manque_sort', () => {
+    const contexte = contexteDe({
+      evenements: [
+        reponseDeTest(prochain(), HERZ, false, '2026-10-10'),
+        ...rebelle(`${HERZ}:inverse`),
+      ],
+      saisie: false,
+    });
+    rendreDansUnCoursVivant(<Heute />, contexte);
+
+    for (let i = 0; i < 6 && screen.queryByRole('heading', { name: t.heute_fin }) === null; i++) {
+      cliquer(t.cartes_retourner);
+      cliquer(t.cartes_pas_su);
+    }
+
+    const reponsesA = (unite: string) =>
+      vi.mocked(contexte.enregistrer).mock.calls.filter(([id]) => id === unite).length;
+    // Le sens direct, qui n'est pas rebelle, est repris une fois ; l'inverse, rebelle, sort.
+    expect(reponsesA(HERZ)).toBe(2);
+    expect(reponsesA(`${HERZ}:inverse`)).toBe(1);
+    expect(screen.getByRole('heading', { name: t.heute_fin })).toBeTruthy();
   });
 });

@@ -89,6 +89,8 @@ export interface Reference {
     sens: 'direct' | 'inverse';
     question: string;
     reponse: string;
+    aide?: string;
+    confonduAvec?: string;
     acceptees: string[];
   }[];
   morphemes: { id: string; categorie: string; forme: string; sens: string }[];

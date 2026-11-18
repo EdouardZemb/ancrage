@@ -104,7 +104,7 @@ manuels:                   # facultative : voir « Les manuels »
     titre: "Beispielbuch Küche"
 pose_des_cartes: "ecrite"  # facultative : voir « La pose des cartes »
 rebelles:                  # facultative : voir « Les éléments rebelles »
-  fautes: 4
+  fautes: 4                # défaut : 5
 derogation_diffusion:      # facultative : voir « Dérogation de diffusion »
   motif: "<pourquoi>"
   date: "2026-10-16"
@@ -550,13 +550,13 @@ mot, un point de schéma, un exercice ou une question fermée de fiche qui retom
 
 ```yaml
 rebelles:
-  fautes: 4
+  fautes: 4                # défaut : 5
 ```
 
 - `rebelles` est un objet strict : `fautes` y est obligatoire, un entier de 2 à 20. Une valeur
   hors de ces bornes, une chaîne, un nombre qui n'est pas entier (4.5) ou une clé de plus sont refusés ; `4.0`, qui
   est l'entier 4, est admis.
-- Absente, le seuil vaut 5 : un cours qui ne l'écrit pas ne change pas.
+- Absente, le seuil vaut 5 (4 avant la tranche 2 du lot M6) : un cours qui ne l'écrit pas suit le défaut.
 - Une unité est celle du journal : une carte et son sens inverse sont deux unités, jugées chacune à
   part (M6-C1). Seuls les éléments que pose « Heute » peuvent être rebelles.
 - Une faute ne compte qu'après une première réponse juste de l'unité, et une seule par jour : la
@@ -579,9 +579,11 @@ rebelles par chapitre. Dans « Heute » (M6-C3), un rebelle qui a déjà une ré
 sort au lieu de revenir en fin de file ; l'ordonnanceur, lui, ne change pas, et les autres onglets
 posent un rebelle comme avant. Le compte « heute zu wiederholen » d'« Übersicht » est celui de
 « Heute » : il retire les rebelles écartés. Un rebelle porte l'étiquette « schwierig » sur sa
-question (hors Quiz et Prüfung) et montre, une fois qu'il a cherché, l'`aide` de sa carte et la
-carte avec laquelle on la confond ; le mot, l'exercice, l'affirmation vrai-faux et le point de
-schéma montrent leur texte déjà écrit (morceaux, règle, correction, note). Fortschritt remplace
+question et montre, une fois qu'il a cherché, l'`aide` de sa carte et la carte avec laquelle on la
+confond : une carte retournée la montre au verso, une carte saisie avec le verdict. La marque et
+l'aide sont absentes du Quiz et de la Prüfung. La `correction` d'une affirmation vrai-faux et la
+`note` d'un schéma ne s'affichent que dans « Heute » ; les morceaux d'un mot et la règle d'un
+exercice sont montrés à tous, rebelle ou non. Fortschritt remplace
 « Schwierige Karten » par la liste « Schwierig – nochmal ansehen » : tous les rebelles, par module
 puis par nombre de fautes, avec leur réponse, leur aide et « n× falsch ».
 

@@ -10,8 +10,10 @@ import { contexteDeTest, rendreDansLeCours, reponseDeTest } from '../contexte-co
 import { TacheAChoix, TacheVraiFaux } from '../feuilles/TacheAChoix.js';
 import { TEXTES_COURS } from '../textes-cours.js';
 import { Cartes } from './Cartes.js';
+import { Examen } from './Examen.js';
 import { Exercices } from './Exercices.js';
 import { Mots } from './Mots.js';
+import { cliquer } from './onglets.fixture.js';
 import { Quiz } from './Quiz.js';
 import { Schemas } from './Schemas.js';
 
@@ -65,6 +67,16 @@ describe('la marque des rebelles dans les onglets', () => {
     rendreDansLeCours(<Quiz />, contexteRebelle());
 
     expect(screen.queryByText(t.rebelle_marque)).toBeNull();
+  });
+
+  it('la_pruefung_ne_marque_ni_n_aide_un_rebelle', () => {
+    rendreDansLeCours(<Examen />, contexteRebelle());
+    cliquer(t.examen_starten);
+
+    expect(screen.queryByText(t.rebelle_marque)).toBeNull();
+    expect(screen.queryByText(t.rebelle_aide)).toBeNull();
+    // L'examen est bien lancé : sa première question est posée.
+    expect(screen.queryByRole('button', { name: t.examen_starten })).toBeNull();
   });
 
   it('une_note_de_schema_n_est_pas_repetee_dans_l_onglet_des_schemas', () => {

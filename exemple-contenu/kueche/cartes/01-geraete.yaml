@@ -33,7 +33,7 @@ cartes:
     type: "k"
     recto: "Sieb"
     verso: "Schale mit vielen Löchern zum Abtropfen"
-    aide: "Das Sieb lässt Wasser durch, die Reibe schneidet Käse."
+    aide: "Das Sieb lässt Wasser durch, die Reibe raffelt Käse."
     confondu_avec: "mrx7s3f1"
   - id: "mrx7s3f1"
     type: "k"

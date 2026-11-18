@@ -74,17 +74,21 @@ const RELUS: readonly { chemin: string; avant: string; apres: string }[] = [
     apres: '    titre: "Bericht 1"\n    statut: "vérifié"\n    verifie_le: "2026-10-04"\n',
   },
   {
-    // Une aide et un terme confondu : les clés `aide` et `confonduAvec` d'une carte sont servies (M6).
-    chemin: 'essai/cartes/02-vorsilben.yaml',
-    avant: '    reponses: ["proto"]\n',
-    apres: '    reponses: ["proto"]\n    aide: "Kleiner Merksatz"\n    confondu_avec: "rzbyrqna"\n',
-  },
-  {
     chemin: 'essai/exercices.yaml',
     avant: '        reponse: "der"\n',
     apres: '        reponse: "der"\n        statut: "vérifié"\n        verifie_le: "2026-10-05"\n',
   },
 ];
+/**
+ * Une aide et un terme confondu sur la première carte du second module de cartes : les clés `aide` et
+ * `confonduAvec` d'une carte sont servies (M6). Ce n'est pas une relecture : `RELUS` ne fait passer
+ * un élément qu'à `vérifié`.
+ */
+const AIDE_DE_CARTE = {
+  chemin: 'essai/cartes/02-vorsilben.yaml',
+  avant: '    reponses: ["proto"]\n',
+  apres: '    reponses: ["proto"]\n    aide: "Kleiner Merksatz"\n    confondu_avec: "rzbyrqna"\n',
+};
 /** Un planning inventé : une étape de cours, puis une de révision (le premier module de cartes). */
 const PLANNING = `planning:
   etapes:
@@ -115,12 +119,16 @@ export const COURS_SOURCE = variante(
       .replace(/^modules:$/m, (debut) =>
         chemin === 'essai/cours.yaml' ? PLANNING + REBELLES + debut : debut,
       );
+    const avecAide =
+      chemin === AIDE_DE_CARTE.chemin
+        ? propre.replace(AIDE_DE_CARTE.avant, () => AIDE_DE_CARTE.apres)
+        : propre;
     return RELUS.filter((relu) => relu.chemin === chemin).reduce((texteRelu, relu) => {
       if (!texteRelu.includes(relu.avant)) {
         throw new Error(`RELUS : « ${relu.avant} » introuvable dans ${relu.chemin}`);
       }
       return texteRelu.replace(relu.avant, () => relu.apres);
-    }, propre);
+    }, avecAide);
   },
   exempleAvecManuels(),
 );

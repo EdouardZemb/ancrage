@@ -489,7 +489,9 @@ cours (M4-R4).
   du dépôt de données l'a posé le 17/11/2026 : le staging sert le compte à rebours, le rythme, le
   pré-test et le Lernplan. La prod, en `v0.17.0`, attend une étiquette de données pour le planning,
   et la version suivante du code pour le pré-test et le Lernplan. Le cours n'a pas de manuels, donc
-  pas de divisions : ils viennent une version après la `v0.17.0` (A2-D17).
+  pas de divisions : ils viennent une version après la `v0.17.0` (A2-D17). Depuis : la `v0.18.0` et
+  l'étiquette de données `donnees-2026.11.17.1` sont en prod le 17/11/2026, avec le planning, le
+  pré-test et le Lernplan.
 - **Ce qui a été vu sur un téléphone Android**, au staging, par Edouard, le 17/11/2026 : le
   Lernplan, « Heute » et son compte à rebours, l'offre de pré-test. **Ce qui n'a été vu que par
   les tests et le bout en bout**, sur le cours d'exemple, au poste : les révisions d'une étape de

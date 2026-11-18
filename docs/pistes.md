@@ -5,8 +5,8 @@ feuille de route. On n'y ajoute que ce qui n'a pas encore d'issue.
 
 ## Pédagogie (brief §6)
 
-- **Effet de test et rappel actif** : privilégier la saisie à la reconnaissance, et mesurer ce
-  que cela change.
+- **Effet de test et rappel actif** : mesurer ce que la saisie change, par le rapport de suivi (la
+  saisie elle-même est faite, ancrage#33).
 - **Alternance des sujets** (*interleaving*) : seulement ciblée sur des termes que l'on confond.
   La méta-analyse de Brunmair et Richter (2019) est défavorable à l'alternance généralisée pour des
   mots : mêler les chapitres dans une même séance n'est pas la piste.

@@ -2,6 +2,7 @@ import type { CoursPrepare } from '../../domaine/cours/prepare.js';
 import { memoireDuCours, seuilDesRebelles } from '../../domaine/cours/servi.js';
 import type { Evenement } from '../../domaine/journal/evenement.js';
 import { ajouterJours, joursEntre } from '../../domaine/journal/temps.js';
+import { FAUTES_PAR_DEFAUT } from '../../domaine/progression/reglages.js';
 import { posablesDuCours } from '../../domaine/seances/heute.js';
 import {
   barreEmpilee,
@@ -410,7 +411,7 @@ function sectionDesRebelles(
   const chapitres = cours.cours.modules.filter(
     (module) => total.fautesParModule[module.id] !== undefined,
   );
-  const definition = `Un élément est rebelle quand il compte ${nombre(seuil)} fautes ou plus : une faute ne compte qu’après une première réponse juste, une seule par jour ; trois réponses justes de suite remettent ses fautes à zéro. Le seuil est celui du cours (<code>rebelles</code> du manifeste, 4 par défaut). Seuls les éléments que pose « Heute » comptent ; le chapitre est le module.`;
+  const definition = `Un élément est rebelle quand il compte ${nombre(seuil)} fautes ou plus : une faute ne compte qu’après une première réponse juste, une seule par jour ; trois réponses justes de suite remettent ses fautes à zéro. Le seuil est celui du cours (<code>rebelles</code> du manifeste, ${nombre(FAUTES_PAR_DEFAUT)} par défaut). Seuls les éléments que pose « Heute » comptent ; le chapitre est le module.`;
   if (personne) {
     const lignes = chapitres.map((module) => [
       echapper(module.titre),

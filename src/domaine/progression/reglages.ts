@@ -79,7 +79,7 @@ export function lireReglagesDeMemoire(lu: unknown): ReglagesMemoire | undefined 
 }
 
 /** Le seuil de fautes d'un élément rebelle quand le cours n'écrit pas la clé `rebelles` (T1-D1). */
-export const FAUTES_PAR_DEFAUT = 4;
+export const FAUTES_PAR_DEFAUT = 5;
 /** Le plus petit seuil qu'un manifeste admette. */
 export const FAUTES_MINIMUM = 2;
 /** Le plus grand seuil qu'un manifeste admette. */

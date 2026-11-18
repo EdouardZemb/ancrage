@@ -341,7 +341,7 @@ describe('versCoursServi', () => {
     const [cours] = analyserContenus(exempleDeCours()).cours;
     const sans = versCoursServi(cours);
     expect(sans).not.toHaveProperty('rebelles');
-    expect(seuilDesRebelles(sans)).toBe(4);
+    expect(seuilDesRebelles(sans)).toBe(5);
 
     const servi = versCoursServi({ ...cours, rebelles: { fautes: 3 } });
     expect(servi.rebelles).toEqual({ fautes: 3 });
@@ -354,7 +354,7 @@ describe('versCoursServi', () => {
       expect(coursServiUtilisable(JSON.parse(JSON.stringify(illisible))), String(inconnue)).toBe(
         true,
       );
-      expect(seuilDesRebelles(illisible), String(inconnue)).toBe(4);
+      expect(seuilDesRebelles(illisible), String(inconnue)).toBe(5);
     }
   });
 

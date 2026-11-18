@@ -556,7 +556,7 @@ rebelles:
 - `rebelles` est un objet strict : `fautes` y est obligatoire, un entier de 2 à 20. Une valeur
   hors de ces bornes, une chaîne, un nombre qui n'est pas entier (4.5) ou une clé de plus sont refusés ; `4.0`, qui
   est l'entier 4, est admis.
-- Absente, le seuil vaut 4 : un cours qui ne l'écrit pas ne change pas.
+- Absente, le seuil vaut 5 : un cours qui ne l'écrit pas ne change pas.
 - Une unité est celle du journal : une carte et son sens inverse sont deux unités, jugées chacune à
   part (M6-C1). Seuls les éléments que pose « Heute » peuvent être rebelles.
 - Une faute ne compte qu'après une première réponse juste de l'unité, et une seule par jour : la
@@ -571,7 +571,7 @@ rebelles:
   change pas sans elle.
 
 **Le client lit sans rigueur** (T1-D6) : une valeur qui n'est pas un objet portant un entier `fautes`
-de 2 à 20 vaut 4, et le cours reste admis.
+de 2 à 20 vaut 5, et le cours reste admis.
 
 **Ce que la clé change dans cette version** : le rapport de suivi seul compte les rebelles par
 chapitre. « Heute » et la liste viennent avec la tranche suivante du lot.

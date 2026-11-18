@@ -160,16 +160,30 @@ export function composerSeance(
   return { file: [...gardees, ...tirees], revenus: [], faites: 0, justes: 0 };
 }
 
+/** Les posables sans les identifiants écartés pour aujourd'hui (T2-D3), dans leur ordre. */
+export function sansLesEcartes(
+  posables: readonly Posable[],
+  ecartes: ReadonlySet<string>,
+): Posable[] {
+  return posables.filter((p) => !ecartes.has(p.id));
+}
+
 /**
  * La séance après une réponse à l'élément de tête. Juste : il sort. Faux : il va en fin de file une
- * fois ; manqué une seconde fois, il sort (M2-P3). Une file vide ne change pas.
+ * fois ; manqué une seconde fois, il sort (M2-P3). Une file vide ne change pas. `sansRetour` : la
+ * tête est un rebelle, manqué, elle sort sans revenir (T2-D3) ; le verdict « rebelle » est celui
+ * du geste qui juge, lu avant que le journal ne range la réponse.
  */
-export function apresReponseDuJour(seance: SeanceDuJour, juste: boolean): SeanceDuJour {
+export function apresReponseDuJour(
+  seance: SeanceDuJour,
+  juste: boolean,
+  sansRetour = false,
+): SeanceDuJour {
   const [tete, ...reste] = seance.file;
   if (tete === undefined) return seance;
   const faites = seance.faites + 1;
   const justes = seance.justes + (juste ? 1 : 0);
-  if (juste || seance.revenus.includes(tete.id)) {
+  if (juste || sansRetour || seance.revenus.includes(tete.id)) {
     return { ...seance, file: reste, faites, justes };
   }
   return { file: [...reste, tete], revenus: [...seance.revenus, tete.id], faites, justes };

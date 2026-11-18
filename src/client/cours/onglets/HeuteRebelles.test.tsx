@@ -38,6 +38,7 @@ const t = TEXTES_COURS.de;
 
 const HERZ = 'c1000001';
 const LEBER = 'c1000002';
+const NIERE = 'c1000003';
 const GASTRITIS = 'w0000001';
 const MITTE = 'q0000002';
 const ARTIKEL = 'e1000001';
@@ -177,13 +178,23 @@ describe('Heute, les rebelles', () => {
       ...rebelle(HERZ),
       ...rebelle(LEBER),
       reponseDeTest(prochain(), LEBER, false, AUJOURDHUI_DE_TEST),
+      // Niere est rebelle, mais ni due ni répondue aujourd'hui : elle compte aussi.
+      ...[
+        ['04', true],
+        ['05', true],
+        ['06', true],
+        ['07', false],
+        ['08', false],
+        ['15', true],
+        ['16', true],
+      ].map(([jour, juste]) => reponseDeTest(prochain(), NIERE, juste === true, `2026-10-${jour}`)),
     ];
     rendreDansLeCours(<Heute />, contexteDe({ evenements }));
 
     cliquer(t.cartes_retourner);
     cliquer(t.cartes_pas_su);
 
-    expect(screen.getByRole('button', { name: formater(t.heute_rebelles, { n: 2 }) })).toBeTruthy();
+    expect(screen.getByRole('button', { name: formater(t.heute_rebelles, { n: 3 }) })).toBeTruthy();
   });
 
   it('un_manque_dans_un_onglet_avant_le_premier_geste_recompose_la_seance_sans_lui', () => {
@@ -488,19 +499,23 @@ describe('Heute, les rebelles à une étape de révision et selon le sens', () =
     expect(etatGarde(avant).seance.file.map(({ id }) => id)).toContain(HERZ);
     cleanup();
 
+    // Le journal ne dit rien d'aujourd'hui pour Herz (l'écriture a échoué), mais l'onglet l'a noté :
+    // il n'est ni dans la file, ni parmi les révisions retenues.
     const apres = new Map<string, unknown>();
-    const repondu = reponseDeTest(prochain(), HERZ, true, AUJOURDHUI_DE_TEST);
+    apres.set(CLE_REBELLES_REPONDUS, { jour: AUJOURDHUI_DE_TEST, ids: [HERZ] });
     rendreDansLeCours(
       <Heute />,
       contexteDe({
         cours: coursDeRevision(),
-        evenements: [...rebelleRevisable(HERZ), ...autres, repondu],
+        evenements: [...rebelleRevisable(HERZ), ...autres],
         memoire: apres,
       }),
     );
 
     expect(etatGarde(apres).seance.file.map(({ id }) => id)).not.toContain(HERZ);
     expect(etatGarde(apres).revisions ?? []).not.toContain(HERZ);
+    // Les autres révisions, elles, sont bien retenues.
+    expect(etatGarde(apres).revisions).toEqual(expect.arrayContaining(revisables.slice(1)));
   });
 
   it('le_sens_direct_manque_revient_et_le_sens_inverse_rebelle_manque_sort', () => {

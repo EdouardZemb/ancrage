@@ -281,7 +281,8 @@ Déclarés dans les PR 63, 66 et 67, avec la promesse qu'ils touchent et l'accor
   arrière remettrait l'image précédente devant le contenu du jour (invariant 8). Seul le cours
   d'exemple, dans l'image, les porte.
 - **Cinq mutants d'avant le lot survivent** dans `reglages.ts` (la garde des poids de FSRS) et cinq
-  dans le tri par échéance de `heute.ts` : ils sont sans doute équivalents, et vont aux suites.
+  dans le tri par échéance de `heute.ts`. Ceux de `heute.ts` ne sont pas équivalents : il leur
+  manque un test. Tous vont aux suites.
 
 ## Ce qui n'a pas été vérifié
 

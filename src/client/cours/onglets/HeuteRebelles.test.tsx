@@ -1,7 +1,12 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CHAPITRE_1, CHAPITRE_2, coursServiDeTest } from '../../../domaine/cours/cours.fixture.js';
+import {
+  CHAPITRE_1,
+  CHAPITRE_2,
+  coursAvecChampsDeCarte,
+  coursServiDeTest,
+} from '../../../domaine/cours/cours.fixture.js';
 import type { CoursServi } from '../../../domaine/cours/servi.js';
 import type { Evenement } from '../../../domaine/journal/evenement.js';
 import {
@@ -69,22 +74,10 @@ function cours(champs: Partial<CoursServi> = {}): CoursServi {
 
 /** Le cours dont la carte Herz porte une aide, et la confusion avec Leber. */
 function coursAvecAide(): CoursServi {
-  const servi = cours();
-  return {
-    ...servi,
-    modules: servi.modules.map((module) =>
-      module.type === 'cartes'
-        ? {
-            ...module,
-            cartes: module.cartes.map((carte) =>
-              carte.id === HERZ
-                ? { ...carte, aide: 'Herz pumpt, Leber filtert.', confonduAvec: LEBER }
-                : carte,
-            ),
-          }
-        : module,
-    ),
-  };
+  return coursAvecChampsDeCarte(cours(), HERZ, {
+    aide: 'Herz pumpt, Leber filtert.',
+    confonduAvec: LEBER,
+  });
 }
 
 function contexteDe(options: {
@@ -309,20 +302,7 @@ describe('Heute, l_aide du rebelle', () => {
   });
 
   it('une_aide_qui_n_est_pas_un_texte_ne_s_affiche_pas', () => {
-    const servi = coursAvecAide();
-    const illisible = {
-      ...servi,
-      modules: servi.modules.map((module) =>
-        module.type === 'cartes'
-          ? {
-              ...module,
-              cartes: module.cartes.map((carte) =>
-                carte.id === HERZ ? { ...carte, aide: 42, confonduAvec: 'inconnu' } : carte,
-              ),
-            }
-          : module,
-      ),
-    } as unknown as CoursServi;
+    const illisible = coursAvecChampsDeCarte(cours(), HERZ, { aide: 42, confonduAvec: 'inconnu' });
     rendreDansLeCours(<Heute />, contexteDe({ cours: illisible, evenements: rebelle(HERZ) }));
 
     cliquer(t.cartes_retourner);
@@ -331,20 +311,7 @@ describe('Heute, l_aide du rebelle', () => {
   });
 
   it('une_aide_avec_des_signes_de_balisage_s_affiche_telle_quelle', () => {
-    const servi = coursAvecAide();
-    const balisee = {
-      ...servi,
-      modules: servi.modules.map((module) =>
-        module.type === 'cartes'
-          ? {
-              ...module,
-              cartes: module.cartes.map((carte) =>
-                carte.id === HERZ ? { ...carte, aide: '<b>Herz</b> & Co' } : carte,
-              ),
-            }
-          : module,
-      ),
-    };
+    const balisee = coursAvecChampsDeCarte(cours(), HERZ, { aide: '<b>Herz</b> & Co' });
     rendreDansLeCours(<Heute />, contexteDe({ cours: balisee, evenements: rebelle(HERZ) }));
 
     cliquer(t.cartes_retourner);

@@ -5,7 +5,7 @@ import { preparerCours } from '../cours/prepare.js';
 import { hasardDeterministe, melanger } from '../hasard.js';
 import type { Evenement } from '../journal/evenement.js';
 import { ETAT_NEUF, type EtatUnite, etatDe, etatsDesUnites } from '../progression/etat.js';
-import { cartesDifficiles, reussis, statistiquesDeChapitre } from '../progression/statistiques.js';
+import { reussis, statistiquesDeChapitre } from '../progression/statistiques.js';
 import {
   apresReponse,
   construireSeance,
@@ -309,15 +309,12 @@ describe('contenu modifié sous une progression existante', () => {
     // Le journal cite bien des unités absentes du contenu.
     expect(avecRetirees.has('zz000001')).toBe(true);
     expect(prepare.unitesConnues.has('zz000001')).toBe(false);
-    // Les statistiques, la séance et les unités difficiles ne changent pas, sans erreur.
+    // Les statistiques et la séance ne changent pas, sans erreur.
     expect(statistiquesDeChapitre(pool, avecRetirees, AUJOURDHUI)).toEqual(
       statistiquesDeChapitre(pool, sansRetirees, AUJOURDHUI),
     );
     expect(construireSeance(pool, avecRetirees, AUJOURDHUI, 15, hasardDeterministe(9))).toEqual(
       construireSeance(pool, sansRetirees, AUJOURDHUI, 15, hasardDeterministe(9)),
-    );
-    expect(cartesDifficiles(pool, avecRetirees, 12)).toEqual(
-      cartesDifficiles(pool, sansRetirees, 12),
     );
     expect(reussis([...prepare.unitesConnues], avecRetirees)).toBe(
       reussis([...prepare.unitesConnues], sansRetirees),

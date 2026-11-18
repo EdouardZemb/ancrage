@@ -297,10 +297,9 @@ const de = {
   progression_examen: '{points} / {questions} Punkte · {chapitres} Kapitel · {minutes} Min.',
   progression_note: 'Note {note}',
   progression_aucun_examen: 'Noch keine Probeprüfung – im Tab «{onglet}» starten.',
-  progression_difficiles: 'Schwierige Karten',
+  progression_rebelles: 'Schwierig – nochmal ansehen',
   progression_fausses: '{n}× falsch',
-  progression_aucune_faute:
-    'Noch keine Fehler – sobald eine Karte falsch beantwortet wird, erscheint sie hier.',
+  progression_aucun_rebelle: 'Keine schwierigen Begriffe.',
 } as const;
 
 export type CleTexteCours = keyof typeof de;

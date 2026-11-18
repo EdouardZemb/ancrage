@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 import type { UniteDeCarte } from '../cartes/unites.js';
 import type { EtatUnite } from './etat.js';
-import { cartesDifficiles, reussis, statistiquesDeChapitre } from './statistiques.js';
+import { reussis, statistiquesDeChapitre } from './statistiques.js';
 
 /*
  * Données factices, écrites à la main (invariant 7). Les états sont donnés directement : c'est
@@ -72,66 +72,6 @@ it('statistiques_de_chapitre_ignorent_les_etats_d_unites_hors_du_chapitre', () =
   const stats = statistiquesDeChapitre([unite('u1')], etats, AUJOURDHUI);
 
   expect(stats).toEqual({ total: 1, boites: [0, 0, 1, 0, 0, 0], sures: 0, dues: 1 });
-});
-
-it('cartes_difficiles_triees_par_fautes_moins_trois_dixiemes_des_justes', () => {
-  const unites = ['u1', 'u2', 'u3', 'u4', 'u5'].map(unite);
-  const etats = new Map<string, EtatUnite>([
-    ['u1', etat(1, '2026-10-17', 0, 2)], // score 2
-    ['u2', etat(1, '2026-10-17', 10, 3)], // 3 - 3 = 0
-    ['u3', etat(1, '2026-10-17', 0, 5)], // 5
-    ['u4', etat(5, '2026-10-17', 20, 1)], // 1 - 6 = -5
-    // u5 : jamais fausse, absente de la liste.
-    ['u5', etat(5, '2026-10-17', 7, 0)],
-  ]);
-
-  const difficiles = cartesDifficiles(unites, etats, 12);
-
-  expect(difficiles.map((d) => d.unite.id)).toEqual(['u3', 'u1', 'u2', 'u4']);
-  expect(difficiles[0].etat).toBe(etats.get('u3'));
-  expect(difficiles[3].etat).toEqual(etat(5, '2026-10-17', 20, 1));
-});
-
-it('cartes_difficiles_les_reussites_n_effacent_qu_une_partie_des_fautes', () => {
-  // Le poids d'une réussite est 0,3 : 10 réussites effacent 3 fautes, pas toutes.
-  const unites = ['longue', 'petite', 'grande', 'courte'].map(unite);
-  const etats = new Map<string, EtatUnite>([
-    ['petite', etat(1, '2026-10-17', 0, 1)], // 1
-    ['grande', etat(3, '2026-10-17', 10, 5)], // 5 - 3 = 2 : devant « petite »
-    ['courte', etat(1, '2026-10-17', 0, 2)], // 2
-    ['longue', etat(5, '2026-10-17', 20, 5)], // 5 - 6 = -1 : derrière « courte »
-  ]);
-
-  const difficiles = cartesDifficiles(unites, etats, 12);
-
-  expect(difficiles.map((d) => d.unite.id)).toEqual(['grande', 'courte', 'petite', 'longue']);
-});
-
-it('cartes_difficiles_limitees_a_n', () => {
-  const unites = Array.from({ length: 20 }, (_, i) => unite(`u${String(i).padStart(2, '0')}`));
-  const etats = new Map(unites.map((u, i) => [u.id, etat(1, '2026-10-17', 0, i + 1)] as const));
-
-  const douze = cartesDifficiles(unites, etats, 12);
-
-  expect(douze).toHaveLength(12);
-  expect(douze[0].unite.id).toBe('u19');
-  expect(douze[11].unite.id).toBe('u08');
-  expect(cartesDifficiles(unites, etats, 3).map((d) => d.unite.id)).toEqual(['u19', 'u18', 'u17']);
-  expect(cartesDifficiles(unites, etats, 0)).toEqual([]);
-});
-
-it('cartes_difficiles_a_egalite_gardent_l_ordre_du_cours', () => {
-  const unites = ['u1', 'u2', 'u3'].map(unite);
-  const etats = new Map(unites.map((u) => [u.id, etat(1, '2026-10-17', 0, 2)] as const));
-
-  expect(cartesDifficiles(unites, etats, 12).map((d) => d.unite.id)).toEqual(['u1', 'u2', 'u3']);
-});
-
-it('cartes_difficiles_sans_faute_est_vide', () => {
-  const etats = new Map<string, EtatUnite>([['u1', etat(3, '2026-10-17', 4, 0)]]);
-
-  expect(cartesDifficiles([unite('u1'), unite('u2')], etats, 12)).toEqual([]);
-  expect(cartesDifficiles([], new Map(), 12)).toEqual([]);
 });
 
 it('reussis_compte_les_unites_avec_au_moins_une_reponse_juste', () => {

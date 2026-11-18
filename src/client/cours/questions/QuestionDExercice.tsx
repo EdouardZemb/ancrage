@@ -25,7 +25,7 @@ export interface ReponseDExercice {
 }
 
 /** La réponse telle que le verdict la montre : un article est suivi de son mot. */
-function reponseMontree(exercice: Exercice): string {
+export function reponseMontree(exercice: Exercice): string {
   return TROU_D_ARTICLE.test(exercice.invite)
     ? `${exercice.reponse} ${exercice.invite.replace(TROU_D_ARTICLE, '')}`
     : exercice.reponse;

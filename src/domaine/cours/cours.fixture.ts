@@ -453,3 +453,27 @@ export function coursAvecChapitreAuManuelInconnu(): CoursServi {
     ),
   };
 }
+
+/**
+ * Le cours servi dont la carte `id` gagne ces champs, tels quels : une aide, un terme confondu, ou
+ * une valeur illisible qu'une version suivante pourrait servir (M6).
+ */
+export function coursAvecChampsDeCarte(
+  servi: CoursServi,
+  id: string,
+  champs: Record<string, unknown>,
+): CoursServi {
+  return {
+    ...servi,
+    modules: servi.modules.map((module) =>
+      module.type === 'cartes'
+        ? {
+            ...module,
+            cartes: module.cartes.map((carte) =>
+              carte.id === id ? { ...carte, ...champs } : carte,
+            ),
+          }
+        : module,
+    ),
+  };
+}

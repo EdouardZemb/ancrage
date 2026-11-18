@@ -584,7 +584,7 @@ confond : une carte retournée la montre au verso, une carte saisie avec le verd
 l'aide sont absentes du Quiz et de la Prüfung. La `correction` d'une affirmation vrai-faux et la
 `note` d'un schéma ne s'affichent que dans « Heute » ; les morceaux d'un mot et la règle d'un
 exercice sont montrés à tous, rebelle ou non. Fortschritt remplace
-« Schwierige Karten » par la liste « Schwierig – nochmal ansehen » : tous les rebelles, par module
+l'ancienne liste des cartes difficiles par la liste « Schwierig – nochmal ansehen » : tous les rebelles, par module
 puis par nombre de fautes, avec leur réponse, leur aide et « n× falsch ».
 
 **Un cours monté ne reçoit cette clé qu'une version après celle qui la connaît** : le manifeste est

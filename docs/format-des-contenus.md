@@ -371,7 +371,7 @@ une étape `revision` les reçoit dès la version qui les livre, sans changer so
 - **Ce que c'est** : une réponse comme une autre, sous le mode de son geste : juste, elle compte
   comme toute réponse juste (en Leitner, la boîte monte et repart de l'intervalle de la nouvelle
   boîte ; en FSRS, la stabilité croît, d'autant moins que l'élément est frais), et ce gain reste au
-  journal ; manquée, elle revient une fois et devient due.
+  journal ; manquée, elle revient une fois (sauf un élément rebelle, qui ne revient pas) et devient due.
 - **À l'écran** : la ligne de compte de « Heute » ajoute « · {n} zum Auffrischen », et une phrase
   dit l'étape et la raison. L'écran de fin ne propose « Nächste Runde » que pour des dues : une
   révision n'en relance pas. La clé de la séance gagne les révisions en cinquième part, seulement
@@ -556,7 +556,7 @@ rebelles:
 - `rebelles` est un objet strict : `fautes` y est obligatoire, un entier de 2 à 20. Une valeur
   hors de ces bornes, une chaîne, un nombre qui n'est pas entier (4.5) ou une clé de plus sont refusés ; `4.0`, qui
   est l'entier 4, est admis.
-- Absente, le seuil vaut 5 (4 avant la tranche 2 du lot M6) : un cours qui ne l'écrit pas suit le défaut.
+- Absente, le seuil vaut 5 : un cours qui ne l'écrit pas suit le défaut.
 - Une unité est celle du journal : une carte et son sens inverse sont deux unités, jugées chacune à
   part (M6-C1). Seuls les éléments que pose « Heute » peuvent être rebelles.
 - Une faute ne compte qu'après une première réponse juste de l'unité, et une seule par jour : la
@@ -587,7 +587,7 @@ Fortschritt (la fiche et l'onglet des schémas les montrent déjà à tous) ; le
 la règle d'un exercice sont montrés à tous, rebelle ou non. Dans les onglets (Wortbaukasten, schémas, exercices,
 fiches), la marque suit le journal : un élément qui devient rebelle par sa réponse la gagne sur
 l'écran du verdict. Fortschritt remplace
-l'ancienne liste des cartes difficiles par la liste « Schwierig – nochmal ansehen » : tous les rebelles, par module
+l'ancienne liste des cartes difficiles par la liste « Schwierige Begriffe – nochmal ansehen » : tous les rebelles, par module
 puis par nombre de fautes, avec leur réponse, leur aide et « n× falsch ».
 
 **Un cours monté ne reçoit cette clé qu'une version après celle qui la connaît** : le manifeste est

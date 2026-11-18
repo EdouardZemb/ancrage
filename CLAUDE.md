@@ -211,7 +211,7 @@ Le lot M2 a donné au cours sa séance du jour, « Heute » (ancrage#14) :
   l'aperçu ;
 - la séance mêle, en 20 éléments au plus, tout ce qui est dû aujourd'hui d'après `ordonnanceurDe`
   (cartes, mots, points de schéma, exercices, questions fermées de fiche), les plus en retard
-  d'abord, puis des cartes neuves (`src/domaine/seances/heute.ts`). Une faute revient une fois ;
+  d'abord, puis des cartes neuves (`src/domaine/seances/heute.ts`). Une faute revient une fois (sauf un élément rebelle, qui ne revient pas, lot M6) ;
 - les cartes neuves viennent du chapitre choisi dans Karteikarten, et `nouvelles_par_seance` y est
   un plafond par jour (sans planning ; avec un planning, elles suivent le rythme du lot M4) ;
 - la question de chaque onglet est un composant commun (`src/client/cours/questions/`), que l'onglet

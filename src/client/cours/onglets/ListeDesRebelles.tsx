@@ -1,5 +1,5 @@
 /*
- * La liste « Schwierig – nochmal ansehen » de Fortschritt (M6, T2-D9) : tous les éléments rebelles,
+ * La liste « Schwierige Begriffe – nochmal ansehen » de Fortschritt (M6, T2-D9) : tous les éléments rebelles,
  * rangés par module dans l'ordre du manifeste, sous le titre du module, puis par nombre de fautes
  * décroissant. Chaque ligne dit la question, la réponse, l'aide de l'élément et ses fautes au rejeu.
  * Elle est en lecture seule : on n'y répond pas, rien n'est gardé (invariant 5).

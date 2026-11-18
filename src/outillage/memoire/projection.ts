@@ -24,7 +24,8 @@ import type { ReussiteObservee } from './mesures.js';
  * - FSRS se simule avec `ts-fsrs` réglé comme le rejeu (poids du cours, plafond d'examen). Sa
  *   réussite est la rétention visée du cours : c'est une hypothèse, que le rapport dit.
  * - Une faute se redonne une fois le même jour, avec la réussite observée des réponses redonnées le
- *   même jour. Une seconde faute remet l'élément au lendemain.
+ *   même jour. Une seconde faute remet l'élément au lendemain. Limite : les éléments rebelles (M6),
+ *   qui ne se redonnent pas le même jour, ne sont pas modélisés : la charge est surestimée d'autant.
  * Une fonction pure : ni horloge, ni hasard caché.
  */
 

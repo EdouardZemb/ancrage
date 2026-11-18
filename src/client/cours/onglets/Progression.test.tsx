@@ -330,7 +330,7 @@ describe('Progression', () => {
   });
 
   describe('la_liste_des_rebelles', () => {
-    const TITRE = 'Schwierig – nochmal ansehen';
+    const TITRE = 'Schwierige Begriffe – nochmal ansehen';
     const HERZ = 'c1000001';
     const LEBER = 'c1000002';
     const NIERE = 'c1000003';
@@ -486,7 +486,7 @@ describe('Progression', () => {
 
       rendre([...trois, reponseDeTest(12, HERZ, true, '2026-10-12')]);
       expect(groupes()).toEqual([]);
-      expect(screen.getByText('Keine schwierigen Begriffe.')).toBeTruthy();
+      expect(screen.getByText('Noch keine schwierigen Begriffe.')).toBeTruthy();
     });
 
     it('sans_rebelle_la_section_le_dit_et_une_unite_retiree_n_y_figure_pas', () => {
@@ -494,7 +494,7 @@ describe('Progression', () => {
 
       expect(screen.getByRole('heading', { name: TITRE })).toBeTruthy();
       expect(groupes()).toEqual([]);
-      expect(screen.getByText('Keine schwierigen Begriffe.')).toBeTruthy();
+      expect(screen.getByText('Noch keine schwierigen Begriffe.')).toBeTruthy();
     });
   });
 
@@ -513,7 +513,7 @@ describe('Progression', () => {
     expect(screen.getAllByRole('heading').map((titre) => titre.textContent)).toEqual([
       'Letzte 14 Tage',
       'Probeprüfungen',
-      'Schwierig – nochmal ansehen',
+      'Schwierige Begriffe – nochmal ansehen',
     ]);
   });
 });

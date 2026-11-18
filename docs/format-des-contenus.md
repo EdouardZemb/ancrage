@@ -591,7 +591,8 @@ l'ancienne liste des cartes difficiles par la liste « Schwierige Begriffe – n
 puis par nombre de fautes, avec leur réponse, leur aide et « n× falsch ».
 
 **Un cours monté ne reçoit `rebelles` qu'à partir de la version qui suit la première étiquette posée
-après la `v0.19.0`** : le manifeste est strict, et la version en ligne la refuserait (invariant 8).
+après la `v0.19.0`** : le manifeste est strict, et l'image précédente, que le
+retour arrière remet en service, la refuserait (invariant 8).
 Le cours d'exemple fait exception : il est dans l'image, et l'écrit (`fautes: 3`).
 
 ### Dérogation de diffusion
@@ -731,7 +732,8 @@ Règles des cartes :
   qui n'est pas un texte ou un `confondu_avec` qui ne désigne aucune carte du cours servi ne
   s'affichent pas, et le cours reste utilisable. **Un cours monté ne reçoit ces clés
   qu'à partir de la version qui suit la première étiquette posée après la `v0.19.0`** : le module
-  est strict, et la version en ligne les refuserait (invariant 8).
+  est strict, et l'image précédente, que le retour arrière remet en service, les refuserait
+  (invariant 8).
   Le cours d'exemple, qui est dans l'image, les écrit.
 - Saisie d'une carte (sens « définition vers terme ») : une lettre fausse, en trop ou en moins est
   tolérée et signalée sur une réponse d'au moins six caractères, comptés après le repli de « ae »,

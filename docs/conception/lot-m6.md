@@ -60,9 +60,10 @@ Accepté par Edouard le 18/11/2026.
 - **M6-C7.** Trois réponses justes de suite sortent un élément de la liste, tous gestes confondus,
   Prüfung comprise, pré-test exclu. Ensuite, il ne redevient rebelle qu'en repassant le seuil.
 - **M6-C8.** La mesure : la tranche 1 livre le calcul et la case du rapport. Edouard lance alors le
-  rapport d'une personne sur une copie de la base de prod, avec la date de son accord, et ne
-  rapporte à la session que le seuil qu'il retient, sans aucun chiffre de la personne. D'après la
-  mesure faite sur le rapport de suivi, le seuil par défaut passe à 5 (T2-D1).
+  rapport d'une personne sur une copie de la base de prod, avec la date de son accord. Le cadrage
+  prévoyait qu'il ne rapporte à la session que le seuil retenu ; en fait, le rapport a été lu en
+  conversation, à la demande d'Edouard et avec l'accord de la personne, qu'il a relayé. Aucun
+  chiffre de la personne n'entre au dépôt : seul le seuil qui en découle, 5 par défaut (T2-D1).
 - **M6-C9.** Le lot se fait en deux tranches d'implémentation : le calcul, la clé du manifeste et le
   rapport (PR 63) ; puis « Heute », la marque, l'aide et la liste (PR 66).
 - **M6-C10.** La marque est une étiquette « schwierig » sur la question, dans « Heute » et dans les
@@ -123,7 +124,8 @@ Accepté par Edouard le 18/11/2026.
     omises.
 - **T1-D10.** Le rapport lit le seuil dans le manifeste du contenu donné par `--contenu`. Il n'a pas
   d'option de seuil : le tableau « selon le seuil » sert à le choisir.
-- **T1-D11.** Les écarts à l'issue de la tranche 1, déclarés dans la PR 63 (voir « Les écarts à la
+- **T1-D11.** Les écarts à l'issue de la tranche 1 : la PR 63 en a déclaré cinq ; l'entrée en
+  plusieurs jours, que le plan listait déjà, ne l'a été que par la PR 67 (voir « Les écarts à la
   spec »).
 
 ## La tranche 2 : « Heute », la marque, l'aide et la liste
@@ -293,18 +295,19 @@ Déclarés dans les PR 63, 66 et 67, avec la promesse qu'ils touchent et l'accor
 - **L'allemand des libellés nouveaux** (« schwierig », « Merkhilfe », « Nicht verwechseln mit: »,
   le titre de la liste, son état vide et le lien de « Heute »), qu'aucune personne germanophone n'a
   relus.
-- **Le rapport sur des journaux réels** : la mesure de M6-C8 a été faite par Edouard, hors de la
-  session, et n'a rapporté que le seuil.
+- **Le rapport sur des journaux réels** : la mesure de M6-C8 a été lue en conversation, à la
+  demande d'Edouard et avec l'accord de la personne, qu'il a relayé ; seul le seuil qui en découle
+  entre au dépôt. Aucune autre personne n'a été mesurée.
 
 ## Les suites
 
 - **Au registre** (`docs/registre.md`) : LE-25, une règle qui retire un élément d'un écran sans
   chercher les autres lecteurs de son état dérivé ; LE-26, un total à côté de cases filtrées d'un
-  rapport d'ensemble (3e constat du motif de LE-17, avec une porte proposée) ; LE-27, des décisions
-  de cadrage non déclarées comme écarts (3e constat du motif de LE-19 et LE-23, avec une porte) ;
+  rapport d'ensemble (3e constat du mécanisme de LE-17, avec une porte à écrire) ; LE-27, des
+  écarts à l'issue non déclarés (3e constat du mécanisme de LE-19 et LE-23, avec une porte) ;
   EM-3, le délai du job de mutation du groupe `domaine`, porté à 35 minutes.
-- **Dans « Au prochain passage » (ancrage#11)** : les suites sans urgence du lot, dont le groupe
-  `domaine` de la mutation à couper en deux.
+- **Dans « Au prochain passage » (ancrage#11)**, section « Les suites du lot M6 » : la liste y
+  est, dont le groupe `domaine` de la mutation à couper en deux et la porte de LE-26.
 - **Parmi les lots suivants de la milestone** : le rejeu d'une seule unité (ancrage#31) ; et le
   rapport de suivi qui mesure les reprises du jour (ancrage#64).
 - **La vérification sur Android et la mise en prod** : à Edouard, au staging d'abord, avant

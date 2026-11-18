@@ -278,7 +278,7 @@ Le lot M6 a livré les éléments rebelles (ancrage#32). Un élément rebelle es
 personne rate encore et encore ; le lot ne garde rien de nouveau :
 - le calcul se dérive du journal seul (`src/domaine/progression/rebelles.ts`, muté). La règle :
   après un premier succès, chaque faute compte, une par jour au plus ; l'unité est rebelle quand
-  ses fautes valent le seuil, et trois succès de suite les remettent à zéro (pré-test exclu) ;
+  ses fautes atteignent le seuil, et trois succès de suite les remettent à zéro (pré-test exclu) ;
 - le manifeste gagne la clé facultative `rebelles.fautes` (5 par défaut, de 2 à 20), et une carte
   gagne `aide` et `confondu_avec`. Un cours monté ne les reçoit qu'à partir de la version qui suit
   la première étiquette posée après la `v0.19.0` ;

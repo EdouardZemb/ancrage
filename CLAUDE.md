@@ -272,12 +272,33 @@ lot n'ajoute aucun mode au journal :
 - « Heute » offre, sous une carte à saisir, un lien vers les cartes retournées, et un autre pour
   revenir (`src/client/cours/onglets/Heute.tsx`).
 
-Ses décisions (« M5-D<n> ») sont dans `docs/conception/lot-m5.md`. Parmi les lots suivants de la
-milestone : le rejeu d'une seule unité (ancrage#31).
+Ses décisions (« M5-D<n> ») sont dans `docs/conception/lot-m5.md`.
+
+Le lot M6 a livré les éléments rebelles (ancrage#32). Un élément rebelle est un élément qu'une
+personne rate encore et encore ; le lot ne garde rien de nouveau :
+- le calcul se dérive du journal seul (`src/domaine/progression/rebelles.ts`, muté). La règle :
+  après un premier succès, chaque faute compte, une par jour au plus ; l'unité est rebelle quand
+  ses fautes valent le seuil, et trois succès de suite les remettent à zéro (pré-test exclu) ;
+- le manifeste gagne la clé facultative `rebelles.fautes` (5 par défaut, de 2 à 20), et une carte
+  gagne `aide` et `confondu_avec`. Un cours monté ne les reçoit qu'à partir de la version qui suit
+  la première étiquette posée après la `v0.19.0` ;
+- « Heute » ne repose un rebelle qu'une fois par jour : un rebelle manqué ne revient pas en fin de
+  file, et revient le lendemain. Übersicht retire ces éléments de son compte du jour. L'ordonnanceur
+  ne change pas, et les autres onglets posent un rebelle comme avant ;
+- la question d'un rebelle porte la marque « schwierig », et montre une aide après la réponse (celle
+  de la carte, ou ce que le genre porte déjà) ; le Quiz et la Prüfung n'ont ni l'une ni l'autre ;
+- la liste « Schwierige Begriffe – nochmal ansehen » de Fortschritt remplace « Schwierige Karten » :
+  tous les rebelles, par module, avec leur réponse et leur aide, en lecture seule ;
+- le rapport de suivi compte les rebelles par chapitre, et donne, pour une personne, un tableau
+  selon le seuil.
+
+Ses décisions (« M6-C<n> », « T1-D<n> », « T2-D<n> ») sont dans `docs/conception/lot-m6.md`. Parmi
+les lots suivants de la milestone : le rejeu d'une seule unité (ancrage#31), et un rapport de suivi
+qui mesure les reprises du jour (ancrage#64).
 
 Les suites sans urgence d'un lot vont dans une issue « Au prochain passage »
 (ancrage-donnees#81 est fermée ; celle des lots 2c, 2d, F3, S1 et S2 est ancrage-donnees#156 ; celle
-des lots M1, M2, M3, M4 et M5 est ancrage#11). Une
+des lots M1 à M6 est ancrage#11). Une
 PR qui touche un fichier de cette liste regarde sa case, et la coche si elle la règle.
 
 Le déploiement est aligné sur la cible `serveur` de `modele-projet` (l'alignement date du lot 2 du

@@ -590,9 +590,9 @@ l'écran du verdict. Fortschritt remplace
 l'ancienne liste des cartes difficiles par la liste « Schwierige Begriffe – nochmal ansehen » : tous les rebelles, par module
 puis par nombre de fautes, avec leur réponse, leur aide et « n× falsch ».
 
-**Un cours monté ne reçoit cette clé qu'une version après celle qui la connaît** : le manifeste est
-strict, et la version en ligne la refuserait (invariant 8). Le cours d'exemple fait exception : il
-est dans l'image, et l'écrit (`fautes: 3`).
+**Un cours monté ne reçoit `rebelles` qu'à partir de la version qui suit la première étiquette posée
+après la `v0.19.0`** : le manifeste est strict, et la version en ligne la refuserait (invariant 8).
+Le cours d'exemple fait exception : il est dans l'image, et l'écrit (`fautes: 3`).
 
 ### Dérogation de diffusion
 
@@ -729,9 +729,10 @@ Règles des cartes :
   portent ; la liste à relire montre le recto de la carte visée.
 - Le client lit ces deux clés sans rigueur : la garde du cours servi ne les nomme pas, une `aide`
   qui n'est pas un texte ou un `confondu_avec` qui ne désigne aucune carte du cours servi ne
-  s'affichent pas, et le cours reste utilisable. **Un cours monté ne reçoit ces clés qu'une version
-  après celle qui les connaît** : le module est strict, et la version en ligne les refuserait
-  (invariant 8). Le cours d'exemple, qui est dans l'image, les écrit.
+  s'affichent pas, et le cours reste utilisable. **Un cours monté ne reçoit ces clés
+  qu'à partir de la version qui suit la première étiquette posée après la `v0.19.0`** : le module
+  est strict, et la version en ligne les refuserait (invariant 8).
+  Le cours d'exemple, qui est dans l'image, les écrit.
 - Saisie d'une carte (sens « définition vers terme ») : une lettre fausse, en trop ou en moins est
   tolérée et signalée sur une réponse d'au moins six caractères, comptés après le repli de « ae »,
   « oe » et « ue » ; « ue » vaut « ü ». Un ou plusieurs trémas oubliés ou en trop (« u » pour « ü »,

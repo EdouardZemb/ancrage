@@ -329,7 +329,7 @@ Sur le poste, `pnpm` s'appelle par `corepack pnpm …` ; en CI, `corepack enable
   lot M2), qui a besoin d'un compte neuf sur une base à lui : la suite principale n'a qu'un lien
   de propriétaire, que le parcours de compte consomme.
 - `corepack pnpm mutation` : tests de mutation (Stryker) de `src/domaine/acces.ts`, de
-  `src/domaine/journal/*.ts` (tests exclus), de `src/domaine/progression/etat.ts`, `fsrs.ts`, `ordonnanceur.ts` et `reglages.ts`, de
+  `src/domaine/journal/*.ts` (tests exclus), de `src/domaine/progression/etat.ts`, `fsrs.ts`, `ordonnanceur.ts`, `rebelles.ts` et `reglages.ts`, de
   `src/domaine/feuilles/deroulement.ts` et `correction.ts`, de
   `src/domaine/seances/feuilles.ts`, `heute.ts`, `planning.ts`, `rythme.ts`, `pretest.ts`,
   `semestre.ts` et `revisions.ts`, de

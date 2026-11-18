@@ -1,6 +1,14 @@
 import { FSRS6_DEFAULT_WEIGHTS } from 'ts-fsrs/models/fsrs-6';
 import { expect, it } from 'vitest';
-import { estDateIso, lireReglagesDeMemoire, poidsFsrsValides } from './reglages.js';
+import {
+  estDateIso,
+  FAUTES_MAXIMUM,
+  FAUTES_MINIMUM,
+  FAUTES_PAR_DEFAUT,
+  lireReglagesDeMemoire,
+  lireSeuilDesRebelles,
+  poidsFsrsValides,
+} from './reglages.js';
 
 const POIDS = [...FSRS6_DEFAULT_WEIGHTS];
 
@@ -112,4 +120,18 @@ it('par_chapitre_sans_chapitres_ou_avec_une_liste_vide_est_ignore', () => {
     ...base,
     chapitres: ['abcd2345'],
   });
+});
+
+it('seuil_des_rebelles_lu_sans_rigueur', () => {
+  expect(lireSeuilDesRebelles({ fautes: 2 })).toBe(2);
+  expect(lireSeuilDesRebelles({ fautes: 20 })).toBe(20);
+  expect(lireSeuilDesRebelles({ fautes: 5, autre: 1 })).toBe(5);
+  for (const valeur of [undefined, null, 7, 'x', [], {}, { fautes: '4' }, { fautes: 4.5 }]) {
+    expect(lireSeuilDesRebelles(valeur)).toBe(FAUTES_PAR_DEFAUT);
+  }
+  expect(lireSeuilDesRebelles({ fautes: 1 })).toBe(FAUTES_PAR_DEFAUT);
+  expect(lireSeuilDesRebelles({ fautes: 21 })).toBe(FAUTES_PAR_DEFAUT);
+  expect(FAUTES_PAR_DEFAUT).toBe(4);
+  expect(FAUTES_MINIMUM).toBe(2);
+  expect(FAUTES_MAXIMUM).toBe(20);
 });

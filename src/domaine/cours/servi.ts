@@ -62,6 +62,8 @@ function carteServie(carte: Carte): Carte {
     recto: carte.recto,
     verso: carte.verso,
     ...(carte.reponses === undefined ? {} : { reponses: [...carte.reponses] }),
+    ...(carte.aide === undefined ? {} : { aide: carte.aide }),
+    ...(carte.confonduAvec === undefined ? {} : { confonduAvec: carte.confonduAvec }),
     ...etatServi(carte),
   };
 }

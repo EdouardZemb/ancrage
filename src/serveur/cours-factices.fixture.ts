@@ -74,6 +74,12 @@ const RELUS: readonly { chemin: string; avant: string; apres: string }[] = [
     apres: '    titre: "Bericht 1"\n    statut: "vérifié"\n    verifie_le: "2026-10-04"\n',
   },
   {
+    // Une aide et un terme confondu : les clés `aide` et `confonduAvec` d'une carte sont servies (M6).
+    chemin: 'essai/cartes/02-vorsilben.yaml',
+    avant: '    reponses: ["proto"]\n',
+    apres: '    reponses: ["proto"]\n    aide: "Kleiner Merksatz"\n    confondu_avec: "rzbyrqna"\n',
+  },
+  {
     chemin: 'essai/exercices.yaml',
     avant: '        reponse: "der"\n',
     apres: '        reponse: "der"\n        statut: "vérifié"\n        verifie_le: "2026-10-05"\n',

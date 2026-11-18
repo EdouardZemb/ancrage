@@ -23,6 +23,10 @@ export interface UniteDeCarte {
   reponse: string;
   /** Présentes sur l'inverse seulement, quand la carte en a. */
   reponses?: string[];
+  /** L'aide de la carte, sur les deux sens (M6, T2-D8). */
+  aide?: string;
+  /** L'identifiant de la carte avec laquelle celle-ci se confond, sur les deux sens (M6). */
+  confonduAvec?: string;
 }
 
 /** Pour chaque question inverse canonisée, toutes les réponses acceptées, tous modules confondus. */
@@ -42,6 +46,8 @@ export function unitesDeCartes(
         module: moduleCartes.id,
         numero: moduleCartes.numero,
         type: carte.type,
+        ...(carte.aide === undefined ? {} : { aide: carte.aide }),
+        ...(carte.confonduAvec === undefined ? {} : { confonduAvec: carte.confonduAvec }),
       };
       unites.push({
         id: carte.id,
@@ -106,4 +112,34 @@ export function reponsesAcceptees(
       ? alternativesDeCarte({ recto: unite.reponse, reponses: unite.reponses })
       : alternatives(unite.reponse))
   );
+}
+
+export interface AideDeCarte {
+  /** L'aide écrite de la carte. */
+  texte?: string;
+  /** Le recto et le verso de la carte avec laquelle celle-ci se confond. */
+  confusion?: { recto: string; verso: string };
+}
+
+/**
+ * Ce qu'on montre à un élément rebelle sous une carte (M6, T2-D8) : son aide, et la carte avec
+ * laquelle on la confond, cherchée parmi les unités directes de `unites`. Lit sans rigueur
+ * (T2-D13) : une aide qui n'est pas un texte, ou un `confonduAvec` qui ne désigne aucune carte
+ * des unités, n'est pas montré. `undefined` quand il n'y a rien à montrer.
+ */
+export function aideDeLUnite(
+  unite: UniteDeCarte,
+  unites: readonly UniteDeCarte[],
+): AideDeCarte | undefined {
+  const { aide, confonduAvec } = unite as { aide?: unknown; confonduAvec?: unknown };
+  const texte = typeof aide === 'string' && aide.length > 0 ? aide : undefined;
+  const visee =
+    typeof confonduAvec === 'string'
+      ? unites.find((u) => u.sens === 'direct' && u.id === confonduAvec)
+      : undefined;
+  if (texte === undefined && visee === undefined) return undefined;
+  return {
+    ...(texte === undefined ? {} : { texte }),
+    ...(visee === undefined ? {} : { confusion: { recto: visee.question, verso: visee.reponse } }),
+  };
 }

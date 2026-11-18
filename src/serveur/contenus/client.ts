@@ -45,6 +45,7 @@ export function textesDuCours(cours: Cours): string[] {
           ajouter(carte.recto);
           ajouter(carte.verso);
           carte.reponses?.forEach(ajouter);
+          if (carte.aide !== undefined) ajouter(carte.aide);
         }
         break;
       case 'morphologie':

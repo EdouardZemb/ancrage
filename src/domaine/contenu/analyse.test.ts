@@ -1284,6 +1284,75 @@ modules: ["${CHAPITRE_2}"]`),
     ]);
   });
 
+  it('une_carte_admet_une_aide_et_un_confondu_avec_recopies_dans_le_modele', () => {
+    const fichiers = modifier(
+      exempleDeCours(),
+      CARTES_2,
+      'reponses: ["proto"]',
+      'reponses: ["proto"]\n    aide: "Kleiner Merksatz"\n    confondu_avec: "rzbyrqna"',
+    );
+    const analyse = analyserContenus(fichiers);
+
+    expect(analyse.erreurs).toEqual([]);
+    const module = moduleDe(analyse.cours[0].modules, CARTES_2, 'cartes');
+    expect(module.cartes[0]).toMatchObject({ aide: 'Kleiner Merksatz', confonduAvec: 'rzbyrqna' });
+    expect(module.cartes[1]).not.toHaveProperty('aide');
+    expect(module.cartes[1]).not.toHaveProperty('confonduAvec');
+  });
+
+  it('confondu_avec_admet_une_carte_d_un_module_lu_plus_tard_ou_plus_tot', () => {
+    const versLeSuivant = modifier(
+      exempleDeCours(),
+      CARTES_1,
+      'verso: "Erfundenes Organ für Übungszwecke"',
+      'verso: "Erfundenes Organ für Übungszwecke"\n    confondu_avec: "rzbyrqna"',
+    );
+    expect(analyserContenus(versLeSuivant).erreurs).toEqual([]);
+    const versLePrecedent = modifier(
+      exempleDeCours(),
+      CARTES_2,
+      'verso: "gegen"',
+      'verso: "gegen"\n    confondu_avec: "ed3d8me1"',
+    );
+    expect(analyserContenus(versLePrecedent).erreurs).toEqual([]);
+  });
+
+  it('refuse_un_confondu_avec_qui_n_est_pas_une_carte_du_cours', () => {
+    const avec = (cible: string) =>
+      erreursApres(
+        CARTES_2,
+        'reponses: ["proto"]',
+        `reponses: ["proto"]\n    confondu_avec: "${cible}"`,
+      );
+    const message = /aucune carte de ce cours/;
+    // inconnu, identifiant d'un autre élément (un module, un morphème), identifiant mal formé
+    expect(avec('zzzzzzzz')).toEqual([erreur(CARTES_2, 'cartes[0].confondu_avec', message)]);
+    expect(avec(MORPHOLOGIE_ID)).toEqual([erreur(CARTES_2, 'cartes[0].confondu_avec', message)]);
+    expect(avec('w59xqe2s')).toEqual([erreur(CARTES_2, 'cartes[0].confondu_avec', message)]);
+    expect(avec('x')).toEqual([erreur(CARTES_2, 'cartes[0].confondu_avec', /mal formé/)]);
+  });
+
+  it('refuse_une_carte_confondue_avec_elle_meme', () => {
+    expect(
+      erreursApres(
+        CARTES_2,
+        'reponses: ["proto"]',
+        'reponses: ["proto"]\n    confondu_avec: "4g84caqa"',
+      ),
+    ).toEqual([erreur(CARTES_2, 'cartes[0].confondu_avec', /elle-même/)]);
+  });
+
+  it('refuse_une_aide_vide_a_espace_de_bord_multiligne_ou_trop_longue', () => {
+    const avec = (aide: string) =>
+      erreursApres(CARTES_2, 'reponses: ["proto"]', `reponses: ["proto"]\n    aide: "${aide}"`);
+    expect(avec('')).toEqual([erreur(CARTES_2, 'cartes[0].aide', /vide/)]);
+    expect(avec(' Merksatz')).toEqual([erreur(CARTES_2, 'cartes[0].aide', /espace/)]);
+    expect(avec('Merksatz ')).toEqual([erreur(CARTES_2, 'cartes[0].aide', /espace/)]);
+    expect(avec('eins\\nzwei')).toEqual([erreur(CARTES_2, 'cartes[0].aide', /saut de ligne/)]);
+    expect(avec('x'.repeat(301))).toEqual([erreur(CARTES_2, 'cartes[0].aide', /300 caractères/)]);
+    expect(avec('x'.repeat(300))).toEqual([]);
+  });
+
   it('refuse_un_type_de_carte_inconnu', () => {
     expect(erreursApres(CARTES_1, 'type: "g"', 'type: "z"')).toEqual([
       erreur(CARTES_1, 'cartes[2].type', /types_de_carte/),

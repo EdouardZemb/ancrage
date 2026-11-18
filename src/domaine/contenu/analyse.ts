@@ -308,6 +308,7 @@ function analyserCours(
   controlerModulesUniques(analyse, modules);
   if (toutLu) {
     controlerChapitres(analyse, modules);
+    controlerConfusions(analyse, modules);
     controlerChapitresDeMemoire(analyse, fichierCours, ecrit.memoire?.chapitres, modules);
     controlerModulesDuPlanning(analyse, fichierCours, ecrit.planning, identifiantsLus);
     for (const chemin of chemins) {
@@ -436,6 +437,8 @@ function resoudreCartes(
       recto: carte.recto,
       verso: carte.verso,
       ...(carte.reponses === undefined ? {} : { reponses: carte.reponses }),
+      ...(carte.aide === undefined ? {} : { aide: carte.aide }),
+      ...(carte.confondu_avec === undefined ? {} : { confonduAvec: carte.confondu_avec }),
       ...etatHerite(carte, parent),
     };
   });
@@ -834,6 +837,36 @@ function controlerChapitres(analyse: Analyse, modules: readonly Module[]) {
           `chapitres[${rang}]`,
           'Ce chapitre ne désigne aucun module de cartes de ce cours.',
         );
+      }
+    });
+  }
+}
+
+/**
+ * `confondu_avec` désigne une autre carte du cours, de n'importe quel module de cartes : le
+ * contrôle attend que tous les modules soient lus (T2-D6). Un identifiant qui n'est pas celui d'une
+ * carte (inconnu, retiré, d'un autre élément) et celui de la carte elle-même sont refusés.
+ */
+function controlerConfusions(analyse: Analyse, modules: readonly Module[]) {
+  const cartes = new Set<string>();
+  for (const module of modules) {
+    if (module.type !== 'cartes') continue;
+    for (const carte of module.cartes) cartes.add(carte.id);
+  }
+  for (const module of modules) {
+    if (module.type !== 'cartes') continue;
+    module.cartes.forEach((carte, rang) => {
+      if (carte.confonduAvec === undefined) return;
+      const lieu = `cartes[${rang}].confondu_avec`;
+      if (carte.confonduAvec === carte.id) {
+        signaler(
+          analyse,
+          module.fichier,
+          lieu,
+          'Une carte ne peut pas être confondue avec elle-même.',
+        );
+      } else if (!cartes.has(carte.confonduAvec)) {
+        signaler(analyse, module.fichier, lieu, 'Ce terme ne désigne aucune carte de ce cours.');
       }
     });
   }

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Carte, ModuleCartes } from '../contenu/modele.js';
 import { carte } from '../cours/cours.fixture.js';
 import { canonique } from './reponses.js';
-import { indexerReponses, reponsesAcceptees, unitesDeCartes } from './unites.js';
+import { aideDeLUnite, indexerReponses, reponsesAcceptees, unitesDeCartes } from './unites.js';
 
 function moduleDeCartes(id: string, numero: number, cartes: Carte[]): ModuleCartes {
   return {
@@ -199,5 +199,81 @@ describe('unites', () => {
 
     expect(directe).toBeDefined();
     expect(triees(reponsesAcceptees(directe as (typeof unites)[number], index))).toEqual(['herz']);
+  });
+});
+
+describe('aide_des_unites', () => {
+  const avecAide = (id: string, extra: Partial<Carte>): Carte => ({
+    ...carte(id, 'b', `Recto ${id}`, `Verso ${id}`),
+    ...extra,
+  });
+  const lesUnites = () =>
+    unitesDeCartes([
+      moduleDeCartes('mod00001', 1, [
+        avecAide('aaaaaaa1', { aide: 'Merke', confonduAvec: 'bbbbbbb1' }),
+        avecAide('aaaaaaa2', { aide: 'Nur eine Hilfe' }),
+        avecAide('aaaaaaa3', { confonduAvec: 'bbbbbbb1' }),
+        avecAide('aaaaaaa4', { confonduAvec: 'inconnu1' }),
+        avecAide('aaaaaaa5', {}),
+      ]),
+      moduleDeCartes('mod00002', 2, [carte('bbbbbbb1', 'b', 'Niere', 'Paariges Organ')]),
+    ]);
+  const unite = (unites: ReturnType<typeof lesUnites>, id: string) => {
+    const trouvee = unites.find((u) => u.id === id);
+    if (trouvee === undefined) throw new Error(`unité ${id} absente`);
+    return trouvee;
+  };
+
+  it('les_deux_sens_portent_l_aide_et_le_confondu_avec_et_pas_sans_eux', () => {
+    const unites = lesUnites();
+
+    for (const id of ['aaaaaaa1', 'aaaaaaa1:inverse']) {
+      expect(unite(unites, id)).toMatchObject({ aide: 'Merke', confonduAvec: 'bbbbbbb1' });
+    }
+    for (const id of ['aaaaaaa5', 'aaaaaaa5:inverse', 'bbbbbbb1', 'bbbbbbb1:inverse']) {
+      expect(unite(unites, id)).not.toHaveProperty('aide');
+      expect(unite(unites, id)).not.toHaveProperty('confonduAvec');
+    }
+    expect(unite(unites, 'aaaaaaa2')).not.toHaveProperty('confonduAvec');
+    expect(unite(unites, 'aaaaaaa3')).not.toHaveProperty('aide');
+  });
+
+  it('aide_de_l_unite_seule_confusion_seule_ou_les_deux_depuis_l_un_ou_l_autre_sens', () => {
+    const unites = lesUnites();
+    const niere = { recto: 'Niere', verso: 'Paariges Organ' };
+
+    expect(aideDeLUnite(unite(unites, 'aaaaaaa2'), unites)).toStrictEqual({
+      texte: 'Nur eine Hilfe',
+    });
+    expect(aideDeLUnite(unite(unites, 'aaaaaaa3'), unites)).toStrictEqual({ confusion: niere });
+    expect(aideDeLUnite(unite(unites, 'aaaaaaa1'), unites)).toStrictEqual({
+      texte: 'Merke',
+      confusion: niere,
+    });
+    expect(aideDeLUnite(unite(unites, 'aaaaaaa1:inverse'), unites)).toStrictEqual({
+      texte: 'Merke',
+      confusion: niere,
+    });
+  });
+
+  it('aide_de_l_unite_sans_rien_a_montrer_ou_lue_sans_rigueur', () => {
+    const unites = lesUnites();
+
+    expect(aideDeLUnite(unite(unites, 'aaaaaaa5'), unites)).toBeUndefined();
+    // La cible n'est pas dans le cours servi : la confusion ne s'affiche pas.
+    expect(aideDeLUnite(unite(unites, 'aaaaaaa4'), unites)).toBeUndefined();
+    const illisible = {
+      ...unite(unites, 'aaaaaaa1'),
+      aide: 42,
+      confonduAvec: { id: 'x' },
+    } as unknown as ReturnType<typeof lesUnites>[number];
+    expect(aideDeLUnite(illisible, unites)).toBeUndefined();
+    // Une aide illisible n'empêche pas la confusion lisible.
+    const sansAide = { ...unite(unites, 'aaaaaaa1'), aide: 42 } as unknown as ReturnType<
+      typeof lesUnites
+    >[number];
+    expect(aideDeLUnite(sansAide, unites)).toStrictEqual({
+      confusion: { recto: 'Niere', verso: 'Paariges Organ' },
+    });
   });
 });

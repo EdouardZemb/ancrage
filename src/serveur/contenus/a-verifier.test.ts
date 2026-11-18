@@ -19,7 +19,12 @@ function cours(modules: Module[]): Cours {
   };
 }
 
-function carte(id: string, statut: Statut, recto = 'r', extra: { reponses?: string[] } = {}) {
+function carte(
+  id: string,
+  statut: Statut,
+  recto = 'r',
+  extra: { reponses?: string[]; aide?: string; confonduAvec?: string } = {},
+) {
   return { id, type: 'b', recto, verso: 'v', statut, ...extra };
 }
 
@@ -364,5 +369,51 @@ describe("sur le cours d'exemple", () => {
 
     expect(liste.map((m) => m.fichier)).toEqual(['kueche/cartes/02-zutaten.yaml']);
     expect(nombreDElements(liste)).toBe(1);
+  });
+});
+
+describe('a_verifier, aide et confondu_avec', () => {
+  const coursAvecAide = () =>
+    cours([
+      {
+        type: 'cartes',
+        id: 'm',
+        fichier: 'a.yaml',
+        numero: 1,
+        titre: 'T',
+        cartes: [
+          carte('k1', V, 'Vorne', { aide: 'Merke <b>', confonduAvec: 'k2' }),
+          carte('k2', S, 'Hinten & Co'),
+          carte('k3', V, 'Allein', { reponses: ['eins'], aide: 'Nur Hilfe' }),
+        ],
+      },
+    ]);
+
+  it('la_liste_donne_l_aide_et_le_recto_de_la_carte_visee', () => {
+    const [cartes] = listeAVerifier(coursAvecAide());
+
+    expect(cartes.elements[0].champs).toEqual([
+      { libelle: 'Vorderseite', valeur: 'Vorne' },
+      { libelle: 'Rückseite', valeur: 'v' },
+      { libelle: 'Merkhilfe', valeur: 'Merke <b>' },
+      { libelle: 'Nicht verwechseln mit', valeur: 'Hinten & Co' },
+    ]);
+    expect(cartes.elements[1].champs.map((c) => c.libelle)).toEqual([
+      'Vorderseite',
+      'Rückseite',
+      'Antworten',
+      'Merkhilfe',
+    ]);
+  });
+
+  it('la_page_imprime_chaque_champ_de_la_carte_sous_son_libelle_et_echappe', () => {
+    const html = htmlAVerifier(listeAVerifier(coursAvecAide()), '01.11.2026');
+
+    expect(html).toContain('Merkhilfe:');
+    expect(html).toContain('Merke &lt;b&gt;');
+    expect(html).toContain('Nicht verwechseln mit:');
+    expect(html).toContain('Hinten &amp; Co');
+    expect(html).toContain('Auch richtig:');
+    expect(html).not.toContain('Merke <b>');
   });
 });

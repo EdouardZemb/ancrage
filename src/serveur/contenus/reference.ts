@@ -281,6 +281,8 @@ export function calculerReference(cours: Cours): Reference {
       sens: unite.sens,
       question: unite.question,
       reponse: unite.reponse,
+      ...(unite.aide === undefined ? {} : { aide: unite.aide }),
+      ...(unite.confonduAvec === undefined ? {} : { confonduAvec: unite.confonduAvec }),
       acceptees: [...reponsesAcceptees(unite, index)].sort(),
     })),
     morphemes: modules.morphologie.flatMap((module) =>

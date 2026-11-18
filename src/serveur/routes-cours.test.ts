@@ -350,6 +350,8 @@ describe('GET /api/cours/:id', () => {
     const CLES_ATTENDUES = {
       cartes: [
         'cartes',
+        'cartes[].aide',
+        'cartes[].confonduAvec',
         'cartes[].id',
         'cartes[].recto',
         'cartes[].reponses',

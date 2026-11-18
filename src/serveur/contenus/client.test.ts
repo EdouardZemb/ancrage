@@ -469,3 +469,22 @@ describe('chercherTextesDansClient', () => {
     ]);
   });
 });
+
+describe('textesDuCours, l_aide_d_une_carte', () => {
+  it('l_aide_est_un_texte_du_cours_et_le_confondu_avec_un_identifiant_non', () => {
+    const fichiers = modifier(
+      exempleDeCours(),
+      'essai/cartes/02-vorsilben.yaml',
+      'reponses: ["proto"]',
+      'reponses: ["proto"]\n    aide: "Kleiner Merksatz für Karten"\n    confondu_avec: "rzbyrqna"',
+    );
+    const resultat = analyserContenus(fichiers);
+    expect(resultat.erreurs).toEqual([]);
+
+    const textes = textesDuCours(resultat.cours[0]);
+
+    expect(textes).toContain('Kleiner Merksatz für Karten');
+    expect(textes).not.toContain('rzbyrqna');
+    expect(textesDeLExemple()).not.toContain('Kleiner Merksatz für Karten');
+  });
+});

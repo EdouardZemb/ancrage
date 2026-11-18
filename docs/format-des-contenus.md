@@ -573,8 +573,17 @@ rebelles:
 **Le client lit sans rigueur** (T1-D6) : une valeur qui n'est pas un objet portant un entier `fautes`
 de 2 à 20 vaut 5, et le cours reste admis.
 
-**Ce que la clé change dans cette version** : le rapport de suivi seul compte les rebelles par
-chapitre. « Heute » et la liste viennent avec la tranche suivante du lot.
+**Ce que la clé change** : le seuil par défaut est 5 (M6-C8). Le rapport de suivi compte les
+rebelles par chapitre. Dans « Heute » (M6-C3), un rebelle qui a déjà une réponse aujourd'hui, dans
+« Heute » ou dans un onglet, n'est plus posé le jour même, et un rebelle manqué pendant la séance
+sort au lieu de revenir en fin de file ; l'ordonnanceur, lui, ne change pas, et les autres onglets
+posent un rebelle comme avant. Le compte « heute zu wiederholen » d'« Übersicht » est celui de
+« Heute » : il retire les rebelles écartés. Un rebelle porte l'étiquette « schwierig » sur sa
+question (hors Quiz et Prüfung) et montre, une fois qu'il a cherché, l'`aide` de sa carte et la
+carte avec laquelle on la confond ; le mot, l'exercice, l'affirmation vrai-faux et le point de
+schéma montrent leur texte déjà écrit (morceaux, règle, correction, note). Fortschritt remplace
+« Schwierige Karten » par la liste « Schwierig – nochmal ansehen » : tous les rebelles, par module
+puis par nombre de fautes, avec leur réponse, leur aide et « n× falsch ».
 
 **Un cours monté ne reçoit cette clé qu'une version après celle qui la connaît** : le manifeste est
 strict, et la version en ligne la refuserait (invariant 8). Le cours d'exemple fait exception : il
@@ -683,6 +692,8 @@ cartes:
     # verifie_le: "2027-01-20"
     # reponses:              # réponses acceptées explicites
     #   - "…"
+    # aide: "Eine Eselsbrücke in einer Zeile."   # voir « Les éléments rebelles »
+    # confondu_avec: "<id d'une autre carte du cours>"
 ```
 
 Règles des cartes :
@@ -699,6 +710,23 @@ Règles des cartes :
   - elle compte aussi pour le test de fuite, qui décide si l'unité inverse de la carte existe : il
     se fait avec les mêmes réponses (`canonique(recto)` et celles de `reponses`), et non avec les
     alternatives du recto.
+- `aide`, si elle est présente (M6), est un texte d'une ligne : non vide, sans espace de bord,
+  sans tabulation ni saut de ligne, de 300 caractères au plus (comptés comme JavaScript les compte).
+  Elle est un texte du cours : elle entre dans la liste à relire, dans les textes que `contenus:client`
+  cherche dans le client construit et dans l'instantané de référence, sous le statut de sa carte.
+  Ajouter une aide à une carte « vérifiée » est une modification de contenu comme une autre, que la
+  PR de contenu juge : aucun mécanisme ne rétrograde le statut.
+- `confondu_avec`, si elle est présente (M6), est l'identifiant d'une autre carte du cours, de
+  n'importe quel module de cartes (le contrôle attend que tous les modules soient lus). Sont
+  refusés, chacun avec son message : un identifiant qui n'est pas celui d'une carte du cours (une
+  carte retirée, ou un autre élément, en est un cas) et celui de la carte elle-même. Le lien n'est
+  pas réciproque d'office : chaque carte écrit le sien. La liste à relire et l'instantané le
+  portent ; la liste à relire montre le recto de la carte visée.
+- Le client lit ces deux clés sans rigueur : la garde du cours servi ne les nomme pas, une `aide`
+  qui n'est pas un texte ou un `confondu_avec` qui ne désigne aucune carte du cours servi ne
+  s'affichent pas, et le cours reste utilisable. **Un cours monté ne reçoit ces clés qu'une version
+  après celle qui les connaît** : le module est strict, et la version en ligne les refuserait
+  (invariant 8). Le cours d'exemple, qui est dans l'image, les écrit.
 - Saisie d'une carte (sens « définition vers terme ») : une lettre fausse, en trop ou en moins est
   tolérée et signalée sur une réponse d'au moins six caractères, comptés après le repli de « ae »,
   « oe » et « ue » ; « ue » vaut « ü ». Un ou plusieurs trémas oubliés ou en trop (« u » pour « ü »,

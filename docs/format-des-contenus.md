@@ -545,7 +545,7 @@ sa mise à jour, au lancement suivant.
 ### Les éléments rebelles
 
 La clé facultative `rebelles` fixe le seuil à partir duquel une unité est dite rebelle : une carte, un
-mot, un point de schéma, un exercice ou une question de fiche qui retombe dans la faute après avoir
+mot, un point de schéma, un exercice ou une question fermée de fiche qui retombe dans la faute après avoir
 été sue.
 
 ```yaml
@@ -557,7 +557,8 @@ rebelles:
   hors de ces bornes, une chaîne, un nombre qui n'est pas entier (4.5) ou une clé de plus sont refusés ; `4.0`, qui
   est l'entier 4, est admis.
 - Absente, le seuil vaut 4 : un cours qui ne l'écrit pas ne change pas.
-- Une unité est celle du journal : une carte et son sens inverse sont deux unités (M6-C1).
+- Une unité est celle du journal : une carte et son sens inverse sont deux unités, jugées chacune à
+  part (M6-C1). Seuls les éléments que pose « Heute » peuvent être rebelles.
 - Une faute ne compte qu'après une première réponse juste de l'unité, et une seule par jour : la
   faute d'une ronde et celle de son retour, le même jour, n'en font qu'une (T1-D4). Le jour de cette
   faute ne s'oublie pas quand les fautes reviennent à zéro : une faute, trois succès, puis une

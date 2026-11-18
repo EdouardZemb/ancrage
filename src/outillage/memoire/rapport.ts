@@ -39,8 +39,9 @@ import { FEUILLE_DE_STYLE } from './rapport-style.js';
  * - le rapport d'une personne, que le responsable demande avec la date de l'accord de la personne ;
  * - le rapport d'ensemble, sur tous les journaux du cours, qui ne dit que le nombre d'éléments du
  *   cours s'il y a moins de trois personnes actives au jour du rapport, et omet toute case (jour,
- *   semaine, moment, mode, boîte) où moins de trois personnes distinctes ont répondu ou qui compte
- *   moins de 20 réponses (M3-P6).
+ *   semaine, moment, mode, boîte, chapitre) où moins de trois personnes distinctes comptent (ont
+ *   répondu, ou ont un élément rebelle pour un chapitre) ou qui compte moins de 20 réponses
+ *   (éléments pour une boîte, rebelles pour un chapitre) (M3-P6, M6).
  */
 
 /** Les scénarios de la projection : l'algorithme, et le nombre de nouveautés par jour. */
@@ -609,7 +610,7 @@ export function construireRapport(donnees: DonneesDuRapport): string {
 <p class="meta">${
     personne
       ? `Document privé : il décrit la progression d’une personne, la personne suivie. Accord donné le ${echapper(accord)}, d’après la déclaration du responsable.`
-      : `Document privé : chiffres d’ensemble de ${nombre(journaux.length)} personnes actives. Une case n’est affichée qu’à ${PERSONNES_ACTIVES_MINIMUM} personnes, ${MINIMUM_D_UNE_CASE} réponses (éléments, pour une boîte) et si aucune personne n’y fait plus de ${PART_MAXIMALE_D_UNE_PERSONNE} %. Ni compte exact ni total : des pourcentages entiers et des moyennes par personne.`
+      : `Document privé : chiffres d’ensemble de ${nombre(journaux.length)} personnes actives. Une case n’est affichée qu’à ${PERSONNES_ACTIVES_MINIMUM} personnes, ${MINIMUM_D_UNE_CASE} réponses (éléments, pour une boîte ; rebelles, pour un chapitre) et si aucune personne n’y fait plus de ${PART_MAXIMALE_D_UNE_PERSONNE} %. Ni compte exact ni total : des pourcentages entiers et des moyennes par personne.`
   }</p></header>`;
 
   const tuiles: string[] = [];
@@ -857,7 +858,7 @@ ${li(`<strong>Les minutes</strong> viennent de l’écart médian entre deux ré
 ${li(
   personne
     ? `Document privé : il décrit la progression d’une personne. Accord donné le ${echapper(accord)}, d’après la déclaration du responsable ; l’outil ne peut pas le contrôler.`
-    : `Document privé : chiffres d’ensemble. Seules les personnes actives y comptent (vingt réponses au moins dans les vingt-huit jours qui finissent au jour du rapport). Toute case (jour, semaine, moment, mode, boîte, chapitre, minutes) où moins de ${PERSONNES_ACTIVES_MINIMUM} personnes ont répondu, ou de moins de ${MINIMUM_D_UNE_CASE} réponses, ou dont une personne fait plus de ${PART_MAXIMALE_D_UNE_PERSONNE} %, est omise ou fondue dans « autres ». Les boîtes refusées se fondent avec leur voisine. Les réponses par jour sont des moyennes par personne de la case ; le rapport ne donne ni compte exact ni total, mais des pourcentages entiers. <strong>Ce que cela ne garantit pas</strong> : un pourcentage entier laisse encore estimer une case fondue à quelques unités près ; à trois personnes, une médiane est la valeur de l’une d’elles, sans dire laquelle ; les moyennes de la projection n’ont pas de contrôle de dominance ; deux rapports de dates voisines peuvent se comparer.`,
+    : `Document privé : chiffres d’ensemble. Seules les personnes actives y comptent (vingt réponses au moins dans les vingt-huit jours qui finissent au jour du rapport). Toute case (jour, semaine, moment, mode, boîte, chapitre, minutes) où moins de ${PERSONNES_ACTIVES_MINIMUM} personnes comptent (ont répondu ; ont un élément rebelle, pour un chapitre), ou de moins de ${MINIMUM_D_UNE_CASE} réponses (éléments, pour une boîte ; rebelles, pour un chapitre), ou dont une personne fait plus de ${PART_MAXIMALE_D_UNE_PERSONNE} %, est omise ou fondue dans « autres ». Les boîtes refusées se fondent avec leur voisine. Les réponses par jour sont des moyennes par personne de la case ; le rapport ne donne ni compte exact ni total, mais des pourcentages entiers. <strong>Ce que cela ne garantit pas</strong> : un pourcentage entier laisse encore estimer une case fondue à quelques unités près, et celui d’un chapitre, dont le nombre d’éléments se lit dans le cours, redonne son nombre de rebelles à une unité près ; un chapitre absent du tableau se lit « zéro, fondu ou omis » ; à trois personnes, une médiane est la valeur de l’une d’elles, sans dire laquelle ; les moyennes de la projection n’ont pas de contrôle de dominance ; deux rapports de dates voisines, ou faits à deux seuils, peuvent se comparer.`,
 )}
 </ul>`,
       'Comment lire ces chiffres',

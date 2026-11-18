@@ -7,7 +7,6 @@ import {
 import type {
   Cours,
   Etat,
-  Manuel,
   ModuleCartes,
   ModuleExamen,
   ModuleExercices,
@@ -15,9 +14,6 @@ import type {
   ModuleMorphologie,
   ModuleSchema,
   ModuleTexteAnnote,
-  Planning,
-  ReglagesLeitner,
-  ReglagesMemoire,
   Tache,
   TirageExamen,
 } from '../../domaine/contenu/modele.js';

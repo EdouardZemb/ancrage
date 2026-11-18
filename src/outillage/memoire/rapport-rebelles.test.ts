@@ -83,6 +83,17 @@ function ligne(html: string, premiere: string): string[] {
   return [...(trouvee?.[1] ?? '').matchAll(/<td>([^<]*)<\/td>/g)].map((m) => m[1] ?? '');
 }
 
+/** La section « Les éléments rebelles par chapitre » d'un rapport d'ensemble, et rien d'autre. */
+function sectionDEnsemble(html: string): string {
+  const trouvee = /<section><h2>Les éléments rebelles par chapitre<\/h2>[\s\S]*?<\/section>/.exec(
+    html,
+  );
+  expect(trouvee).not.toBeNull();
+  return trouvee?.[0] ?? '';
+}
+const enTetes = (html: string, sorte: 'row' | 'col'): string[] =>
+  [...html.matchAll(new RegExp(`<th scope="${sorte}">([^<]*)</th>`, 'g'))].map((m) => m[1] ?? '');
+
 test('une_personne_a_ses_rebelles_par_chapitre_en_nombres_et_une_ligne_sans_rebelle', () => {
   const journal = rebellesDuModule(GERAETE, 1);
   const html = rapportDePersonne(journal);
@@ -158,6 +169,20 @@ test('un_rapport_d_ensemble_n_a_ni_tableau_selon_le_seuil_ni_total', () => {
   expect(html).not.toContain('(seuil du cours)');
   expect(html).not.toMatch(/<th scope="col">(Éléments|Rebelles)<\/th>/);
   expect(html).not.toMatch(/<th scope="row">\d+ fautes/);
+  // Le tableau d'ensemble : un chapitre par ligne, une seule colonne de valeurs, un pourcentage.
+  const section = sectionDEnsemble(html);
+  expect(enTetes(section, 'row')).toEqual(['Küchengeräte']);
+  expect(enTetes(section, 'col')).toEqual(['Chapitre', 'Part d’éléments rebelles']);
+  expect(section.match(/<td>/g)).toHaveLength(1);
+});
+
+test('un_titre_de_module_d_un_rapport_d_ensemble_est_echappe', () => {
+  const html = ensemble(
+    [1, 2, 3].map((p) => rebellesDuModule(GERAETE, p)),
+    avecTitre(GERAETE, 'Geräte <b> & Co'),
+  );
+  expect(enTetes(sectionDEnsemble(html), 'row')).toEqual(['Geräte &lt;b&gt; &amp; Co']);
+  expect(html).not.toContain('Geräte <b>');
 });
 
 test('un_chapitre_ou_deux_personnes_seulement_ont_un_rebelle_n_est_pas_affiche', () => {
@@ -170,8 +195,10 @@ test('un_chapitre_ou_deux_personnes_seulement_ont_un_rebelle_n_est_pas_affiche',
   ]);
   expect(html).not.toContain('Küchengeräte');
   expect(html).not.toContain('Autres chapitres');
-  expect(html).toMatch(/Les éléments rebelles[\s\S]*omis/);
-  expect(html).not.toMatch(/Les éléments rebelles[\s\S]{0,400}aucun/);
+  const section = sectionDEnsemble(html);
+  expect(section).toContain('sont omis');
+  expect(section).not.toMatch(/aucun/i);
+  expect(section).not.toContain('<table');
 });
 
 test('les_chapitres_refuses_se_fondent_dans_autres_chapitres', () => {
@@ -189,7 +216,9 @@ test('les_chapitres_refuses_se_fondent_dans_autres_chapitres', () => {
   expect(html).not.toContain('<th scope="row">Zutaten</th>');
   expect(html).not.toContain('<th scope="row">Zubereitung</th>');
   expect(ligne(html, 'Autres chapitres')).toHaveLength(1);
-  expect(ligne(html, 'Autres chapitres')[0]).toMatch(/^\d+\s%$/);
+  // À la main : Zutaten (deux personnes) et Zubereitung (deux personnes) ont n2 et n3 éléments. Les
+  // rebelles réunis sont 2 × (n2 + n3), sur 3 personnes × (n2 + n3) éléments : deux tiers.
+  expect(ligne(html, 'Autres chapitres')).toEqual([pourcent(2 / 3)]);
 });
 
 test('sous_trois_personnes_actives_le_rapport_limite_ne_dit_rien_des_rebelles', () => {

@@ -18,13 +18,14 @@ export function MarqueDeRebelle(props: { bloc?: boolean }) {
 export function AideDuRebelle(props: { aide: AideDeCarte | undefined }) {
   const { t } = useCours();
   const { aide } = props;
-  if (aide === undefined || (aide.texte === undefined && aide.confusion === undefined)) {
-    return null;
-  }
+  // Un texte vide ou fait d'espaces (une `note` ou une `correction` que le schéma admet) n'est pas
+  // une aide.
+  const texte = aide?.texte?.trim() ? aide.texte : undefined;
+  if (aide === undefined || (texte === undefined && aide.confusion === undefined)) return null;
   return (
     <div class="aide-rebelle">
       <b class="kind">{t.rebelle_aide}</b>
-      {aide.texte !== undefined && <p>{aide.texte}</p>}
+      {texte !== undefined && <p>{texte}</p>}
       {aide.confusion !== undefined && (
         <p class="muted">
           {t.rebelle_confusion} <b>{aide.confusion.recto}</b> – {aide.confusion.verso}

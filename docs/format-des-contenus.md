@@ -583,7 +583,9 @@ question et montre, une fois qu'il a cherché, l'`aide` de sa carte et la carte 
 confond : une carte retournée la montre au verso, une carte saisie avec le verdict. La marque et
 l'aide sont absentes du Quiz et de la Prüfung. La `correction` d'une affirmation vrai-faux et la
 `note` d'un schéma ne s'affichent que dans « Heute » ; les morceaux d'un mot et la règle d'un
-exercice sont montrés à tous, rebelle ou non. Fortschritt remplace
+exercice sont montrés à tous, rebelle ou non. Dans les onglets (Wortbaukasten, schémas, exercices,
+fiches), la marque suit le journal : un élément qui devient rebelle par sa réponse la gagne sur
+l'écran du verdict. Fortschritt remplace
 l'ancienne liste des cartes difficiles par la liste « Schwierig – nochmal ansehen » : tous les rebelles, par module
 puis par nombre de fautes, avec leur réponse, leur aide et « n× falsch ».
 

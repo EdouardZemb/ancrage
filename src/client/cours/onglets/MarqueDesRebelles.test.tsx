@@ -57,8 +57,13 @@ describe('la marque des rebelles dans les onglets', () => {
     expect(screen.getAllByText(t.rebelle_marque)).toHaveLength(1);
   });
 
-  it('un_element_qui_n_est_pas_rebelle_n_est_pas_marque', () => {
-    rendreDansLeCours(<Cartes />, contexteRebelle([]));
+  it.each([
+    ['Karteikarten', <Cartes />],
+    ['Wortbaukasten', <Mots />],
+    ['les schémas', <Schemas />],
+    ['les exercices', <Exercices />],
+  ])('%s_ne_marque_pas_un_element_qui_n_est_pas_rebelle', (_nom, onglet) => {
+    rendreDansLeCours(onglet, contexteRebelle([]));
 
     expect(screen.queryByText(t.rebelle_marque)).toBeNull();
   });
@@ -100,6 +105,13 @@ describe('la marque des rebelles dans les fiches', () => {
         distracteurs: ['unter dem Mass', 'schnell', 'langsam'],
         statut: 'source' as const,
       },
+      {
+        id: 'fb000010',
+        question: 'Was bedeutet hypo-?',
+        reponse: 'unter dem Mass',
+        distracteurs: ['über dem Mass', 'schnell', 'langsam'],
+        statut: 'source' as const,
+      },
     ],
   };
   const vraiFaux = {
@@ -130,7 +142,9 @@ describe('la marque des rebelles dans les fiches', () => {
     ];
     rendreDansLeCours(<TacheAChoix tache={qcm} onRepondu={vi.fn()} />, contexteRebelle(evenements));
 
-    expect(screen.getAllByText(t.rebelle_marque)).toHaveLength(1);
+    const marques = screen.getAllByText(t.rebelle_marque);
+    expect(marques).toHaveLength(1);
+    expect(marques[0].closest('fieldset')?.textContent).toContain('hyper-');
   });
 
   it('une_affirmation_rebelle_est_marquee_et_pas_sa_voisine', () => {

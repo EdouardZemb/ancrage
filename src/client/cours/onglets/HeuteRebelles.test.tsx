@@ -9,6 +9,8 @@ import {
 } from '../../../domaine/cours/cours.fixture.js';
 import type { CoursServi } from '../../../domaine/cours/servi.js';
 import type { Evenement } from '../../../domaine/journal/evenement.js';
+import { statistiquesDeChapitre } from '../../../domaine/progression/statistiques.js';
+import { unitesDuChoix } from '../../../domaine/seances/cartes.js';
 import {
   AUJOURDHUI_DE_TEST,
   contexteDeTest,
@@ -17,6 +19,7 @@ import {
   reponseDeTest,
 } from '../contexte-cours.fixture.js';
 import { type ContexteCours, ContexteDuCours } from '../contexte-cours.js';
+import { CLE_REBELLES_REPONDUS } from '../ecartes-du-jour.js';
 import { formater, TEXTES_COURS } from '../textes-cours.js';
 import { Apercu } from './Apercu.js';
 import { type EtatDeHeute, Heute } from './Heute.js';
@@ -103,6 +106,13 @@ function etatGarde(memoire: Map<string, unknown>): EtatDeHeute {
 
 const LIEN = formater(t.heute_rebelles, { n: 1 });
 
+/** Le chiffre « heute zu wiederholen » d'Übersicht. */
+const compteDuJour = (): string | undefined =>
+  Array.from(document.querySelectorAll('.stat'))
+    .find((stat) => stat.textContent?.includes(t.apercu_dues))
+    ?.querySelector('b')
+    ?.textContent?.trim();
+
 describe('Heute, les rebelles', () => {
   it('un_rebelle_manque_sort_et_l_ecran_de_fin_ne_le_compte_pas_comme_du', () => {
     const contexte = contexteDe({ evenements: rebelle(HERZ) });
@@ -126,24 +136,54 @@ describe('Heute, les rebelles', () => {
 
   it('un_rebelle_dont_l_ecriture_echoue_ne_revient_ni_par_la_ronde_ni_apres_un_detour', () => {
     const memoire = new Map<string, unknown>();
-    // Le journal ne change pas : la réponse n'y est jamais entrée.
-    const evenements = rebelle(HERZ);
-    rendreDansLeCours(<Heute />, contexteDe({ evenements, memoire }));
+    // Le journal ne change pas : aucune réponse n'y entre. Herz est rebelle, Leber fragile, toutes
+    // deux dues.
+    const evenements = [...rebelle(HERZ), ...fragile(LEBER)];
+    const contexte = contexteDe({ evenements, memoire });
+    rendreDansLeCours(<Heute />, contexte);
+    expect(progression()).toContain('2 fällig');
+    const toutManquer = () => {
+      for (let i = 0; i < 4 && screen.queryByRole('heading', { name: t.heute_fin }) === null; i++) {
+        cliquer(t.cartes_retourner);
+        cliquer(t.cartes_pas_su);
+      }
+    };
+    const reponsesA = (unite: string) =>
+      vi.mocked(contexte.enregistrer).mock.calls.filter(([id]) => id === unite).length;
+
+    // Herz, rebelle, sort au premier manque ; Leber revient une fois.
+    toutManquer();
+    expect(reponsesA(HERZ)).toBe(1);
+    expect(reponsesA(LEBER)).toBe(2);
+    // Seule Leber reste due : le rebelle noté par l'onglet n'est pas compté.
+    expect(screen.getByText(/Noch 1 fällig/)).toBeTruthy();
+    cliquer(t.heute_encore);
+    expect(etatGarde(memoire).seance.file.map(({ id }) => id)).toEqual([LEBER]);
     expect(progression()).toContain('1 fällig');
+
+    // Un détour par un autre onglet : la mémoire du jour revient avec l'onglet.
+    cleanup();
+    rendreDansLeCours(<Heute />, contexteDe({ evenements, memoire }));
+    toutManquer();
+    expect(screen.getByText(/Noch 1 fällig/)).toBeTruthy();
+    expect(screen.queryByText(/Noch 2 fällig/)).toBeNull();
+    cliquer(t.heute_encore);
+    expect(etatGarde(memoire).seance.file.map(({ id }) => id)).toEqual([LEBER]);
+  });
+
+  it('le_lien_vers_la_liste_compte_les_rebelles_et_non_les_ecartes', () => {
+    // Herz est rebelle et due ; Leber est rebelle et déjà répondue aujourd'hui (écartée).
+    const evenements = [
+      ...rebelle(HERZ),
+      ...rebelle(LEBER),
+      reponseDeTest(prochain(), LEBER, false, AUJOURDHUI_DE_TEST),
+    ];
+    rendreDansLeCours(<Heute />, contexteDe({ evenements }));
 
     cliquer(t.cartes_retourner);
     cliquer(t.cartes_pas_su);
 
-    expect(screen.getByRole('heading', { name: t.heute_fin })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: t.heute_encore })).toBeNull();
-    expect(screen.getByText(t.heute_fertig)).toBeTruthy();
-
-    // Un détour par un autre onglet : l'onglet revient, la mémoire du jour avec lui.
-    cleanup();
-    rendreDansLeCours(<Heute />, contexteDe({ evenements, memoire }));
-    expect(screen.queryByRole('button', { name: t.heute_encore })).toBeNull();
-    expect(screen.getByText(t.heute_fertig)).toBeTruthy();
-    expect(etatGarde(memoire).seance.file).toEqual([]);
+    expect(screen.getByRole('button', { name: formater(t.heute_rebelles, { n: 2 }) })).toBeTruthy();
   });
 
   it('un_manque_dans_un_onglet_avant_le_premier_geste_recompose_la_seance_sans_lui', () => {
@@ -187,6 +227,8 @@ describe('Heute, les rebelles', () => {
     expect(etatGarde(memoire).seance.file.map(({ id }) => id)).toEqual([GASTRITIS]);
     expect(etatGarde(memoire).seance.revenus).toEqual([GASTRITIS]);
     expect(progression()).toContain('1 beantwortet · 1 offen');
+    // Il est rebelle à son retour : le journal a bien rangé sa réponse.
+    expect(screen.getAllByText(t.rebelle_marque)).toHaveLength(1);
   });
 
   it('un_element_manque_qui_n_est_pas_rebelle_revient_comme_avant', () => {
@@ -229,10 +271,51 @@ describe('Heute, les rebelles', () => {
     cleanup();
 
     rendreDansLeCours(<Apercu />, contexteDe({ evenements }));
-    const stat = Array.from(document.querySelectorAll('.stat')).find((s) =>
-      s.textContent?.includes(t.apercu_dues),
-    );
-    expect(stat?.querySelector('b')?.textContent).toBe('1');
+    expect(compteDuJour()).toBe('1');
+  });
+
+  it('uebersicht_exclut_un_rebelle_que_l_onglet_heute_a_note_sans_que_le_journal_l_ait', () => {
+    // L'écriture a échoué : le journal ne dit rien d'aujourd'hui, mais l'onglet a noté Herz.
+    const evenements = [...rebelle(HERZ), reponseDeTest(prochain(), LEBER, false, '2026-10-10')];
+    const memoire = new Map<string, unknown>();
+    rendreDansLeCours(<Apercu />, contexteDe({ evenements, memoire }));
+    expect(compteDuJour()).toBe('2');
+    cleanup();
+
+    memoire.set(CLE_REBELLES_REPONDUS, { jour: AUJOURDHUI_DE_TEST, ids: [HERZ] });
+    rendreDansLeCours(<Apercu />, contexteDe({ evenements, memoire }));
+    expect(compteDuJour()).toBe('1');
+    cleanup();
+
+    // Une note d'un autre jour ne compte pas.
+    memoire.set(CLE_REBELLES_REPONDUS, { jour: '2026-10-16', ids: [HERZ] });
+    rendreDansLeCours(<Apercu />, contexteDe({ evenements, memoire }));
+    expect(compteDuJour()).toBe('2');
+  });
+
+  it('la_ligne_fallig_d_un_chapitre_ne_change_pas_quand_un_de_ses_rebelles_est_ecarte', () => {
+    // Herz est rebelle, et répondue (fausse) aujourd'hui : écartée de « Heute », mais Karteikarten
+    // la pose encore, donc le chapitre la compte toujours.
+    const evenements = [
+      ...rebelle(HERZ),
+      reponseDeTest(prochain(), HERZ, false, AUJOURDHUI_DE_TEST),
+    ];
+    const contexte = contexteDe({ evenements });
+    const unitesDuChapitre = unitesDuChoix(contexte.cours, CHAPITRE_1, 'mix');
+    const attendu = statistiquesDeChapitre(unitesDuChapitre, contexte.etats, AUJOURDHUI_DE_TEST);
+    expect(attendu.dues).toBeGreaterThan(0);
+
+    rendreDansLeCours(<Apercu />, contexte);
+
+    const ligne = formater(t.apercu_chapitre, {
+      sures: attendu.sures,
+      total: attendu.total,
+      dues: attendu.dues,
+      neues: attendu.boites[0],
+    });
+    expect(screen.getByText(ligne)).toBeTruthy();
+    // Alors que le compte du jour, lui, a écarté Herz.
+    expect(compteDuJour()).toBe('0');
   });
 
   it.each([
@@ -245,6 +328,18 @@ describe('Heute, les rebelles', () => {
     rendreDansLeCours(<Heute />, contexteDe({ evenements: rebelle(id) }));
 
     expect(screen.getAllByText(t.rebelle_marque)).toHaveLength(1);
+  });
+
+  it.each([
+    ['une_carte', HERZ],
+    ['un_mot', GASTRITIS],
+    ['un_point_de_schema', MITTE],
+    ['un_exercice', ARTIKEL],
+    ['une_question_fermee', QCM],
+  ])('%s_qui_n_est_pas_rebelle_n_est_pas_marque', (_nom, id) => {
+    rendreDansLeCours(<Heute />, contexteDe({ evenements: fragile(id) }));
+
+    expect(screen.queryByText(t.rebelle_marque)).toBeNull();
   });
 });
 

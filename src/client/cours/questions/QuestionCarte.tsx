@@ -69,19 +69,18 @@ export function QuestionCarte(props: {
 
   const boite = etatDe(etats, unite.id).boite;
   const meta = (
-    <>
-      {rebelle === true && <MarqueDeRebelle />}
-      <span class="meta">
-        {boite > 0 ? formater(t.cartes_boite, { n: boite }) : t.cartes_neuve}
-      </span>
-    </>
+    <span class="meta">{boite > 0 ? formater(t.cartes_boite, { n: boite }) : t.cartes_neuve}</span>
   );
+  // La marque est au-dessus de la carte, en bloc : l'`aria-label` d'une carte à retourner cacherait
+  // ce qui est dedans à un lecteur d'écran.
+  const marque = rebelle === true && <MarqueDeRebelle bloc />;
   // L'aide ne vient qu'après la recherche : avec le verdict d'une saisie, au verso d'une carte retournée.
   const aide = rebelle === true ? aideDeLUnite(unite, cours.unites) : undefined;
 
   if (saisieAttendue) {
     return (
       <>
+        {marque}
         <div class="card">
           <Enonce unite={unite} avecChapitre />
           {etat.verdict === null ? (
@@ -109,7 +108,6 @@ export function QuestionCarte(props: {
                     <span>{etat.verdict.donnee}</span>
                   )}
                 <b>{unite.reponse}</b>
-                <AideDuRebelle aide={aide} />
                 {!etat.verdict.juste && (
                   <button type="button" class="linkbtn" onClick={() => onReponse(true, 'corrigee')}>
                     {t.cartes_aussi_juste}
@@ -128,6 +126,7 @@ export function QuestionCarte(props: {
           )}
           {meta}
         </div>
+        {etat.verdict !== null && <AideDuRebelle aide={aide} />}
         <p class="kbd">{t.cartes_touches_saisie}</p>
       </>
     );
@@ -135,6 +134,7 @@ export function QuestionCarte(props: {
 
   return (
     <>
+      {marque}
       {/* biome-ignore lint/a11y/useSemanticElements: le bloc de la carte garde la mise en page du prototype (H:1789). */}
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: Espace et Enter retournent la carte, pour tout l'écran (useTouches). */}
       <div
@@ -146,15 +146,13 @@ export function QuestionCarte(props: {
       >
         <Enonce unite={unite} avecChapitre />
         {etat.retournee ? (
-          <>
-            <span class="back">{unite.reponse}</span>
-            <AideDuRebelle aide={aide} />
-          </>
+          <span class="back">{unite.reponse}</span>
         ) : (
           <span class="hint">{t.cartes_indice}</span>
         )}
         {meta}
       </div>
+      {etat.retournee && <AideDuRebelle aide={aide} />}
       {etat.retournee && (
         <div class="answer">
           <button type="button" class="no" onClick={() => onReponse(false, 'retournee')}>

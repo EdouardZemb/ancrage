@@ -25,7 +25,7 @@ export interface QuestionEtReponse {
 }
 
 const sansAide = (texte: string | undefined): { aide?: AideDeCarte } =>
-  texte === undefined || texte === '' ? {} : { aide: { texte } };
+  texte === undefined || texte.trim() === '' ? {} : { aide: { texte } };
 
 export function questionEtReponse(
   posable: Posable,

@@ -59,8 +59,12 @@ export interface Reference {
     planning?: Planning;
     /** Présent seulement si le cours l'écrit, après `planning`. */
     manuels?: Manuel[];
+    // jscpd:ignore-start — les clés du cours, que le modèle déclare dans le même ordre
     /** Présent seulement si le cours l'écrit, après `manuels`. */
     poseDesCartes?: 'ecrite' | 'retournee';
+    /** Présent seulement si le cours l'écrit, après `poseDesCartes`. */
+    rebelles?: Cours['rebelles'];
+    // jscpd:ignore-end
   };
   /**
    * L'état de relecture du cours : `aVerifier` s'il a au moins un élément « à vérifier », sa
@@ -257,6 +261,7 @@ export function calculerReference(cours: Cours): Reference {
         ? {}
         : { manuels: cours.manuels.map(({ id, titre }) => ({ id, titre })) }),
       ...(cours.poseDesCartes === undefined ? {} : { poseDesCartes: cours.poseDesCartes }),
+      ...(cours.rebelles === undefined ? {} : { rebelles: { fautes: cours.rebelles.fautes } }),
     },
     diffusion: {
       // La règle même de l'invariant 9, que le module `acces` applique à chaque requête.

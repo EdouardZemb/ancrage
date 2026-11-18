@@ -103,6 +103,8 @@ manuels:                   # facultative : voir « Les manuels »
   - id: "<id>"
     titre: "Beispielbuch Küche"
 pose_des_cartes: "ecrite"  # facultative : voir « La pose des cartes »
+rebelles:                  # facultative : voir « Les éléments rebelles »
+  fautes: 4
 derogation_diffusion:      # facultative : voir « Dérogation de diffusion »
   motif: "<pourquoi>"
   date: "2026-10-16"
@@ -539,6 +541,40 @@ strict, et la version en ligne la refuserait (invariant 8).
 **Un appareil resté à la version précédente** ne connaît pas la clé : il ignore la pose du cours, et
 la case « Begriffe eintippen » y reste cochée d'office (sauf si la personne l'a décochée), jusqu'à
 sa mise à jour, au lancement suivant.
+
+### Les éléments rebelles
+
+La clé facultative `rebelles` fixe le seuil à partir duquel une unité est dite rebelle : une carte, un
+mot, un point de schéma, un exercice ou une question de fiche qui retombe dans la faute après avoir
+été sue.
+
+```yaml
+rebelles:
+  fautes: 4
+```
+
+- `rebelles` est un objet strict : `fautes` y est obligatoire, un entier de 2 à 20. Une valeur
+  hors de ces bornes, une chaîne, un nombre à virgule ou une clé de plus sont refusés.
+- Absente, le seuil vaut 4 : un cours qui ne l'écrit pas ne change pas.
+- Une unité est celle du journal : une carte et son sens inverse sont deux unités (M6-C1).
+- Une faute ne compte qu'après une première réponse juste de l'unité, et une seule par jour : la
+  faute d'une ronde et celle de son retour, le même jour, n'en font qu'une (T1-D4).
+- Trois réponses justes de suite remettent à zéro les fautes de l'unité, qu'elle soit rebelle ou
+  non (T1-D5). Une faute coupe la suite. L'unité est rebelle quand ses fautes valent le seuil ou
+  plus ; le nombre de rebelles ne peut donc que baisser quand le seuil monte.
+- Tout se dérive du journal : rien n'est gardé de plus, et une réponse de pré-test ne compte pas.
+- L'instantané de référence porte `rebelles` après `poseDesCartes` quand le cours l'écrit, et ne
+  change pas sans elle.
+
+**Le client lit sans rigueur** (T1-D6) : une valeur qui n'est pas un objet portant un entier `fautes`
+de 2 à 20 vaut 4, et le cours reste admis.
+
+**Ce que la clé change dans cette version** : le rapport de suivi seul compte les rebelles par
+chapitre. « Heute » et la liste viennent avec la tranche suivante du lot.
+
+**Un cours monté ne reçoit cette clé qu'une version après celle qui la connaît** : le manifeste est
+strict, et la version en ligne la refuserait (invariant 8). Le cours d'exemple fait exception : il
+est dans l'image, et l'écrit (`fautes: 3`).
 
 ### Dérogation de diffusion
 

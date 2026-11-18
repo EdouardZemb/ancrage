@@ -368,6 +368,8 @@ export interface Cours {
    * `ecrite` (M5-D5).
    */
   poseDesCartes?: 'ecrite' | 'retournee';
+  /** Le seuil des éléments rebelles (M6). Absent : `FAUTES_PAR_DEFAUT`. */
+  rebelles?: { fautes: number };
   /**
    * La dérogation écrite dans `cours.yaml` qui autorise la diffusion à un groupe d'un cours « à
    * vérifier » (invariant 9). Absente : le cours n'en a pas.

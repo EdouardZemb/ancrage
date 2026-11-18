@@ -435,6 +435,20 @@ describe('calculerReference', () => {
     expect(Object.keys(avec.cours).slice(-2)).toEqual(['manuels', 'poseDesCartes']);
   });
 
+  it('rebelles_ecrite_apres_pose_des_cartes_et_rien_sans_elle', () => {
+    const sans = calculerReference(coursDe(exempleDeCours()));
+    expect(sans.cours).not.toHaveProperty('rebelles');
+    expect(JSON.stringify(sans)).not.toContain('rebelles');
+
+    const avec = calculerReference({
+      ...coursDe(exempleAvecManuels()),
+      poseDesCartes: 'retournee',
+      rebelles: { fautes: 3 },
+    });
+    expect(avec.cours.rebelles).toEqual({ fautes: 3 });
+    expect(Object.keys(avec.cours).slice(-3)).toEqual(['manuels', 'poseDesCartes', 'rebelles']);
+  });
+
   it('cours_sans_manuels_sans_ces_cles_nulle_part_dans_la_reference', () => {
     const reference = calculerReference(coursDe(exempleDeCours()));
     expect(reference.cours).not.toHaveProperty('manuels');

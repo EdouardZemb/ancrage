@@ -1,5 +1,5 @@
 import type { CoursPrepare } from '../../domaine/cours/prepare.js';
-import { memoireDuCours } from '../../domaine/cours/servi.js';
+import { memoireDuCours, seuilDesRebelles } from '../../domaine/cours/servi.js';
 import type { Evenement } from '../../domaine/journal/evenement.js';
 import { ajouterJours, joursEntre } from '../../domaine/journal/temps.js';
 import { posablesDuCours } from '../../domaine/seances/heute.js';
@@ -372,6 +372,110 @@ export function tuilesAffichables(groupes: readonly GroupeDeBoites[] | null): {
 const elementsDesBoites = (parPersonne: readonly Mesures[], rangs: readonly number[]): number[] =>
   parPersonne.map((m) => rangs.reduce((s, rang) => s + (m.boites[rang] ?? 0), 0));
 
+/** Les seuils que le tableau d'une personne essaie, sans le seuil du cours s'il est plus haut. */
+const SEUILS_ESSAYES = [2, 3, 4, 5, 6, 7, 8];
+
+/** Les éléments d'un module qui ont `seuil` fautes ou plus ; `fautes[n]` est le nombre à `n` fautes. */
+const rebellesAuSeuil = (fautes: readonly number[] | undefined, seuil: number): number =>
+  (fautes ?? []).slice(seuil).reduce((s, n) => s + n, 0);
+
+const elementsDuModule = (fautes: readonly number[] | undefined): number =>
+  (fautes ?? []).reduce((s, n) => s + n, 0);
+
+interface CaseDeChapitre {
+  nom: string;
+  /** Les éléments rebelles de chaque personne dans le chapitre. */
+  comptes: readonly number[];
+  rebelles: number;
+  /** Les éléments du chapitre, comptés pour chaque personne. */
+  elements: number;
+}
+
+/**
+ * La section « Les éléments rebelles » (M6, T1-D9), par chapitre, c'est-à-dire par module, dans
+ * l'ordre du cours. Une personne : des nombres, et le compte du cours à chaque seuil. L'ensemble :
+ * des pourcentages entiers, chaque chapitre par la règle d'une case, les refusés fondus dans « autres
+ * chapitres ». Ni tableau selon le seuil ni total : la ligne d'un seuil serait la somme des cases de
+ * chapitre, et laisserait retrouver par soustraction une case refusée.
+ */
+function sectionDesRebelles(
+  cours: CoursPrepare,
+  parPersonne: readonly Mesures[],
+  total: Mesures,
+  personne: boolean,
+  admise: (comptes: readonly number[]) => boolean,
+): string {
+  const seuil = seuilDesRebelles(cours.cours);
+  const chapitres = cours.cours.modules.filter(
+    (module) => total.fautesParModule[module.id] !== undefined,
+  );
+  const definition = `Un élément est rebelle quand il compte ${nombre(seuil)} fautes ou plus : une faute ne compte qu’après une première réponse juste, une seule par jour ; trois réponses justes de suite remettent ses fautes à zéro. Le seuil est celui du cours (<code>rebelles</code> du manifeste, 4 par défaut). Seuls les éléments que pose « Heute » comptent ; le chapitre est le module.`;
+  if (personne) {
+    const lignes = chapitres.map((module) => [
+      echapper(module.titre),
+      nombre(elementsDuModule(total.fautesParModule[module.id])),
+      nombre(rebellesAuSeuil(total.fautesParModule[module.id], seuil)),
+    ]);
+    const seuils = [...new Set([...SEUILS_ESSAYES, seuil])].sort((a, b) => a - b);
+    const selonLeSeuil = seuils.map((essaye) => [
+      `${nombre(essaye)} fautes${essaye === seuil ? ' (seuil du cours)' : ''}`,
+      nombre(
+        chapitres.reduce(
+          (s, module) => s + rebellesAuSeuil(total.fautesParModule[module.id], essaye),
+          0,
+        ),
+      ),
+    ]);
+    return feuille(
+      `${p(definition)}
+${chiffres(tableau(['Chapitre', 'Éléments', 'Rebelles'], lignes))}
+<h3>Selon le seuil</h3>
+${chiffres(tableau(['Seuil', 'Éléments rebelles du cours'], selonLeSeuil))}
+${p('Le second tableau aide à régler <code>rebelles.fautes</code> : il donne le nombre d’éléments rebelles du cours si le seuil était celui de la ligne.')}`,
+      'Les éléments rebelles',
+    );
+  }
+  const cases: CaseDeChapitre[] = chapitres.map((module) => ({
+    nom: module.titre,
+    comptes: parPersonne.map((m) => rebellesAuSeuil(m.fautesParModule[module.id], seuil)),
+    rebelles: rebellesAuSeuil(total.fautesParModule[module.id], seuil),
+    elements: elementsDuModule(total.fautesParModule[module.id]),
+  }));
+  const affichees = fondre(
+    cases,
+    (c) => c.rebelles,
+    (c) => admise(c.comptes),
+    (petites, nom): CaseDeChapitre => ({
+      nom,
+      comptes:
+        petites[0]?.comptes.map((_, i) => petites.reduce((s, c) => s + (c.comptes[i] ?? 0), 0)) ??
+        [],
+      rebelles: petites.reduce((s, c) => s + c.rebelles, 0),
+      elements: petites.reduce((s, c) => s + c.elements, 0),
+    }),
+    'Autres chapitres',
+  );
+  if (affichees.length === 0) {
+    return feuille(
+      p(
+        `Les éléments rebelles par chapitre sont omis : les chapitres, même réunis, ne passent pas la règle (au moins ${PERSONNES_ACTIVES_MINIMUM} personnes qui y ont un rebelle, ${MINIMUM_D_UNE_CASE} rebelles en tout, et pas plus de ${PART_MAXIMALE_D_UNE_PERSONNE} % pour une personne). Un chapitre sans élément rebelle n’est pas dit non plus.`,
+      ),
+      'Les éléments rebelles par chapitre',
+    );
+  }
+  return feuille(
+    `${p(definition)}
+${p('Pour chaque chapitre : la part des éléments rebelles, pour toutes les personnes actives ensemble. Un chapitre qui ne passe pas la règle se fond dans « Autres chapitres », omis s’il ne la passe pas non plus ; un chapitre sans élément rebelle n’a pas de ligne.')}
+${chiffres(
+  tableau(
+    ['Chapitre', 'Part d’éléments rebelles'],
+    affichees.map((c) => [echapper(c.nom), pourcent(c.rebelles / Math.max(1, c.elements))]),
+  ),
+)}`,
+    'Les éléments rebelles par chapitre',
+  );
+}
+
 /** Construit le rapport : une page HTML complète. */
 export function construireRapport(donnees: DonneesDuRapport): string {
   const { cours, accord, aujourdhui } = donnees;
@@ -698,6 +802,9 @@ ${chiffres(
     );
   }
 
+  // 5 bis. Les éléments rebelles, par chapitre.
+  sections.push(sectionDesRebelles(cours, parPersonne, total, personne, admise));
+
   // 6. La réussite, selon le délai et selon le mode.
   const extremes = [...lignesDeDelai].sort((a, b) => a.part - b.part);
   const bas = extremes[0];
@@ -750,7 +857,7 @@ ${li(`<strong>Les minutes</strong> viennent de l’écart médian entre deux ré
 ${li(
   personne
     ? `Document privé : il décrit la progression d’une personne. Accord donné le ${echapper(accord)}, d’après la déclaration du responsable ; l’outil ne peut pas le contrôler.`
-    : `Document privé : chiffres d’ensemble. Seules les personnes actives y comptent (vingt réponses au moins dans les vingt-huit jours qui finissent au jour du rapport). Toute case (jour, semaine, moment, mode, boîte, minutes) où moins de ${PERSONNES_ACTIVES_MINIMUM} personnes ont répondu, ou de moins de ${MINIMUM_D_UNE_CASE} réponses, ou dont une personne fait plus de ${PART_MAXIMALE_D_UNE_PERSONNE} %, est omise ou fondue dans « autres ». Les boîtes refusées se fondent avec leur voisine. Les réponses par jour sont des moyennes par personne de la case ; le rapport ne donne ni compte exact ni total, mais des pourcentages entiers. <strong>Ce que cela ne garantit pas</strong> : un pourcentage entier laisse encore estimer une case fondue à quelques unités près ; à trois personnes, une médiane est la valeur de l’une d’elles, sans dire laquelle ; les moyennes de la projection n’ont pas de contrôle de dominance ; deux rapports de dates voisines peuvent se comparer.`,
+    : `Document privé : chiffres d’ensemble. Seules les personnes actives y comptent (vingt réponses au moins dans les vingt-huit jours qui finissent au jour du rapport). Toute case (jour, semaine, moment, mode, boîte, chapitre, minutes) où moins de ${PERSONNES_ACTIVES_MINIMUM} personnes ont répondu, ou de moins de ${MINIMUM_D_UNE_CASE} réponses, ou dont une personne fait plus de ${PART_MAXIMALE_D_UNE_PERSONNE} %, est omise ou fondue dans « autres ». Les boîtes refusées se fondent avec leur voisine. Les réponses par jour sont des moyennes par personne de la case ; le rapport ne donne ni compte exact ni total, mais des pourcentages entiers. <strong>Ce que cela ne garantit pas</strong> : un pourcentage entier laisse encore estimer une case fondue à quelques unités près ; à trois personnes, une médiane est la valeur de l’une d’elles, sans dire laquelle ; les moyennes de la projection n’ont pas de contrôle de dominance ; deux rapports de dates voisines peuvent se comparer.`,
 )}
 </ul>`,
       'Comment lire ces chiffres',

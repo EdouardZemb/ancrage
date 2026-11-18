@@ -7,7 +7,9 @@ import {
 } from '../../domaine/journal/evenement.js';
 import { ajouterJours, jourDe } from '../../domaine/journal/temps.js';
 import { estDue, journalDesRevisions } from '../../domaine/progression/etat.js';
+import { fautesDuJournal } from '../../domaine/progression/rebelles.js';
 import { posablesDuCours } from '../../domaine/seances/heute.js';
+import { modulesDesPosables } from '../../domaine/seances/semestre.js';
 
 /*
  * Les mesures d'un journal (M3, rapport de suivi) : des comptes, jamais de texte. Une fonction
@@ -57,6 +59,11 @@ export interface Mesures {
   elements: number;
   /** Les éléments dus au jour du rapport. */
   dues: number;
+  /**
+   * Par identifiant de module, le nombre d'éléments posables à 0 faute, à 1, à 2, etc. (l'indice est
+   * le nombre de fautes, M6). Un module sans élément posable n'a pas d'entrée.
+   */
+  fautesParModule: Record<string, number[]>;
   /** Les écarts, en secondes, entre deux réponses qui se suivent à moins de deux minutes, triés. */
   ecarts: number[];
   /** Leur médiane, en secondes ; `null` s'il n'y en a aucun. */
@@ -128,9 +135,16 @@ function mesuresVides(): Mesures {
     boites: [0, 0, 0, 0, 0, 0],
     elements: 0,
     dues: 0,
+    fautesParModule: {},
     ecarts: [],
     ecartMedian: null,
   };
+}
+
+/** Ajoute `nombre` éléments à l'indice `fautes` du tableau, qui reste sans trou. */
+function ajouterAuxFautes(comptes: number[], fautes: number, nombre: number): void {
+  while (comptes.length <= fautes) comptes.push(0);
+  comptes[fautes] = (comptes[fautes] ?? 0) + nombre;
 }
 
 /** La case d'un jour, créée à la première réponse. */
@@ -219,6 +233,17 @@ export function mesures(
     resultat.boites[boite] = (resultat.boites[boite] ?? 0) + 1;
     if (etat !== undefined && estDue(etat, aujourdhui)) resultat.dues += 1;
   }
+
+  // Les fautes de chaque posable, rangées par module : les mêmes réponses que ci-dessus.
+  const fautes = fautesDuJournal(reponses);
+  const moduleDe = modulesDesPosables(cours);
+  for (const { id } of posablesDuCours(cours)) {
+    const module = moduleDe.get(id);
+    if (module === undefined) continue;
+    const comptes = resultat.fautesParModule[module] ?? [0];
+    resultat.fautesParModule[module] = comptes;
+    ajouterAuxFautes(comptes, fautes.get(id)?.fautes ?? 0, 1);
+  }
   return resultat;
 }
 
@@ -245,6 +270,13 @@ export function sommerMesures(liste: readonly Mesures[]): Mesures {
     somme.reponses += m.reponses;
     somme.elements += m.elements;
     somme.dues += m.dues;
+    for (const [module, comptes] of Object.entries(m.fautesParModule)) {
+      const cible = somme.fautesParModule[module] ?? [];
+      somme.fautesParModule[module] = cible;
+      comptes.forEach((nombre, nombreDeFautes) => {
+        ajouterAuxFautes(cible, nombreDeFautes, nombre);
+      });
+    }
     somme.ecarts.push(...m.ecarts);
     for (const [jour, valeurs] of Object.entries(m.parJour)) {
       const cible = caseDuJour(somme.parJour, jour);

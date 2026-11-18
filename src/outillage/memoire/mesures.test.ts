@@ -214,3 +214,53 @@ test('un_journal_avec_des_pretests_a_les_mesures_du_meme_journal_sans_eux', () =
   const vingtEtPretests = [reponse(30, 9, 0, 59, A, true, 'retournee'), ...dixNeufEtPretests];
   expect(estActive(vingtEtPretests, '2026-01-30')).toBe(true);
 });
+
+const sommeDe = (comptes: readonly number[] | undefined): number =>
+  (comptes ?? []).reduce((s, n) => s + n, 0);
+
+test('les_fautes_se_comptent_par_module_sur_les_seuls_posables_du_cours', () => {
+  const ZUTATEN = 'hkc99h4e';
+  const journal = [
+    // A, du module « Küchengeräte » : un succès, puis trois fautes de trois jours.
+    reponse(5, 10, 0, 0, A, true, 'retournee'),
+    reponse(6, 10, 0, 0, A, false, 'retournee'),
+    reponse(7, 10, 0, 0, A, false, 'saisie'),
+    reponse(8, 10, 0, 0, A, false),
+    // Une faute d'un mode inconnu et une de pré-test ne comptent pas.
+    reponse(9, 10, 0, 0, A, false, 'inconnu' as ModeDeReponse),
+    reponse(10, 10, 0, 0, A, false, 'pretest'),
+    // Une unité du module « Zutaten », sans faute.
+    reponse(5, 11, 0, 0, ZUTATEN, true),
+    // Une unité qui n'est pas un posable du cours : ne compte nulle part.
+    reponse(5, 12, 0, 0, 'zzzzzzzz', true),
+    reponse(6, 12, 0, 0, 'zzzzzzzz', false),
+  ];
+  const m = mesures(journal, cours, '2026-01-12');
+  const geraete = m.fautesParModule.n0sq3hfm ?? [];
+  expect(geraete[3]).toBe(1);
+  expect(geraete[0]).toBe(sommeDe(geraete) - 1);
+  expect(m.fautesParModule['7dty0tg7']?.[0]).toBe(sommeDe(m.fautesParModule['7dty0tg7']));
+  expect(m.fautesParModule['7dty0tg7']?.length).toBe(1);
+  // Chaque posable est dans son module, une fois : leur somme est celle des éléments.
+  const total = Object.values(m.fautesParModule).reduce((s, comptes) => s + sommeDe(comptes), 0);
+  expect(total).toBe(m.elements);
+  expect(Object.keys(m.fautesParModule)).not.toContain('zzzzzzzz');
+});
+
+test('sans_reponse_aucun_posable_n_a_de_faute', () => {
+  const m = mesures([], cours, '2026-01-05');
+  for (const comptes of Object.values(m.fautesParModule)) {
+    expect(comptes).toEqual([sommeDe(comptes)]);
+  }
+  expect(Object.keys(m.fautesParModule).length).toBeGreaterThan(1);
+});
+
+test('les_fautes_par_module_s_additionnent_indice_par_indice_meme_de_longueurs_differentes', () => {
+  const vide = mesures([], cours, '2026-01-05');
+  const somme = sommerMesures([
+    { ...vide, fautesParModule: { a: [1, 2], b: [4] } },
+    { ...vide, fautesParModule: { a: [0, 0, 3], c: [5, 1] } },
+    { ...vide, fautesParModule: { a: [10] } },
+  ]);
+  expect(somme.fautesParModule).toEqual({ a: [11, 2, 3], b: [4], c: [5, 1] });
+});

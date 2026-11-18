@@ -374,10 +374,10 @@ Sur le poste, `pnpm` s'appelle par `corepack pnpm …` ; en CI, `corepack enable
   ou contenu illisible, ou base en WAL. `docs/exploitation.md`, « Ajuster les paramètres de FSRS d'un cours ».
 - `corepack pnpm memoire:rapport --base <copie.sqlite> --cours <id> --contenu <dossier> --sortie <fichier.html> [--personne <identifiant> --accord <JJ/MM/AAAA>] [--jusquau <AAAA-MM-JJ>] [--ecraser]` :
   outil du poste, hors de l'image. Écrit le rapport de suivi d'un cours, une page HTML autonome et
-  privée (charge par jour, réussite selon le délai et le mode, part vue et sûre, projection jusqu'à
-  l'examen par algorithme ; les réponses de pré-test n'entrent dans aucune case). Sans `--personne`, rapport d'ensemble : il ne lit que les personnes actives (20
+  privée (charge par jour, réussite selon le délai et le mode, part vue et sûre, éléments rebelles par
+  chapitre, projection jusqu'à l'examen par algorithme ; les réponses de pré-test n'entrent dans aucune case). Sans `--personne`, rapport d'ensemble : il ne lit que les personnes actives (20
   réponses dans les 28 jours qui finissent au jour du rapport) ; sous trois il ne garde que le nombre
-  d'éléments du cours ; toute case (jour, semaine, délai, mode, boîte, minutes) n'est gardée qu'à 3
+  d'éléments du cours ; toute case (jour, semaine, délai, mode, boîte, chapitre, minutes) n'est gardée qu'à 3
   personnes, 20 réponses et aucune personne au-delà de 70 % ; ni compte exact ni total (des
   pourcentages entiers) ; limites déclarées (`caseAdmise`, `docs/exploitation.md`). Avec `--personne`, la date de
   l'accord est obligatoire, et c'est une déclaration que l'outil ne contrôle pas. La sortie est

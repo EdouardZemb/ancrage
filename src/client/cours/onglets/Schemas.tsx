@@ -40,8 +40,17 @@ export function Schemas() {
 
 function SchemaChoisi(props: { schema: ModuleServiDe<'schema'> }) {
   const { schema } = props;
-  const { cours, t, etats, enregistrer, preferences, changerPreferences, hasard, useEtatDOnglet } =
-    useCours();
+  const {
+    cours,
+    t,
+    etats,
+    enregistrer,
+    preferences,
+    changerPreferences,
+    hasard,
+    useEtatDOnglet,
+    rebelles,
+  } = useCours();
   const { mode } = preferences.schemas;
   const { points } = schema;
   const cle = `${schema.id}|${mode}`;
@@ -133,6 +142,7 @@ function SchemaChoisi(props: { schema: ModuleServiDe<'schema'> }) {
           schema={schema}
           mode={mode}
           tache={tache}
+          rebelle={rebelles.has(schema.points[tache.cible].id)}
           repondre={repondre}
           suivante={() => setCourante({ ...serie, tache: tirer() })}
         />

@@ -18,6 +18,7 @@ import { useTouches } from '../clavier.js';
 import { enGras, focaliser, Options } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
 import { formater } from '../textes-cours.js';
+import { MarqueDeRebelle } from './AideDuRebelle.js';
 
 /** Les touches 1 à 4 choisissent la première à la quatrième option (H:2247). */
 const NUMEROS_D_OPTIONS = ['1', '2', '3', '4'];
@@ -75,8 +76,10 @@ export function QuestionMot(props: {
   onSuivante(): void;
   /** Le libellé de la suite ; « Nächstes Wort » par défaut, comme dans l'onglet des mots. */
   libelleSuivante?: string;
+  /** Un élément rebelle (M6) : sa question porte « schwierig ». Ses morceaux sont déjà montrés à tous. */
+  rebelle?: boolean;
 }) {
-  const { module, tache, onTache, onSuivante } = props;
+  const { module, tache, onTache, onSuivante, rebelle } = props;
   const { t, hasard } = useCours();
   const libelleSuivante = props.libelleSuivante ?? t.mots_naechstes;
 
@@ -136,6 +139,7 @@ export function QuestionMot(props: {
 
   return (
     <>
+      {rebelle === true && <MarqueDeRebelle bloc />}
       {tache.mode === 'zerlegen' ? (
         <>
           <div class="card">

@@ -138,11 +138,13 @@ test('un_seuil_au_dela_de_huit_a_sa_ligne_marquee', () => {
   expect(html.match(/\(seuil du cours\)/g)).toHaveLength(1);
 });
 
-test('le_seuil_par_defaut_est_quatre_sans_la_cle', () => {
+test('le_seuil_par_defaut_est_cinq_sans_la_cle', () => {
   const { rebelles: _ignore, ...sansCle } = cours.cours;
   const html = rapportDePersonne(rebellesDuModule(GERAETE, 1), { ...cours, cours: sansCle });
-  expect(ligne(html, '4 fautes (seuil du cours)')).toHaveLength(1);
-  expect(html).not.toContain('3 fautes (seuil du cours)');
+  expect(ligne(html, '5 fautes (seuil du cours)')).toHaveLength(1);
+  expect(html).not.toContain('4 fautes (seuil du cours)');
+  // Le texte de la définition dit le même défaut : il lit la constante, pas un 4 écrit en dur.
+  expect(html).toContain('5 par défaut');
 });
 
 test('un_titre_de_module_est_echappe', () => {

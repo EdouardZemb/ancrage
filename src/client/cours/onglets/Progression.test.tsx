@@ -2,6 +2,7 @@
 import { cleanup, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  coursAvecChampsDeCarte,
   coursAvecReglages,
   coursSans,
   coursServiDeTest,
@@ -328,80 +329,173 @@ describe('Progression', () => {
     expect(screen.queryByText(/Noch keine Probeprüfung/)).toBeNull();
   });
 
-  it('douze_cartes_difficiles', () => {
-    // Quatorze unités ratées : u1 (c1000001) quatorze fois, u2 treize fois... u14 une fois.
-    // La première a aussi trente et une réussites : 14 - 0,3 × 31 = 4,7 la range entre u10 (5)
-    // et u11 (4). Elle n'est plus la plus difficile, quoi qu'elle compte le plus de fautes.
-    const ids = [
-      'c1000001',
-      'c1000002',
-      'c1000003',
-      'c1000004',
-      'c1000005',
-      'c1000006',
-      'c1000007',
-      'c1000008',
-      'c2000001',
-      'c2000002',
-      'c2000003',
-      'c2000004',
-      'c2000005',
-      'c1000001:inverse',
-    ];
-    const fautes: [string, boolean][] = ids.flatMap((id, i) =>
-      Array.from({ length: 14 - i }, (): [string, boolean] => [id, false]),
-    );
-    const reussites: [string, boolean][] = Array.from({ length: 31 }, () => ['c1000001', true]);
-    const evenements = reponses(0, '2026-10-17', ...fautes, ...reussites);
-    const contexte = contexteDeTest({ evenements });
-    const unite = (id: string) => {
-      const trouvee = contexte.cours.unites.find((x) => x.id === id);
-      if (trouvee === undefined) throw new Error(`unité ${id} absente de la fixture`);
-      return trouvee;
-    };
-    rendreDansLeCours(<Progression />, contexte);
+  describe('la_liste_des_rebelles', () => {
+    const TITRE = 'Schwierig – nochmal ansehen';
+    const HERZ = 'c1000001';
+    const LEBER = 'c1000002';
+    const NIERE = 'c1000003';
 
-    expect(screen.getByRole('heading', { name: 'Schwierige Karten' })).toBeTruthy();
-    const montrees = lignes('Schwierige Karten');
-    expect(montrees).toHaveLength(12);
-    // u2 à u9, puis u10, u1 (4,7), u11 et u12 ; u13 et u14 ne figurent pas.
-    const ordre = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 10, 11];
-    const fautesDe = (i: number) => 14 - i;
-    expect(montrees).toEqual(
-      ordre.map((i) => [unite(ids[i]).question, unite(ids[i]).reponse, `${fautesDe(i)}× falsch`]),
-    );
-    expect(montrees.map(([question]) => question)).not.toContain(unite(ids[12]).question);
-    expect(montrees.map(([question]) => question)).not.toContain(unite(ids[13]).question);
-    expect(screen.queryByText(/Noch keine Fehler/)).toBeNull();
-  });
+    /** Juste le 1er, puis une faute chacun des jours suivants : `fautes` fautes au rejeu. */
+    function rebelle(depart: number, unite: string, fautes: number): Evenement[] {
+      return [
+        reponseDeTest(depart, unite, true, '2026-10-01'),
+        ...Array.from({ length: fautes }, (_, i) =>
+          reponseDeTest(depart + 1 + i, unite, false, `2026-10-${String(i + 2).padStart(2, '0')}`),
+        ),
+      ];
+    }
 
-  it('cartes_difficiles_seulement_les_ratees_du_cours', () => {
-    const evenements = [
-      // Réussie : jamais difficile.
-      ...reponses(0, '2026-10-17', ['c1000001', true], ['c1000001', true]),
-      // Une unité que le cours n'a plus : ignorée, sans erreur.
-      ...reponses(10, '2026-10-17', ['zz999999', false], ['zz999999', false]),
-      // Une exercice raté n'est pas une carte.
-      ...reponses(20, '2026-10-17', ['e1000001', false]),
-      // Une carte ratée : seule à paraître.
-      ...reponses(30, '2026-10-17', ['c1000002', false]),
-    ];
-    rendreDansLeCours(<Progression />, contexteDeTest({ evenements }));
+    function leCours(modules?: (tous: CoursServi['modules']) => CoursServi['modules']): CoursServi {
+      const servi = coursServiDeTest();
+      return {
+        ...servi,
+        rebelles: { fautes: 2 },
+        modules: modules === undefined ? servi.modules : modules(servi.modules),
+      };
+    }
 
-    expect(lignes('Schwierige Karten')).toEqual([
-      ['Leber', 'Grosse Drüse im Oberbauch', '1× falsch'],
-    ]);
-  });
+    /** Les groupes de la liste : le titre du module, puis ses lignes (question, réponse, fautes). */
+    function groupes(): { titre: string; lignes: string[][] }[] {
+      return Array.from(document.querySelectorAll<HTMLElement>('.rebelles-groupe')).map(
+        (groupe) => ({
+          titre: groupe.querySelector('h3')?.textContent ?? '',
+          lignes: Array.from(groupe.querySelectorAll<HTMLElement>('li > .ligne')).map((ligne) => [
+            ligne.querySelector('b')?.textContent ?? '',
+            ligne.querySelector('span')?.textContent ?? '',
+            ligne.querySelector('em')?.textContent ?? '',
+          ]),
+        }),
+      );
+    }
 
-  it('aucune_carte_difficile_le_dit', () => {
-    rendreDansLeCours(<Progression />, contexteDeTest());
+    function rendre(evenements: Evenement[], cours: CoursServi = leCours()) {
+      rendreDansLeCours(<Progression />, contexteDeTest({ cours, evenements }));
+    }
 
-    expect(
-      screen.getByText(
-        'Noch keine Fehler – sobald eine Karte falsch beantwortet wird, erscheint sie hier.',
-      ),
-    ).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Schwierige Karten' })).toBeTruthy();
+    it('un_groupe_par_module_dans_l_ordre_du_manifeste_avec_son_titre', () => {
+      // Le schéma passe avant les cartes dans le manifeste : il est aussi le premier de la liste.
+      const schemaDAbord = (tous: CoursServi['modules']) => [
+        ...tous.filter((module) => module.type === 'schema'),
+        ...tous.filter((module) => module.type !== 'schema'),
+      ];
+      rendre(
+        [...rebelle(0, HERZ, 2), ...rebelle(10, 'q0000002', 2), ...rebelle(20, 'c2000001', 2)],
+        leCours(schemaDAbord),
+      );
+
+      expect(screen.getByRole('heading', { name: TITRE })).toBeTruthy();
+      expect(groupes().map(({ titre }) => titre)).toEqual([
+        'Das Musterorgan',
+        'Anfangskapitel',
+        'Vorsilben',
+      ]);
+    });
+
+    it('dans_un_module_par_fautes_decroissantes_puis_dans_l_ordre_du_cours', () => {
+      rendre([...rebelle(0, NIERE, 2), ...rebelle(10, HERZ, 2), ...rebelle(20, LEBER, 4)]);
+
+      expect(groupes()).toEqual([
+        {
+          titre: 'Anfangskapitel',
+          lignes: [
+            ['Leber', 'Grosse Drüse im Oberbauch', '4× falsch'],
+            ['Herz', 'Organ im Brustkorb', '2× falsch'],
+            ['Niere', 'Paariges Organ der Harnbildung', '2× falsch'],
+          ],
+        },
+      ]);
+    });
+
+    it('chaque_genre_a_sa_question_et_sa_reponse_et_un_vrai_faux_son_libelle', () => {
+      rendre([
+        ...rebelle(0, HERZ, 2),
+        ...rebelle(10, 'w0000001', 2),
+        ...rebelle(20, 'q0000002', 2),
+        ...rebelle(30, 'e1000001', 2),
+        ...rebelle(40, 'fb000007', 2),
+        ...rebelle(50, 'fb000009', 2),
+      ]);
+
+      const lignes = groupes().flatMap((groupe) => groupe.lignes);
+      expect(lignes).toEqual(
+        expect.arrayContaining([
+          ['Herz', 'Organ im Brustkorb', '2× falsch'],
+          ['Gastritis', 'Schmerz im Oberbauch', '2× falsch'],
+          ['Zentrum des Organs', 'Mitte', '2× falsch'],
+          ['___ Musterus', 'der Musterus', '2× falsch'],
+          ['Was bedeutet hyper-?', 'über dem Mass', '2× falsch'],
+          ['Der Magen ist ein paariges Organ.', 'Falsch', '2× falsch'],
+        ]),
+      );
+      expect(lignes).toHaveLength(6);
+      // Le point rappelle son schéma.
+      expect(screen.getByText('Das Musterorgan', { selector: '.indication' })).toBeTruthy();
+    });
+
+    it('l_aide_de_chaque_element_figure_sans_champ_ni_bouton_de_reponse', () => {
+      rendre(
+        [...rebelle(0, HERZ, 2), ...rebelle(10, 'q0000002', 2), ...rebelle(20, 'fb000009', 2)],
+        coursAvecChampsDeCarte(leCours(), HERZ, {
+          aide: 'Herz pumpt, Leber filtert.',
+          confonduAvec: LEBER,
+        }),
+      );
+
+      expect(screen.getAllByText('Merkhilfe')).toHaveLength(3);
+      expect(screen.getByText('Herz pumpt, Leber filtert.')).toBeTruthy();
+      expect(screen.getByText(/Nicht verwechseln mit:/)).toBeTruthy();
+      expect(screen.getByText('Übungsschema ohne Vorbild')).toBeTruthy();
+      expect(screen.getByText('Der Magen ist ein Hohlorgan.')).toBeTruthy();
+      // Lecture seule : on n'y répond pas.
+      expect(screen.queryAllByRole('button')).toHaveLength(0);
+      expect(document.querySelectorAll('input, textarea, select')).toHaveLength(0);
+    });
+
+    it('un_texte_de_cours_avec_des_signes_de_balisage_est_echappe', () => {
+      const balisee = coursAvecChampsDeCarte(leCours(), HERZ, { aide: '<b>x</b> & y' });
+      rendre(rebelle(0, HERZ, 2), balisee);
+
+      expect(document.querySelector('.aide-rebelle p')?.innerHTML).toBe(
+        '&lt;b&gt;x&lt;/b&gt; &amp; y',
+      );
+    });
+
+    it('les_fautes_sont_celles_du_rejeu_une_par_jour', () => {
+      // Deux fautes le même jour n'en font qu'une : trois jours de faute, quatre réponses fausses.
+      const evenements = [
+        reponseDeTest(0, HERZ, true, '2026-10-01'),
+        reponseDeTest(1, HERZ, false, '2026-10-02'),
+        reponseDeTest(2, HERZ, false, '2026-10-02'),
+        reponseDeTest(3, HERZ, false, '2026-10-03'),
+        reponseDeTest(4, HERZ, false, '2026-10-04'),
+      ];
+      rendre(evenements);
+
+      expect(groupes()[0].lignes).toEqual([['Herz', 'Organ im Brustkorb', '3× falsch']]);
+    });
+
+    it('un_element_sorti_par_trois_succes_n_y_est_plus_mais_pas_apres_deux', () => {
+      const trois = [
+        ...rebelle(0, HERZ, 2),
+        reponseDeTest(10, HERZ, true, '2026-10-10'),
+        reponseDeTest(11, HERZ, true, '2026-10-11'),
+      ];
+      rendre(trois);
+      expect(groupes()).toHaveLength(1);
+      cleanup();
+
+      rendre([...trois, reponseDeTest(12, HERZ, true, '2026-10-12')]);
+      expect(groupes()).toEqual([]);
+      expect(screen.getByText('Keine schwierigen Begriffe.')).toBeTruthy();
+    });
+
+    it('sans_rebelle_la_section_le_dit_et_une_unite_retiree_n_y_figure_pas', () => {
+      rendre([...rebelle(0, 'zz999999', 3), ...rebelle(10, HERZ, 1)]);
+
+      expect(screen.getByRole('heading', { name: TITRE })).toBeTruthy();
+      expect(groupes()).toEqual([]);
+      expect(screen.getByText('Keine schwierigen Begriffe.')).toBeTruthy();
+    });
   });
 
   it('pas_de_remise_a_zero', () => {
@@ -419,7 +513,7 @@ describe('Progression', () => {
     expect(screen.getAllByRole('heading').map((titre) => titre.textContent)).toEqual([
       'Letzte 14 Tage',
       'Probeprüfungen',
-      'Schwierige Karten',
+      'Schwierig – nochmal ansehen',
     ]);
   });
 });

@@ -297,6 +297,8 @@ async function ongletDansLaMarge(page: Page, nom: string): Promise<void> {
       '.cours .confirm',
       '.cours form.typed',
       '.cours .table',
+      '.cours .rebelles',
+      '.cours .rebelles-groupe',
       '.cours .days',
       '.cours .boutons-feuille',
       '.cours .resultats',
@@ -589,6 +591,10 @@ async function examenEtProgressionDansLaMarge(page: Page): Promise<void> {
   await page.locator('#onglet-progression').click();
   await expect(page.getByRole('heading', { name: de.progression_jours })).toBeVisible();
   await expect(page.locator('.cours .days > div')).toHaveCount(14);
+  // La liste des rebelles remplace le tableau des cartes difficiles : un compte neuf n'en a aucun, et
+  // sa section se mesure avec l'onglet. La largeur d'une liste remplie, à 412 px, n'est pas mesurée.
+  await expect(page.getByRole('heading', { name: de.progression_rebelles })).toBeVisible();
+  await expect(page.getByText(de.progression_aucun_rebelle)).toBeVisible();
   await ongletDansLaMarge(page, 'Fortschritt');
 }
 

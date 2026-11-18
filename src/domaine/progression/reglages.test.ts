@@ -131,7 +131,7 @@ it('seuil_des_rebelles_lu_sans_rigueur', () => {
   }
   expect(lireSeuilDesRebelles({ fautes: 1 })).toBe(FAUTES_PAR_DEFAUT);
   expect(lireSeuilDesRebelles({ fautes: 21 })).toBe(FAUTES_PAR_DEFAUT);
-  expect(FAUTES_PAR_DEFAUT).toBe(4);
+  expect(FAUTES_PAR_DEFAUT).toBe(5);
   expect(FAUTES_MINIMUM).toBe(2);
   expect(FAUTES_MAXIMUM).toBe(20);
 });

@@ -46,8 +46,16 @@ export function Exercices() {
 
 function ExercicesDuModule(props: { module: ModuleServiDe<'exercices'> }) {
   const { module } = props;
-  const { t, etats, enregistrer, preferences, changerPreferences, hasard, useEtatDOnglet } =
-    useCours();
+  const {
+    t,
+    etats,
+    enregistrer,
+    preferences,
+    changerPreferences,
+    hasard,
+    useEtatDOnglet,
+    rebelles,
+  } = useCours();
   const choix = preferences.exercices.famille;
 
   const tirer = (): Tirage | null => {
@@ -112,6 +120,7 @@ function ExercicesDuModule(props: { module: ModuleServiDe<'exercices'> }) {
           famille={tirage.famille}
           exercice={tirage.exercice}
           reponse={reponse}
+          rebelle={rebelles.has(tirage.exercice.id)}
           onReponse={repondre}
           onSuivante={() => setCourante({ ...serie, tirage: tirer(), reponse: null })}
         />

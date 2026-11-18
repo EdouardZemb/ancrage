@@ -29,6 +29,13 @@
  * Un geste, une écriture (M2-P7) : la réponse et le verdict, ou la suite et la question d'après,
  * s'écrivent d'un seul bloc.
  *
+ * Les éléments rebelles (M6) : un rebelle qui a déjà une réponse aujourd'hui, dans « Heute » ou dans
+ * un onglet, est écarté pour aujourd'hui, et l'onglet le retire de ses posables avant tout calcul
+ * (ce qui est dû, la clé de la séance, les comptes, la composition). L'ordonnanceur, lui, ne change
+ * pas : un rebelle manqué reste dû, mais « Heute » ne le repose plus (T2-D3). Un rebelle manqué
+ * pendant la séance sort au lieu de revenir en fin de file ; son verdict « rebelle » se lit au geste
+ * qui juge, avant que le journal ne range la réponse, et se garde jusqu'au passage à la suite.
+ *
  * La pose des cartes (M5-D7) : sous une carte à saisir, un lien passe la séance en cartes
  * retournées, et un autre y rend la saisie. Ce choix est un état d'onglet à part, `heute/pose`,
  * sans prédicat de séance (il ne retient pas la mise à jour) : il tient d'une série à la suivante,
@@ -47,6 +54,7 @@ import {
   type Posable,
   posablesDuCours,
   type SeanceDuJour,
+  sansLesEcartes,
 } from '../../../domaine/seances/heute.js';
 import { joursAvantExamen } from '../../../domaine/seances/planning.js';
 import { pretestDuJour } from '../../../domaine/seances/pretest.js';
@@ -56,6 +64,12 @@ import { optionsDuPoint } from '../../../domaine/seances/schemas.js';
 import { etapeEnCours, modulesDesPosables } from '../../../domaine/seances/semestre.js';
 import { ligneDExamen } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
+import {
+  avecRepondu,
+  CLE_REBELLES_REPONDUS,
+  ecartesDuMoment,
+  type RebellesRepondus,
+} from '../ecartes-du-jour.js';
 import { usePlanningDuCours } from '../planning-du-cours.js';
 import {
   QuestionAChoix,
@@ -96,6 +110,11 @@ export interface EtatDeHeute {
   repondue: boolean | null;
   /** Les révisions retenues par la séance (C-D12) ; absent sans révision. */
   revisions?: readonly string[];
+  /**
+   * Vrai si l'élément de tête était rebelle au geste qui l'a jugé, avant que le journal ne range sa
+   * réponse (T2-D3) ; absent tant que la tête n'est pas jugée.
+   */
+  rebelle?: boolean;
 }
 
 /**
@@ -166,8 +185,22 @@ export function Heute() {
     hasard,
     aller,
     useEtatDOnglet,
+    rebelles,
+    ecartes: ecartesDuJournal,
   } = useCours();
-  const posables = useMemo(() => posablesDuCours(cours), [cours]);
+  // Les rebelles auxquels l'onglet a fait répondre aujourd'hui : gardés avec leur jour, dans la
+  // mémoire de l'onglet, pour que la séance ne les repose pas même si la réponse n'est pas au journal.
+  const [repondus, setRepondus] = useEtatDOnglet<RebellesRepondus>(CLE_REBELLES_REPONDUS, () => ({
+    jour: aujourdhui,
+    ids: [],
+  }));
+  const ecartes = useMemo(
+    () => ecartesDuMoment(ecartesDuJournal, repondus, aujourdhui),
+    [ecartesDuJournal, repondus, aujourdhui],
+  );
+  // Tous les posables, et ceux de « Heute » : sans les écartés, avant tout calcul (T2-D3).
+  const tous = useMemo(() => posablesDuCours(cours), [cours]);
+  const posables = useMemo(() => sansLesEcartes(tous, ecartes), [tous, ecartes]);
   const dues = useMemo(
     () => duesDuJour(posables, etats, aujourdhui),
     [posables, etats, aujourdhui],
@@ -207,13 +240,17 @@ export function Heute() {
     () =>
       planning === undefined
         ? []
-        : revisionsDuJour(
-            posables,
-            modules,
-            { etats, evenements, aujourdhui },
-            { planning, depart, examen },
+        : // Elle garde les posables entiers : son compte des éléments répondus ne doit pas baisser.
+          sansLesEcartes(
+            revisionsDuJour(
+              tous,
+              modules,
+              { etats, evenements, aujourdhui },
+              { planning, depart, examen },
+            ),
+            ecartes,
           ),
-    [posables, modules, etats, evenements, aujourdhui, planning, depart, examen],
+    [tous, modules, etats, evenements, aujourdhui, planning, depart, examen, ecartes],
   );
   // Le titre de l'étape de révision en cours, pour dire la raison des révisions (C-D13).
   const etapeDeRevision = useMemo(() => {
@@ -297,12 +334,16 @@ export function Heute() {
     if (suivante.file.length === 0) void rangement.current.then(() => finDeSeance());
   };
 
-  /** L'état après la question de tête, juste ou non : la file avance, la question d'après se tire. */
-  const avancer = (juste: boolean): EtatDeHeute => {
-    const suivante = apresReponseDuJour(seance, juste);
+  /**
+   * L'état après la question de tête, juste ou non : la file avance, la question d'après se tire.
+   * `sansRetour` : la tête était rebelle, manquée, elle sort sans revenir (T2-D3).
+   */
+  const avancer = (juste: boolean, sansRetour: boolean): EtatDeHeute => {
+    const suivante = apresReponseDuJour(seance, juste, sansRetour);
     finir(suivante);
+    const { rebelle: _verdict, ...base } = etat;
     return {
-      ...etat,
+      ...base,
       seance: suivante,
       question: questionDe(suivante.file[0], cours, hasard),
       repondue: null,
@@ -313,12 +354,15 @@ export function Heute() {
   // Le geste qui juge la question de tête : elle, son verdict et l'enregistrement d'un bloc.
   const juger = (suivante: QuestionDeTete, juste: boolean, mode: ModeDeReponse) => {
     if (tete === undefined || repondue !== null) return;
-    setCourante({ ...etat, question: suivante, repondue: juste });
+    // Rebelle ou non se lit ici, avant d'écrire : la réponse du moment ne change pas ce verdict.
+    const estRebelle = rebelles.has(tete.id);
+    setCourante({ ...etat, question: suivante, repondue: juste, rebelle: estRebelle });
     ranger(tete.id, juste, mode);
+    if (estRebelle) setRepondus(avecRepondu(repondus, tete.id, aujourdhui));
   };
   // La suite, une fois la question jugée.
   const suivante = () => {
-    if (repondue !== null) setCourante(avancer(repondue));
+    if (repondue !== null) setCourante(avancer(repondue, etat.rebelle === true));
   };
   const encore = () => setCourante(composer());
 
@@ -330,6 +374,15 @@ export function Heute() {
     ({ id }) => revisionsRetenues.has(id) && !duesDuMoment.has(id),
   ).length;
   const compteARebours = ligneDExamen(joursAvantExamen(examen, aujourdhui), t);
+  // Le lien vers la liste de Fortschritt, quand il y a des rebelles (T2-D11).
+  const lienDesRebelles =
+    rebelles.size > 0 ? (
+      <p class="muted">
+        <button type="button" class="linkbtn" onClick={() => aller('progression')}>
+          {formater(t.heute_rebelles, { n: rebelles.size })}
+        </button>
+      </p>
+    ) : null;
   // À l'écran de fin : les dues que la séance n'a pas déjà réussies, le journal pouvant être en retard.
   const restantes = dues.filter(({ id }) => !reussis.current.has(id)).length;
 
@@ -376,6 +429,7 @@ export function Heute() {
                 </div>
               </>
             )}
+            {lienDesRebelles}
           </div>
         ) : (
           <div class="done">
@@ -387,11 +441,15 @@ export function Heute() {
                 {t.heute_vers_apercu}
               </button>
             </div>
+            {lienDesRebelles}
           </div>
         )}
       </section>
     );
   }
+
+  // Le verdict « rebelle » de la tête : lu au geste qui juge une fois jugée, d'après le journal avant.
+  const rebelleDeTete = repondue === null ? rebelles.has(tete.id) : etat.rebelle === true;
 
   // Le lien de pose, sous une carte inverse : de la saisie aux cartes retournées tant qu'aucun
   // verdict n'est affiché, et en retour tant que la carte n'est pas retournée. Chaque lien a sa
@@ -434,10 +492,12 @@ export function Heute() {
           saisie={preferences.cartes.saisie && !retournees}
           etat={question.etat}
           onEtat={(suite) => poser({ genre: 'carte', etat: suite })}
+          rebelle={rebelleDeTete}
           onReponse={(juste, mode) => {
             // Réponse et suite ne font qu'un geste : la file avance dans la même écriture.
             ranger(tete.id, juste, mode);
-            setCourante(avancer(juste));
+            if (rebelleDeTete) setRepondus(avecRepondu(repondus, tete.id, aujourdhui));
+            setCourante(avancer(juste, rebelleDeTete));
           }}
         />
       )}
@@ -455,6 +515,7 @@ export function Heute() {
           }
           onSuivante={suivante}
           libelleSuivante={t.suivante}
+          rebelle={rebelleDeTete}
         />
       )}
       {tete.genre === 'point' && question.genre === 'point' && (
@@ -470,6 +531,8 @@ export function Heute() {
             )
           }
           suivante={suivante}
+          rebelle={rebelleDeTete}
+          aide={tete.schema.note}
         />
       )}
       {tete.genre === 'exercice' && question.genre === 'exercice' && (
@@ -479,6 +542,7 @@ export function Heute() {
           reponse={question.reponse}
           onReponse={(reponse, mode) => juger({ genre: 'exercice', reponse }, reponse.juste, mode)}
           onSuivante={suivante}
+          rebelle={rebelleDeTete}
         />
       )}
       {tete.genre === 'fermee' && question.genre === 'fermee' && (
@@ -489,6 +553,10 @@ export function Heute() {
             juger({ genre: 'fermee', question: { ...question.question, choisie: i } }, juste, mode)
           }
           onSuivante={suivante}
+          rebelle={rebelleDeTete}
+          aide={
+            tete.element.genre === 'vrai-faux' ? tete.element.affirmation.correction : undefined
+          }
         />
       )}
     </section>

@@ -62,6 +62,7 @@ export function Cartes(props: {
     aller,
     useEtatDOnglet,
     oublierEtatDOnglet,
+    rebelles,
   } = useCours();
   const { chapitre, sens, saisie } = preferences.cartes;
   const cle = `${chapitre}|${sens}`;
@@ -159,6 +160,7 @@ export function Cartes(props: {
           etat={{ retournee: serie.retournee, verdict: serie.verdict }}
           onEtat={(etat) => setCourante({ ...serie, ...etat })}
           onReponse={repondre}
+          rebelle={rebelles.has(unite.id)}
         />
       )}
     </section>

@@ -14,6 +14,7 @@ import {
   type Posable,
   posablesDuCours,
   type SeanceDuJour,
+  sansLesEcartes,
   TAILLE_DE_SEANCE,
 } from './heute.js';
 
@@ -635,4 +636,69 @@ it('cartes_neuves_garde_une_carte_pretestee', () => {
   );
 
   expect(cartesNeuves(tous, etats).map(({ id }) => id)).toContain(carte.id);
+});
+
+it('sans_les_ecartes_retire_les_identifiants_ecartes_et_garde_l_ordre', () => {
+  const [a, b, c] = lesPosables();
+
+  expect(ids(sansLesEcartes([a, b, c], new Set([b.id])))).toEqual([a.id, c.id]);
+  expect(ids(sansLesEcartes([a, b, c], new Set()))).toEqual([a.id, b.id, c.id]);
+  expect(ids(sansLesEcartes([a, b], new Set(['inconnu'])))).toEqual([a.id, b.id]);
+});
+
+it('apres_reponse_du_jour_sans_retour_un_manque_sort_sans_revenir', () => {
+  const [a, b, c] = lesPosables();
+
+  const suite = apresReponseDuJour(seance([a, b, c]), false, true);
+
+  expect(suite).toEqual({ file: [b, c], revenus: [], faites: 1, justes: 0 });
+  // Le bilan compte l'élément passé, faux.
+  expect(bilanDuJour(suite)).toEqual({ elements: 1, justes: 0 });
+});
+
+it('apres_reponse_du_jour_sans_retour_un_juste_sort_et_sans_le_parametre_comme_avant', () => {
+  const [a, b] = lesPosables();
+
+  expect(apresReponseDuJour(seance([a, b]), true, true)).toEqual({
+    file: [b],
+    revenus: [],
+    faites: 1,
+    justes: 1,
+  });
+  expect(apresReponseDuJour(seance([a, b]), false, false)).toEqual(
+    apresReponseDuJour(seance([a, b]), false),
+  );
+  expect(apresReponseDuJour(seance([a, b]), false).revenus).toEqual([a.id]);
+});
+
+it('apres_reponse_du_jour_sans_retour_une_file_vide_ne_change_pas', () => {
+  const vide = seance([], { faites: 1 });
+
+  expect(apresReponseDuJour(vide, false, true)).toEqual(vide);
+});
+
+it('apres_reponse_du_jour_sans_retour_ne_juge_que_la_tete_le_sens_inverse_est_une_autre_unite', () => {
+  const direct = lesPosables().find((p) => p.genre === 'carte');
+  if (direct === undefined || direct.genre !== 'carte') throw new Error('carte attendue');
+  const inverse: Posable = {
+    ...direct,
+    id: `${direct.id}:inverse`,
+    unite: { ...direct.unite, id: `${direct.id}:inverse`, sens: 'inverse' },
+  };
+
+  // Seul le sens inverse est rebelle : le sens direct, manqué, revient ; l'inverse sort.
+  const rebelles = new Set([inverse.id]);
+  const surDirect = apresReponseDuJour(seance([direct, inverse]), false, rebelles.has(direct.id));
+  expect(ids(surDirect.file)).toEqual([inverse.id, direct.id]);
+  expect(surDirect.revenus).toEqual([direct.id]);
+  const surInverse = apresReponseDuJour(seance([inverse, direct]), false, rebelles.has(inverse.id));
+  expect(ids(surInverse.file)).toEqual([direct.id]);
+  expect(surInverse.revenus).toEqual([]);
+});
+
+it('bilan_du_jour_un_rebelle_manque_est_un_element_passe_faux', () => {
+  const [a, b] = lesPosables();
+  const apres = apresReponseDuJour(apresReponseDuJour(seance([a, b]), false, true), true);
+
+  expect(bilanDuJour(apres)).toEqual({ elements: 2, justes: 1 });
 });

@@ -11,6 +11,7 @@ import type { ModeDeReponse } from '../../../domaine/journal/evenement.js';
 import { useTouches } from '../clavier.js';
 import { classeDeLaQuestion, focaliser, Options, SaisieDeLaReponse } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
+import { MarqueDeRebelle } from './AideDuRebelle.js';
 
 /** L'invite d'un article commence ainsi : la bonne réponse vient la compléter (H:2181). */
 const TROU_D_ARTICLE = /^___\s*/;
@@ -24,7 +25,7 @@ export interface ReponseDExercice {
 }
 
 /** La réponse telle que le verdict la montre : un article est suivi de son mot. */
-function reponseMontree(exercice: Exercice): string {
+export function reponseMontree(exercice: Exercice): string {
   return TROU_D_ARTICLE.test(exercice.invite)
     ? `${exercice.reponse} ${exercice.invite.replace(TROU_D_ARTICLE, '')}`
     : exercice.reponse;
@@ -38,8 +39,10 @@ export function QuestionDExercice(props: {
   /** La réponse jugée : appelée une fois, tant que l'exercice n'est pas répondu. */
   onReponse(reponse: ReponseDExercice, mode: ModeDeReponse): void;
   onSuivante(): void;
+  /** Un élément rebelle (M6) : sa question porte « schwierig ». Sa règle est déjà montrée à tous. */
+  rebelle?: boolean;
 }) {
-  const { famille, exercice, reponse, onReponse, onSuivante } = props;
+  const { famille, exercice, reponse, onReponse, onSuivante, rebelle } = props;
   const { t } = useCours();
   const options = exercice.options;
 
@@ -61,6 +64,7 @@ export function QuestionDExercice(props: {
 
   return (
     <>
+      {rebelle === true && <MarqueDeRebelle bloc />}
       <div class="card" style={{ minHeight: '180px' }}>
         <span class="kind">{famille.libelle}</span>
         <span class={classeDeLaQuestion(exercice.invite)}>{exercice.invite}</span>

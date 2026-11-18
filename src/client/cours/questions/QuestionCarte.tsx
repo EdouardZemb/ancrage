@@ -8,13 +8,14 @@
 
 import { canonique } from '../../../domaine/cartes/reponses.js';
 import { jugerLaCarte, plier } from '../../../domaine/cartes/saisie.js';
-import type { UniteDeCarte } from '../../../domaine/cartes/unites.js';
+import { aideDeLUnite, type UniteDeCarte } from '../../../domaine/cartes/unites.js';
 import type { ModeDeReponse } from '../../../domaine/journal/evenement.js';
 import { etatDe } from '../../../domaine/progression/etat.js';
 import { useTouches } from '../clavier.js';
 import { Enonce, focaliser } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
 import { formater } from '../textes-cours.js';
+import { AideDuRebelle, MarqueDeRebelle } from './AideDuRebelle.js';
 
 /** L'état d'une carte posée : retournée ou non, et le jugement de la saisie, avec ce qui fut tapé. */
 export interface EtatDeCarte {
@@ -40,8 +41,10 @@ export function QuestionCarte(props: {
    * juge le terme tapé), `corrigee` (une saisie jugée fausse, déclarée juste par la personne).
    */
   onReponse(juste: boolean, mode: ModeDeReponse): void;
+  /** Un élément rebelle (M6) : la carte porte « schwierig » et montre son aide une fois cherchée. */
+  rebelle?: boolean;
 }) {
-  const { unite, saisie, etat, onEtat, onReponse } = props;
+  const { unite, saisie, etat, onEtat, onReponse, rebelle } = props;
   const { cours, t, etats } = useCours();
   // La saisie ne vaut que pour une inverse (H:1767).
   const saisieAttendue = unite.sens === 'inverse' && saisie;
@@ -68,10 +71,16 @@ export function QuestionCarte(props: {
   const meta = (
     <span class="meta">{boite > 0 ? formater(t.cartes_boite, { n: boite }) : t.cartes_neuve}</span>
   );
+  // La marque est au-dessus de la carte, en bloc : l'`aria-label` d'une carte à retourner cacherait
+  // ce qui est dedans à un lecteur d'écran.
+  const marque = rebelle === true && <MarqueDeRebelle bloc />;
+  // L'aide ne vient qu'après la recherche : avec le verdict d'une saisie, au verso d'une carte retournée.
+  const aide = rebelle === true ? aideDeLUnite(unite, cours.unites) : undefined;
 
   if (saisieAttendue) {
     return (
       <>
+        {marque}
         <div class="card">
           <Enonce unite={unite} avecChapitre />
           {etat.verdict === null ? (
@@ -117,6 +126,7 @@ export function QuestionCarte(props: {
           )}
           {meta}
         </div>
+        {etat.verdict !== null && <AideDuRebelle aide={aide} />}
         <p class="kbd">{t.cartes_touches_saisie}</p>
       </>
     );
@@ -124,6 +134,7 @@ export function QuestionCarte(props: {
 
   return (
     <>
+      {marque}
       {/* biome-ignore lint/a11y/useSemanticElements: le bloc de la carte garde la mise en page du prototype (H:1789). */}
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: Espace et Enter retournent la carte, pour tout l'écran (useTouches). */}
       <div
@@ -141,6 +152,7 @@ export function QuestionCarte(props: {
         )}
         {meta}
       </div>
+      {etat.retournee && <AideDuRebelle aide={aide} />}
       {etat.retournee && (
         <div class="answer">
           <button type="button" class="no" onClick={() => onReponse(false, 'retournee')}>

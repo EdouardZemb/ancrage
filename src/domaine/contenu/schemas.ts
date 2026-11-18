@@ -69,6 +69,9 @@ function controlerStatut(objet: { statut?: Statut; verifie_le?: string }, ctx: z
   }
 }
 
+/** La longueur au plus d'une aide, comptée comme JavaScript compte une chaîne (T2-D6). */
+export const LONGUEUR_MAXIMALE_D_UNE_AIDE = 300;
+
 const texteDeCarte = z
   .string()
   .min(1, { error: 'Le texte est vide.' })
@@ -89,6 +92,12 @@ const carte = z
       .array(z.string().min(1, { error: 'Le texte est vide.' }))
       .min(1, { error: 'La liste est vide.' })
       .optional(),
+    aide: texteDeCarte
+      .max(LONGUEUR_MAXIMALE_D_UNE_AIDE, {
+        error: `L'aide dépasse ${LONGUEUR_MAXIMALE_D_UNE_AIDE} caractères.`,
+      })
+      .optional(),
+    confondu_avec: identifiant.optional(),
     ...etatFacultatif,
   })
   .superRefine(controlerStatut);

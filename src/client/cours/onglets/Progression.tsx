@@ -2,8 +2,8 @@
  * « Fortschritt », la progression du cours, reprise du prototype (`renderStats`, H:2200-2216) sans
  * son « Neu anfangen » : le journal ne fait que grandir (invariant 5, décision 2), et rien ici ne le
  * remet à zéro. Dans l'ordre : les réponses des 14 derniers jours, avec le total, la série et ce
- * que chaque module a de réussi ; les 10 derniers examens, du plus récent au plus ancien ; les 12
- * cartes les plus difficiles.
+ * que chaque module a de réussi ; les 10 derniers examens, du plus récent au plus ancien ; la liste
+ * des éléments rebelles (M6, `ListeDesRebelles`).
  *
  * Un module que le cours n'a pas n'a pas de total. Les examens ne sont filtrés par aucune unité :
  * ils comptent tous, même si le module qui les a posés n'est plus dans le cours.
@@ -11,13 +11,13 @@
 import { useMemo } from 'preact/hooks';
 import { ajouterJours } from '../../../domaine/journal/temps.js';
 import { examensPasses, reponsesParJour, serie } from '../../../domaine/progression/etat.js';
-import { cartesDifficiles, reussis } from '../../../domaine/progression/statistiques.js';
+import { reussis } from '../../../domaine/progression/statistiques.js';
 import { useCours } from '../contexte-cours.js';
 import { formater } from '../textes-cours.js';
+import { ListeDesRebelles } from './ListeDesRebelles.js';
 
 const JOURS_AFFICHES = 14;
 const EXAMENS_AFFICHES = 10;
-const CARTES_AFFICHEES = 12;
 /** Un jour avec des réponses reste lisible : sa barre fait au moins 6 % de la hauteur (H:2204). */
 const HAUTEUR_MIN = 6;
 /** Un jour sans réponse est un trait de 2 % (H:2204). */
@@ -77,8 +77,6 @@ export function Progression() {
       totaux.push(formater(libelle, valeurs));
     }
   }
-
-  const difficiles = cartesDifficiles(cours.unites, etats, CARTES_AFFICHEES);
 
   return (
     <section>
@@ -140,20 +138,7 @@ export function Progression() {
         </>
       )}
 
-      <h2>{t.progression_difficiles}</h2>
-      {difficiles.length > 0 ? (
-        <div class="table">
-          {difficiles.map(({ unite, etat }) => (
-            <div key={unite.id}>
-              <b>{unite.question}</b>
-              <span>{unite.reponse}</span>
-              <em>{formater(t.progression_fausses, { n: etat.fausses })}</em>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p class="muted">{t.progression_aucune_faute}</p>
-      )}
+      <ListeDesRebelles />
     </section>
   );
 }

@@ -20,6 +20,10 @@ export interface Carte extends Etat {
   recto: string;
   verso: string;
   reponses?: string[];
+  /** Un texte d'une ligne, montré à un élément rebelle (M6, T2-D6). */
+  aide?: string;
+  /** L'identifiant d'une autre carte du cours, avec laquelle celle-ci se confond (M6, T2-D6). */
+  confonduAvec?: string;
 }
 
 export interface ModuleCartes {

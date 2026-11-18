@@ -22,6 +22,7 @@ import {
 } from './contexte-cours.js';
 import { ordonnanceurDuCours } from './ordonnanceur-du-cours.js';
 import { preferencesParDefaut } from './preferences.js';
+import { rebellesDuCours } from './rebelles-du-cours.js';
 import { TEXTES_COURS } from './textes-cours.js';
 
 /** L'état des unités, selon l'algorithme du cours, comme `useProgression`. */
@@ -50,6 +51,7 @@ export function contexteDeTest(
     evenements,
     etats: etatsDuCours(evenements, cours),
     aujourdhui: options.aujourdhui ?? AUJOURDHUI_DE_TEST,
+    ...rebellesDuCours(cours, evenements, options.aujourdhui ?? AUJOURDHUI_DE_TEST),
     enregistrer: vi.fn(async () => true),
     enregistrerExamen: vi.fn(async () => true),
     finDeSeance: vi.fn(),
@@ -82,6 +84,7 @@ export function rendreDansUnCoursVivant(onglet: ComponentChild, contexte: Contex
         ...contexte,
         evenements,
         etats: etatsDuCours(evenements, contexte.cours),
+        ...rebellesDuCours(contexte.cours, evenements, contexte.aujourdhui),
         preferences,
         enregistrer: (unite, juste, mode) => {
           rang.current += 1;

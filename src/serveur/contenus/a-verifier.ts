@@ -100,8 +100,11 @@ function elementsDeFeuille(tache: Tache): ElementAVerifier[] {
   }
 }
 
-/** Les éléments « à vérifier » d'un module, dans l'ordre du fichier. */
-function elementsAVerifier(module: Module): ElementAVerifier[] {
+/** Les éléments « à vérifier » d'un module, dans l'ordre du fichier. `rectos` : celui de chaque carte du cours. */
+function elementsAVerifier(
+  module: Module,
+  rectos: ReadonlyMap<string, string>,
+): ElementAVerifier[] {
   switch (module.type) {
     case 'cartes':
       return module.cartes.filter(aVerifier).map((c) => ({
@@ -111,6 +114,10 @@ function elementsAVerifier(module: Module): ElementAVerifier[] {
           champ('Vorderseite', c.recto),
           champ('Rückseite', c.verso),
           ...(c.reponses === undefined ? [] : [champ('Antworten', c.reponses)]),
+          ...(c.aide === undefined ? [] : [champ('Merkhilfe', c.aide)]),
+          ...(c.confonduAvec === undefined
+            ? []
+            : [champ('Nicht verwechseln mit', rectos.get(c.confonduAvec) ?? c.confonduAvec)]),
         ],
       }));
     case 'morphologie':
@@ -186,8 +193,13 @@ function elementsAVerifier(module: Module): ElementAVerifier[] {
 
 /** Dans l'ordre des modules du cours, ceux qui ont au moins un élément « à vérifier ». */
 export function listeAVerifier(cours: Cours): ModuleAVerifier[] {
+  const rectos = new Map(
+    cours.modules.flatMap((module) =>
+      module.type === 'cartes' ? module.cartes.map((c) => [c.id, c.recto] as const) : [],
+    ),
+  );
   return cours.modules.flatMap((module) => {
-    const elements = elementsAVerifier(module);
+    const elements = elementsAVerifier(module, rectos);
     return elements.length === 0
       ? []
       : [{ titre: module.titre, fichier: module.fichier, type: module.type, elements }];
@@ -234,14 +246,19 @@ ${korrektur}
 
 /** Une ligne par élément : gauche, droite (et « Auch richtig » s'il y a un troisième champ). */
 function htmlLigne(element: ElementAVerifier): string {
-  const [gauche, droite, autres] = element.champs;
-  const aussi =
-    autres === undefined
-      ? ''
-      : `<span class="aussi">Auch richtig:</span>${[autres.valeur]
+  const [gauche, droite, ...autres] = element.champs;
+  // Les champs de plus : « Auch richtig » pour les réponses, le libellé du champ pour les autres.
+  const aussi = autres
+    .map(
+      (autre) =>
+        `<span class="aussi">${echapper(autre.libelle === 'Antworten' ? 'Auch richtig' : autre.libelle)}:</span>${[
+          autre.valeur,
+        ]
           .flat()
           .map((v) => `<span class="ligne">${echapper(v)}</span>`)
-          .join('')}`;
+          .join('')}`,
+    )
+    .join('');
   return `<tr>
 <td>${[gauche.valeur].flat().map(echapper).join('<br>')}<span class="id">${echapper(element.id)}</span></td>
 <td>${[droite.valeur].flat().map(echapper).join('<br>')}${aussi}</td>

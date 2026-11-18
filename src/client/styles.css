@@ -901,6 +901,22 @@ form.typed input {
   padding: 2px;
 }
 
+/* Un élément rebelle (M6) : l'étiquette au-dessus de sa question, et son aide une fois répondu. */
+p.rebelle {
+  margin: 0 0 4px;
+}
+
+.aide-rebelle {
+  margin: 8px 0;
+  padding: 6px 10px;
+  border-left: 3px solid var(--accent);
+  text-align: left;
+}
+
+.aide-rebelle p {
+  margin: 2px 0 0;
+}
+
 /* Le lien de pose de « Heute » : toute la ligne se touche. */
 p.muted > .linkbtn {
   display: inline-flex;
@@ -1168,6 +1184,44 @@ ol.chapters .meta .morceau {
   color: var(--bad);
   white-space: normal;
   overflow-wrap: anywhere;
+}
+
+/* La liste des rebelles de Fortschritt : une ligne par élément, son aide dessous. */
+.rebelles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+
+.rebelles li {
+  display: grid;
+  gap: 4px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.92rem;
+}
+
+.rebelles .ligne {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto;
+  gap: 12px;
+}
+
+.rebelles b,
+.rebelles span {
+  overflow-wrap: anywhere;
+}
+
+.rebelles .ligne em {
+  font: 500 0.78rem var(--f-mono);
+  color: var(--bad);
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.rebelles .aide-rebelle {
+  margin: 0;
 }
 
 .fautes span::before {

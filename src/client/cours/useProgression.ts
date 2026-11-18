@@ -37,10 +37,19 @@ import { ajouterEvenements, evenementsDuCours, fileDuCours } from '../stockage/j
 import { type EtatSynchro, synchroniserCours } from '../synchro.js';
 import type { ContexteCours } from './contexte-cours.js';
 import { ordonnanceurDuCours } from './ordonnanceur-du-cours.js';
+import { rebellesDuCours } from './rebelles-du-cours.js';
 
 export type Progression = Pick<
   ContexteCours,
-  'evenements' | 'etats' | 'aujourdhui' | 'enregistrer' | 'enregistrerExamen' | 'finDeSeance'
+  | 'evenements'
+  | 'etats'
+  | 'aujourdhui'
+  | 'fautes'
+  | 'rebelles'
+  | 'ecartes'
+  | 'enregistrer'
+  | 'enregistrerExamen'
+  | 'finDeSeance'
 > & {
   /**
    * Le journal local est lu (ou illisible) : `evenements` et `etats` sont ceux de l'appareil. Un
@@ -273,10 +282,20 @@ export function useProgression(personne: string, cours: CoursPrepare): Progressi
   const ordonnanceur = useMemo(() => ordonnanceurDuCours(cours), [cours]);
   const etats = useMemo(() => ordonnanceur(evenements), [ordonnanceur, evenements]);
 
+  const aujourdhui = aujourdhuiLocal();
+  // Les rebelles se dérivent du journal, une fois par journal (et par jour).
+  const { fautes, rebelles, ecartes } = useMemo(
+    () => rebellesDuCours(cours, evenements, aujourdhui),
+    [cours, evenements, aujourdhui],
+  );
+
   return {
     evenements,
     etats,
-    aujourdhui: aujourdhuiLocal(),
+    aujourdhui,
+    fautes,
+    rebelles,
+    ecartes,
     enregistrer,
     enregistrerExamen,
     finDeSeance: synchroniser,

@@ -544,3 +544,44 @@ describe('calculerReference', () => {
     ]);
   });
 });
+
+describe('calculerReference, aide et confondu_avec', () => {
+  const AIDES = 'reponses: ["proto"]\n    aide: "Kleiner Merksatz"\n    confondu_avec: "rzbyrqna"';
+
+  it('l_unite_porte_l_aide_et_le_confondu_avec_de_ses_deux_sens', () => {
+    const fichiers = exempleDeCours();
+    remplacer(fichiers, 'essai/cartes/02-vorsilben.yaml', 'reponses: ["proto"]', AIDES);
+    const reference = calculerReference(coursDe(fichiers));
+
+    for (const id of ['4g84caqa', '4g84caqa:inverse']) {
+      const unite = reference.unites.find((u) => u.id === id);
+      expect(unite).toMatchObject({ aide: 'Kleiner Merksatz', confonduAvec: 'rzbyrqna' });
+    }
+    expect(Object.keys(reference.unites.find((u) => u.id === '4g84caqa') ?? {})).toEqual([
+      'id',
+      'numero',
+      'type',
+      'sens',
+      'question',
+      'reponse',
+      'aide',
+      'confonduAvec',
+      'acceptees',
+    ]);
+  });
+
+  it('l_unite_d_une_carte_sans_ces_cles_est_celle_d_avant', () => {
+    const sans = calculerReference(coursDe(exempleDeCours()));
+    const fichiers = exempleDeCours();
+    remplacer(fichiers, 'essai/cartes/02-vorsilben.yaml', 'reponses: ["proto"]', AIDES);
+    const avec = calculerReference(coursDe(fichiers));
+
+    // Les autres cartes ne changent pas d'un octet.
+    const autres = (r: typeof sans) => r.unites.filter((u) => !u.id.startsWith('4g84caqa'));
+    expect(JSON.stringify(autres(avec))).toBe(JSON.stringify(autres(sans)));
+    for (const unite of sans.unites) {
+      expect(unite).not.toHaveProperty('aide');
+      expect(unite).not.toHaveProperty('confonduAvec');
+    }
+  });
+});

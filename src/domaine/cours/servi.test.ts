@@ -341,7 +341,7 @@ describe('versCoursServi', () => {
     const [cours] = analyserContenus(exempleDeCours()).cours;
     const sans = versCoursServi(cours);
     expect(sans).not.toHaveProperty('rebelles');
-    expect(seuilDesRebelles(sans)).toBe(4);
+    expect(seuilDesRebelles(sans)).toBe(5);
 
     const servi = versCoursServi({ ...cours, rebelles: { fautes: 3 } });
     expect(servi.rebelles).toEqual({ fautes: 3 });
@@ -354,7 +354,7 @@ describe('versCoursServi', () => {
       expect(coursServiUtilisable(JSON.parse(JSON.stringify(illisible))), String(inconnue)).toBe(
         true,
       );
-      expect(seuilDesRebelles(illisible), String(inconnue)).toBe(4);
+      expect(seuilDesRebelles(illisible), String(inconnue)).toBe(5);
     }
   });
 
@@ -484,4 +484,53 @@ describe('versCoursServi', () => {
       cours.modules.map(({ fichier: _fichier, ...module }) => module),
     );
   });
+});
+
+const AIDES = {
+  avant: 'reponses: ["proto"]',
+  apres: 'reponses: ["proto"]\n    aide: "Kleiner Merksatz"\n    confondu_avec: "rzbyrqna"',
+};
+
+function carteServieDe(servi: CoursServi, id: string) {
+  return servi.modules
+    .flatMap((module) => (module.type === 'cartes' ? module.cartes : []))
+    .find((carte) => carte.id === id);
+}
+
+it('aide_et_confondu_avec_servis_pour_la_carte_qui_les_porte_et_pour_elle_seule', () => {
+  const fichiers = modifier(
+    exempleDeCours(),
+    'essai/cartes/02-vorsilben.yaml',
+    AIDES.avant,
+    AIDES.apres,
+  );
+  const { cours, erreurs } = analyserContenus(fichiers);
+  expect(erreurs).toEqual([]);
+  const servi = JSON.parse(JSON.stringify(versCoursServi(cours[0]))) as CoursServi;
+
+  expect(carteServieDe(servi, '4g84caqa')).toMatchObject({
+    aide: 'Kleiner Merksatz',
+    confonduAvec: 'rzbyrqna',
+  });
+  for (const cle of ['aide', 'confonduAvec']) {
+    expect(carteServieDe(servi, 'rzbyrqna')).not.toHaveProperty(cle);
+  }
+  // L'application précachée de la version précédente reçoit ces champs sans les connaître.
+  expect(coursServiUtilisable(servi)).toBe(true);
+});
+
+it('une_aide_qui_n_est_pas_un_texte_ne_bloque_pas_le_client', () => {
+  const fichiers = modifier(
+    exempleDeCours(),
+    'essai/cartes/02-vorsilben.yaml',
+    AIDES.avant,
+    AIDES.apres,
+  );
+  const [cours] = analyserContenus(fichiers).cours;
+  const servi = JSON.parse(JSON.stringify(versCoursServi(cours))) as CoursServi;
+  const carte = carteServieDe(servi, '4g84caqa') as unknown as Record<string, unknown>;
+  carte.aide = 42;
+  carte.confonduAvec = { id: 'x' };
+
+  expect(coursServiUtilisable(servi)).toBe(true);
 });

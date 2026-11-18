@@ -11,7 +11,7 @@ import type {
   SegmentDeTexte,
   Tache,
 } from '../contenu/modele.js';
-import { lireReglagesDeMemoire } from '../progression/reglages.js';
+import { lireReglagesDeMemoire, lireSeuilDesRebelles } from '../progression/reglages.js';
 
 /*
  * Ce que `GET /api/cours/:id` rend, et que le client range hors-ligne : le modèle résolu du cours
@@ -39,6 +39,8 @@ export interface CoursServi {
   manuels?: unknown;
   /** Absent : le cours ne dit pas sa pose des cartes. À lire par `poseDuCours`. */
   poseDesCartes?: unknown;
+  /** Absent : le cours ne dit pas son seuil d'éléments rebelles. À lire par `seuilDesRebelles`. */
+  rebelles?: unknown;
   /** Dans l'ordre de `cours.yaml`. */
   modules: ModuleServi[];
 }
@@ -332,6 +334,7 @@ export function versCoursServi(cours: Cours): CoursServi {
       ? {}
       : { manuels: cours.manuels.map(({ id, titre }) => ({ id, titre })) }),
     ...(cours.poseDesCartes === undefined ? {} : { poseDesCartes: cours.poseDesCartes }),
+    ...(cours.rebelles === undefined ? {} : { rebelles: { fautes: cours.rebelles.fautes } }),
     modules: cours.modules.map(moduleServi),
   };
 }
@@ -365,6 +368,14 @@ export function memoireDuCours(cours: CoursServi): ReglagesMemoire | undefined {
  */
 export function poseDuCours(cours: CoursServi): 'ecrite' | 'retournee' {
   return cours.poseDesCartes === 'retournee' ? 'retournee' : 'ecrite';
+}
+
+/**
+ * Le seuil de fautes d'un élément rebelle : `rebelles` n'est pas contrôlé avec le cours, et une
+ * valeur que ce client ne comprend pas vaut le seuil par défaut (T1-D6).
+ */
+export function seuilDesRebelles(cours: CoursServi): number {
+  return lireSeuilDesRebelles(cours.rebelles);
 }
 
 const moduleCartes = z.object({

@@ -90,12 +90,15 @@ const PLANNING = `planning:
       genre: "revision"
       modules: []
 `;
+/** Un seuil d'éléments rebelles inventé, autre que le défaut : la clé `rebelles` est servie (M6). */
+const REBELLES = 'rebelles:\n  fautes: 3\n';
 /**
  * Une variante où chaque élément « à vérifier » devient `source`, sauf `RELUS` qui passent à
  * `vérifié` : chaque clé facultative d'état est ainsi servie au moins une fois
  * (`cles_servies_de_chaque_type_de_module`). Il nomme aussi deux manuels, et range ses modules de
  * cartes et son schéma dans l'un d'eux : les clés des manuels sont servies elles aussi. Il porte
- * enfin un planning de deux étapes : la clé `planning` est servie, elle aussi (M4).
+ * enfin un planning de deux étapes : la clé `planning` est servie, elle aussi (M4), et un seuil
+ * de rebelles (M6).
  */
 export const COURS_SOURCE = variante(
   ID_SOURCE,
@@ -104,7 +107,7 @@ export const COURS_SOURCE = variante(
     const propre = texte
       .replace(/^( *)statut: "à vérifier"$/gm, '$1statut: "source"')
       .replace(/^modules:$/m, (debut) =>
-        chemin === 'essai/cours.yaml' ? PLANNING + debut : debut,
+        chemin === 'essai/cours.yaml' ? PLANNING + REBELLES + debut : debut,
       );
     return RELUS.filter((relu) => relu.chemin === chemin).reduce((texteRelu, relu) => {
       if (!texteRelu.includes(relu.avant)) {

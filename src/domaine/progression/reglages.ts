@@ -4,9 +4,11 @@ import type { ReglagesMemoire } from '../contenu/modele.js';
 
 /*
  * Les règles du manifeste qui ne regardent que leur valeur : pour la clé `memoire`, les poids de
- * FSRS-6 et la date de l'examen ; pour la clé `planning`, la borne d'une semaine (`SEMAINE_MAX`).
+ * FSRS-6 et la date de l'examen ; pour la clé `planning`, la borne d'une semaine (`SEMAINE_MAX`) ;
+ * pour la clé `rebelles`, les bornes du seuil (`FAUTES_MINIMUM`, `FAUTES_MAXIMUM`).
  * L'analyse du contenu (`contenu/schemas.ts`) les applique en strict, et le client les applique en
- * tolérant (`lireReglagesDeMemoire`, `lirePlanning`) : un seul texte de règle pour les deux.
+ * tolérant (`lireReglagesDeMemoire`, `lirePlanning`, `lireSeuilDesRebelles`) : un seul texte de
+ * règle pour les deux.
  */
 
 /**
@@ -74,4 +76,25 @@ export function lireReglagesDeMemoire(lu: unknown): ReglagesMemoire | undefined 
     ...(examen === undefined ? {} : { examen }),
     ...(chapitres === undefined ? {} : { chapitres }),
   };
+}
+
+/** Le seuil de fautes d'un élément rebelle quand le cours n'écrit pas la clé `rebelles` (T1-D1). */
+export const FAUTES_PAR_DEFAUT = 4;
+/** Le plus petit seuil qu'un manifeste admette. */
+export const FAUTES_MINIMUM = 2;
+/** Le plus grand seuil qu'un manifeste admette. */
+export const FAUTES_MAXIMUM = 20;
+
+const lectureDesRebelles = z.object({
+  fautes: z.number().int().min(FAUTES_MINIMUM).max(FAUTES_MAXIMUM),
+});
+
+/**
+ * Le seuil de fautes d'une valeur `rebelles` lue sans rigueur (T1-D6) : une valeur qui n'est pas un
+ * objet portant un entier `fautes` de 2 à 20 vaut `FAUTES_PAR_DEFAUT`, et une clé de trop est sans
+ * effet. Ne lève jamais.
+ */
+export function lireSeuilDesRebelles(valeur: unknown): number {
+  const lu = lectureDesRebelles.safeParse(valeur);
+  return lu.success ? lu.data.fautes : FAUTES_PAR_DEFAUT;
 }

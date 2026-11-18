@@ -300,7 +300,17 @@ describe('GET /api/cours/:id', () => {
       const corps = reponse.json() as Record<string, unknown> & { modules: object[] };
       expect(Object.keys(corps).sort()).toEqual(
         cours === COURS_SOURCE
-          ? ['id', 'langue', 'leitner', 'manuels', 'modules', 'planning', 'titre', 'typesDeCarte']
+          ? [
+              'id',
+              'langue',
+              'leitner',
+              'manuels',
+              'modules',
+              'planning',
+              'rebelles',
+              'titre',
+              'typesDeCarte',
+            ]
           : ['id', 'langue', 'leitner', 'modules', 'titre', 'typesDeCarte'],
       );
       expect(corps.leitner).toStrictEqual({
@@ -310,6 +320,7 @@ describe('GET /api/cours/:id', () => {
       expect(corps).toStrictEqual(contenuAttendu(cours));
       // Le planning est un champ du cours servi, donc après le contrôle des droits (M4).
       if (cours === COURS_SOURCE) {
+        expect(corps.rebelles).toStrictEqual({ fautes: 3 });
         expect(corps.planning).toStrictEqual({
           etapes: [
             { titre: 'Woche 1 – Anfang', semaine: 1, genre: 'cours', modules: ['epas79zz'] },

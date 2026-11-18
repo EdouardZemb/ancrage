@@ -1,5 +1,11 @@
 import * as z from 'zod';
-import { estDateIso, poidsFsrsValides, SEMAINE_MAX } from '../progression/reglages.js';
+import {
+  estDateIso,
+  FAUTES_MAXIMUM,
+  FAUTES_MINIMUM,
+  poidsFsrsValides,
+  SEMAINE_MAX,
+} from '../progression/reglages.js';
 import type { ErreurContenu } from './erreurs.js';
 import { estIdentifiant, REGLE_IDENTIFIANT } from './identifiants.js';
 import type { Statut } from './modele.js';
@@ -617,6 +623,19 @@ const reglagesManuels = z
   )
   .min(1, { error: 'Attendu au moins un manuel.' });
 
+const MESSAGE_DE_FAUTES = `Attendu un nombre entier entre ${FAUTES_MINIMUM} et ${FAUTES_MAXIMUM}.`;
+
+/** Le seuil des éléments rebelles (M6, T1-D1) : `fautes` est obligatoire, un entier de 2 à 20. */
+const reglagesRebelles = z.strictObject({
+  fautes: z
+    .int({
+      error: (issue) =>
+        issue.input === undefined ? 'Champ obligatoire absent.' : MESSAGE_DE_FAUTES,
+    })
+    .min(FAUTES_MINIMUM, { error: MESSAGE_DE_FAUTES })
+    .max(FAUTES_MAXIMUM, { error: MESSAGE_DE_FAUTES }),
+});
+
 export const schemaDeCours = z.strictObject({
   format: z.literal(1),
   id: identifiant,
@@ -630,6 +649,7 @@ export const schemaDeCours = z.strictObject({
   pose_des_cartes: z
     .enum(['ecrite', 'retournee'], { error: 'Attendu « ecrite » ou « retournee ».' })
     .optional(),
+  rebelles: reglagesRebelles.optional(),
   derogation_diffusion: derogationDiffusion.optional(),
   modules: z.array(z.string()),
 });

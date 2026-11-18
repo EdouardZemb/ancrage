@@ -364,6 +364,7 @@ function analyserCours(
       ? {}
       : { manuels: ecrit.manuels.map(({ id, titre }) => ({ id, titre })) }),
     ...(ecrit.pose_des_cartes === undefined ? {} : { poseDesCartes: ecrit.pose_des_cartes }),
+    ...(ecrit.rebelles === undefined ? {} : { rebelles: { fautes: ecrit.rebelles.fautes } }),
     ...(ecrit.derogation_diffusion === undefined
       ? {}
       : {

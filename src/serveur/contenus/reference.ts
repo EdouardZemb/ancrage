@@ -7,7 +7,6 @@ import {
 import type {
   Cours,
   Etat,
-  Manuel,
   ModuleCartes,
   ModuleExamen,
   ModuleExercices,
@@ -15,9 +14,6 @@ import type {
   ModuleMorphologie,
   ModuleSchema,
   ModuleTexteAnnote,
-  Planning,
-  ReglagesLeitner,
-  ReglagesMemoire,
   Tache,
   TirageExamen,
 } from '../../domaine/contenu/modele.js';
@@ -47,21 +43,20 @@ export type TacheDeReference = SansEtats<Tache>;
  */
 
 export interface Reference {
-  cours: {
-    id: string;
-    titre: string;
-    langue: string;
-    typesDeCarte: Record<string, string>;
-    leitner: ReglagesLeitner;
-    /** Présent seulement si le cours l'écrit : l'instantané d'un cours sans lui ne change pas. */
-    memoire?: ReglagesMemoire;
-    /** Présent seulement si le cours l'écrit, après `memoire`. */
-    planning?: Planning;
-    /** Présent seulement si le cours l'écrit, après `planning`. */
-    manuels?: Manuel[];
-    /** Présent seulement si le cours l'écrit, après `manuels`. */
-    poseDesCartes?: 'ecrite' | 'retournee';
-  };
+  /** Les clés du cours que l'instantané garde, dans l'ordre où il les écrit (les facultatives après `leitner`, seulement si le cours les écrit). */
+  cours: Pick<
+    Cours,
+    | 'id'
+    | 'titre'
+    | 'langue'
+    | 'typesDeCarte'
+    | 'leitner'
+    | 'memoire'
+    | 'planning'
+    | 'manuels'
+    | 'poseDesCartes'
+    | 'rebelles'
+  >;
   /**
    * L'état de relecture du cours : `aVerifier` s'il a au moins un élément « à vérifier », sa
    * dérogation de diffusion, et pour chaque module à statut (tous, sauf l'examen), dans l'ordre du
@@ -257,6 +252,7 @@ export function calculerReference(cours: Cours): Reference {
         ? {}
         : { manuels: cours.manuels.map(({ id, titre }) => ({ id, titre })) }),
       ...(cours.poseDesCartes === undefined ? {} : { poseDesCartes: cours.poseDesCartes }),
+      ...(cours.rebelles === undefined ? {} : { rebelles: { fautes: cours.rebelles.fautes } }),
     },
     diffusion: {
       // La règle même de l'invariant 9, que le module `acces` applique à chaque requête.

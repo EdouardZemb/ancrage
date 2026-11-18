@@ -55,7 +55,9 @@ jobs:
   mutation:
     name: mutation (${{ matrix.groupe }})
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Le groupe `domaine` a pris 19 min 49 s le 18/11/2026 (lot M6) : le délai laisse de la marge, en
+    # attendant de couper le groupe (ancrage#11).
+    timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:

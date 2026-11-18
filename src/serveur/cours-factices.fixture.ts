@@ -119,6 +119,9 @@ export const COURS_SOURCE = variante(
       .replace(/^modules:$/m, (debut) =>
         chemin === 'essai/cours.yaml' ? PLANNING + REBELLES + debut : debut,
       );
+    if (chemin === AIDE_DE_CARTE.chemin && !propre.includes(AIDE_DE_CARTE.avant)) {
+      throw new Error(`AIDE_DE_CARTE : « ${AIDE_DE_CARTE.avant} » introuvable dans ${chemin}`);
+    }
     const avecAide =
       chemin === AIDE_DE_CARTE.chemin
         ? propre.replace(AIDE_DE_CARTE.avant, () => AIDE_DE_CARTE.apres)

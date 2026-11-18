@@ -38,7 +38,8 @@ l'instance qui reste en Leitner.
    d'un tri stable : à échéance égale, le hasard départage, sans avantager un type. Les 20
    premières sont gardées, puis mélangées à nouveau pour l'ordre de passage.
 3. **M2-P3, une faute.** L'élément manqué va en fin de file une fois. Manqué une seconde fois, il
-   sort de la file : il reste dû, et la séance suivante le reprend.
+   sort de la file : il reste dû, et la séance suivante le reprend. *Depuis le lot M6 : sauf un élément rebelle, qui ne revient
+   pas (`docs/conception/lot-m6.md`).*
 4. **M2-P4, le geste dans « Heute ».** Une carte se retourne, ou se tape si elle est inverse et
    que la préférence de saisie des cartes est cochée. Un mot se décompose ou se bâtit, au hasard.
    Un point de schéma se nomme parmi quatre propositions. Un exercice et une question de fiche se

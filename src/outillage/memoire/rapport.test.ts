@@ -217,6 +217,10 @@ test('les_chiffres_de_la_projection_et_de_l_etat_sont_dans_la_page', () => {
   expect(html).toContain('<details>');
   expect(html).toMatch(/<th[^>]*>Nouveautés par jour<\/th>/);
   expect(html).toContain('FSRS');
+  // La limite des rebelles est dite (M6) : la projection les redonne le jour même.
+  expect(html).toContain(
+    'La projection ne modélise pas les éléments rebelles, qui ne sont pas redonnés le jour même, et surestime d’autant la charge.',
+  );
 });
 
 test('le_texte_du_cours_est_echappe', () => {

@@ -383,7 +383,8 @@ Edouard l'a accepté le 15/11/2026.
     aux dues par le hasard de l'onglet et laisse les cartes neuves en fin de file. Sans révision,
     il n'est pas appelé : même séance, mêmes tirages. Une révision se pose avec l'écran de son
     onglet et entre au journal sous le mode de son geste : ni mode, ni type, ni champ nouveau. Une
-    révision manquée revient une fois, comme toute faute (M2-P3), et devient due. L'écran de fin ne
+    révision manquée revient une fois, comme toute faute (M2-P3), et devient due (*depuis le lot M6 : sauf un élément rebelle, qui ne
+    revient pas, `docs/conception/lot-m6.md`*). L'écran de fin ne
     propose « Nächste Runde » que pour des dues : une révision n'en relance pas.
 12. **C-D12, la clé du jour** gagne les révisions en cinquième part, seulement quand il y en a :
     `…|{quota}|{révisions}` ; sans révision, la clé est celle d'avant, caractère pour caractère.

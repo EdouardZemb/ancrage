@@ -149,15 +149,28 @@ function verifierLesReunions(journaux: readonly (readonly Evenement[])[]): void 
   const parPersonne = mesuresDe(journaux);
   const tables = tablesDesReprises(parPersonne, false);
   const affichees = lignesDesMoments(parPersonne, sommerMesures(parPersonne), caseAdmise, false);
-  const lignesDuMode = [tables.modes].flatMap((t) =>
-    t === null ? [] : t.forme === 'reunies' ? t.lignes : [...t.faute, ...t.juste],
-  );
-  const apres = tables.apresUnJourDeFaute ?? [];
+  // Les comptes de chaque ligne sont recalculés depuis les mesures, jamais lus dans `ligne.comptes`.
+  const lignesDuModeRecomptees = (
+    tables.modes === null
+      ? []
+      : tables.modes.forme === 'reunies'
+        ? tables.modes.lignes.map((l) => ({ cles: l.cles, verdicts: [...CLES_DE_VERDICT] }))
+        : [
+            ...tables.modes.faute.map((l) => ({ cles: l.cles, verdicts: ['faute' as const] })),
+            ...tables.modes.juste.map((l) => ({ cles: l.cles, verdicts: ['juste' as const] })),
+          ]
+  ).map((l) => ({ cles: l.cles, comptes: recompter(parPersonne, 'modes', l.cles, l.verdicts) }));
+  const apres = (tables.apresUnJourDeFaute ?? []).map((l) => ({
+    cles: l.cles,
+    comptes: parPersonne.map((m) =>
+      sommeDe(l.cles.map((k) => m.reprises.apresUnJourDeFaute[k as 'apres-faute-0'].reponses)),
+    ),
+  }));
   const reprisesAffichees = [tables.rangs, tables.espacements, tables.modes].some(
     (t) => t !== null,
   );
   const apresContenue = (
-    ligne: LigneDeReprise,
+    ligne: { cles: readonly string[]; comptes: readonly number[] },
     cles: readonly string[],
     genre: 'Mode' | 'Moment',
   ) =>
@@ -176,7 +189,7 @@ function verifierLesReunions(journaux: readonly (readonly Evenement[])[]): void 
   for (const reunion of parties(affichees.mode)) {
     const cles = reunion.flatMap((l) => l.cles);
     const retirees = [
-      ...lignesDuMode.filter((l) => l.cles.every((c) => cles.includes(c))),
+      ...lignesDuModeRecomptees.filter((l) => l.cles.every((c) => cles.includes(c))),
       ...apres.filter((l) => apresContenue(l, cles, 'Mode')),
     ];
     const reste = parPersonne.map(
@@ -197,6 +210,100 @@ function verifierLesReunions(journaux: readonly (readonly Evenement[])[]): void 
         sommeDe(retirees.map((l) => l.comptes[i] ?? 0)),
     );
     expect(videOuAdmis(reste), `moments ${cles.join('+')}`).toBe(true);
+  }
+  verifierLeSensInverse(parPersonne, tables, affichees);
+}
+
+/**
+ * Le sens inverse : pour toute réunion W de lignes affichées d'un même tableau des reprises (le mode,
+ * le lendemain), soit T la réunion des lignes de la section des moments et des modes que W contient
+ * entièrement, personne par personne ; W - T est vide ou passe la règle. Les comptes de W sont
+ * recalculés depuis les mesures (`recompter`), jamais lus dans `ligne.comptes`.
+ */
+function verifierLeSensInverse(
+  parPersonne: ReturnType<typeof mesuresDe>,
+  tables: ReturnType<typeof tablesDesReprises>,
+  affichees: ReturnType<typeof lignesDesMoments>,
+): void {
+  const lignesDuMode =
+    tables.modes === null
+      ? []
+      : tables.modes.forme === 'reunies'
+        ? tables.modes.lignes.map((l) => ({
+            cles: l.cles,
+            verdicts: CLES_DE_VERDICT as readonly CleDeVerdict[],
+          }))
+        : [
+            ...tables.modes.faute.map((l) => ({
+              cles: l.cles,
+              verdicts: ['faute'] as readonly CleDeVerdict[],
+            })),
+            ...tables.modes.juste.map((l) => ({
+              cles: l.cles,
+              verdicts: ['juste'] as readonly CleDeVerdict[],
+            })),
+          ];
+  for (const w of parties(lignesDuMode)) {
+    const total = parPersonne.map((_, i) =>
+      sommeDe(w.map((l) => recompter(parPersonne, 'modes', l.cles, l.verdicts)[i] ?? 0)),
+    );
+    const retire = affichees.mode.flatMap((ligne) => {
+      const toutes = parPersonne.map((m) =>
+        sommeDe(ligne.cles.map((c) => m.modes[c as 'saisie'].reponses)),
+      );
+      const dedans = parPersonne.map((m) =>
+        sommeDe(
+          w.flatMap((l) =>
+            l.verdicts.flatMap((v) =>
+              l.cles
+                .filter((c) => ligne.cles.includes(c))
+                .map((c) => m.reprises.modes[v][c as 'saisie'].reponses),
+            ),
+          ),
+        ),
+      );
+      return toutes.some((n) => n > 0) && dedans.every((n, i) => n === toutes[i]) ? [toutes] : [];
+    });
+    const reste = total.map((n, i) => n - sommeDe(retire.map((r) => r[i] ?? 0)));
+    expect(videOuAdmis(reste), `W modes ${w.flatMap((l) => l.cles).join('+')}`).toBe(true);
+  }
+  const apres = (tables.apresUnJourDeFaute ?? []).map(
+    (l) => l.cles as readonly (typeof CLES_APRES_UNE_FAUTE)[number][],
+  );
+  for (const w of parties(apres)) {
+    const total = parPersonne.map((m) =>
+      sommeDe(w.flatMap((cles) => cles.map((k) => m.reprises.apresUnJourDeFaute[k].reponses))),
+    );
+    for (const genre of ['Moment', 'Mode'] as const) {
+      const lignes = genre === 'Moment' ? affichees.delai : affichees.mode;
+      const retire = lignes.flatMap((ligne) => {
+        const toutes = parPersonne.map((m) =>
+          sommeDe(
+            ligne.cles.map((c) =>
+              genre === 'Moment'
+                ? m.delais[c as 'premiere'].reponses
+                : m.modes[c as 'saisie'].reponses,
+            ),
+          ),
+        );
+        const dedans = parPersonne.map((m) =>
+          sommeDe(
+            w.flatMap((cles) =>
+              cles.flatMap((k) =>
+                ligne.cles.map((c) =>
+                  genre === 'Moment'
+                    ? m.reprises.apresParMoment[k][c as 'premiere']
+                    : m.reprises.apresParMode[k][c as 'saisie'],
+                ),
+              ),
+            ),
+          ),
+        );
+        return toutes.some((n) => n > 0) && dedans.every((n, i) => n === toutes[i]) ? [toutes] : [];
+      });
+      const reste = total.map((n, i) => n - sommeDe(retire.map((r) => r[i] ?? 0)));
+      expect(videOuAdmis(reste), `W après ${w.flat().join('+')} dans ${genre}`).toBe(true);
+    }
   }
 }
 
@@ -726,6 +833,7 @@ test('apres_un_jour_de_faute_est_omis_si_le_reste_d_un_moment_est_refuse', () =>
   expect(section(html)).toContain('Ce tableau est omis');
   expect(tablesDesReprises(parPersonne, false).omisParCroisement.apresUnJourDeFaute).toBe(true);
   expect(section(html)).toContain('un croisement avec la section des moments et des modes');
+  // Le reste vient du lendemain : on l'omet avant de fondre des modes.
   verifierLaStructure(journaux);
 });
 
@@ -965,5 +1073,99 @@ test('apres_un_jour_de_faute_a_cheval_sur_deux_moments_est_omis_si_leur_reunion_
   expect(lignesDuTableau(html, TITRES.apres)).toEqual([]);
   expect(tablesDesReprises(parPersonne, false).omisParCroisement.apresUnJourDeFaute).toBe(true);
   expect(section(html)).toContain('un croisement avec la section des moments et des modes');
+  verifierLaStructure(journaux);
+});
+
+test('une_ligne_des_moments_contenue_dans_une_ligne_des_reprises_ne_laisse_pas_retrouver_la_difference', () => {
+  // « Choix » ne sert qu'aux reprises : sa ligne de la section des moments ([7,7,7]) est faite de
+  // reprises. « Point touché » est absent seul de cette section et refusé aux reprises ([5,5,5]) :
+  // il tirerait « Choix » dans « Autres modes » [12,12,12], dont la différence avec « Choix » est [5,5,5].
+  const personne = (p: string, pointageEnPlus: number) => {
+    const j = constructeur();
+    for (let i = 0; i < 10; i++) {
+      j.ajouter(5, `${p}s${i}`, true, 'saisie');
+      j.ajouter(5, `${p}s${i}`, true, 'saisie');
+    }
+    for (let i = 0; i < 7; i++) {
+      j.ajouter(5, `${p}c${i}`, true, 'saisie');
+      j.ajouter(5, `${p}c${i}`, true, 'choix');
+    }
+    for (let i = 0; i < 5; i++) {
+      j.ajouter(5, `${p}p${i}`, true, 'saisie');
+      j.ajouter(5, `${p}p${i}`, true, 'pointage');
+    }
+    for (let i = 0; i < pointageEnPlus; i++) j.ajouter(5, `${p}x${i}`, true, 'pointage');
+    return j.evenements;
+  };
+  const journaux = [personne('a', 50), personne('b', 0), personne('c', 0)];
+  const parPersonne = mesuresDe(journaux);
+  expect(parPersonne.map((m) => m.modes.choix.reponses)).toEqual([7, 7, 7]);
+  const html = ensemble(journaux);
+  const debut = html.indexOf('Selon le mode de la réponse</h3>');
+  const moments = html.slice(debut, html.indexOf('</details>', debut));
+  expect(moments).toContain('<th scope="row">Choix parmi des propositions</th>');
+  expect(moments).not.toContain('Point touché');
+  const modes = lignesDuTableau(html, TITRES.modes);
+  // « Choix » reste seul (le groupe qui le contenait est défait) ; le reste se fond sans le contenir.
+  expect(modes).toEqual(['Choix parmi des propositions', 'Autres modes']);
+  verifierLaStructure(journaux);
+});
+
+test('apres_un_jour_de_faute_contenant_une_ligne_de_mode_est_omis_si_la_difference_est_refusee', () => {
+  // Chaque personne : 4 fautes isolées et 4 « faux, juste », en saisie, avec retour le lendemain en
+  // « choix » : deux clés refusées seules, réunies en une ligne [8,8,14]. La troisième personne a 6
+  // fautes de plus, retournées en saisie. « Choix » vaut [8,8,8] à la section des moments : il est
+  // contenu dans la ligne, dont la différence avec lui, [0,0,6], est refusée.
+  const journaux = [0, 0, 6].map((en) => {
+    const j = constructeur();
+    for (let i = 0; i < 4; i++) j.ajouter(5, `f${i}`, false, 'saisie');
+    for (let i = 0; i < 4; i++) {
+      j.ajouter(5, `g${i}`, false, 'saisie');
+      j.ajouter(5, `g${i}`, true, 'saisie');
+    }
+    for (let i = 0; i < en; i++) j.ajouter(5, `h${i}`, false, 'saisie');
+    // Des reprises, pour que « Autres moments » (réponses redonnées le jour même comprises) passe.
+    for (let i = 0; i < 6; i++) {
+      j.ajouter(5, `k${i}`, true, 'saisie');
+      j.ajouter(5, `k${i}`, true, 'saisie');
+    }
+    for (let i = 0; i < 4; i++) j.ajouter(6, `f${i}`, true, 'choix');
+    for (let i = 0; i < 4; i++) j.ajouter(6, `g${i}`, true, 'choix');
+    for (let i = 0; i < en; i++) j.ajouter(6, `h${i}`, true, 'saisie');
+    return j.evenements;
+  });
+  const parPersonne = mesuresDe(journaux);
+  expect(parPersonne.map((m) => m.modes.choix.reponses)).toEqual([8, 8, 8]);
+  const retours = parPersonne.map((m) =>
+    sommeDe(CLES_APRES_UNE_FAUTE.map((cle) => m.reprises.apresUnJourDeFaute[cle].reponses)),
+  );
+  expect(retours).toEqual([8, 8, 14]);
+  const html = ensemble(journaux);
+  expect(tablesDesReprises(parPersonne, false).apresUnJourDeFaute).toBeNull();
+  expect(section(html)).toContain('un croisement avec la section des moments et des modes');
+  verifierLaStructure(journaux);
+});
+
+test('un_reste_de_mode_venu_du_lendemain_omet_le_lendemain_sans_fondre_les_modes', () => {
+  // Comme le cas où « Réponse tapée » a un reste refusé à cause des retours, avec en plus 10
+  // reprises « choix » par personne, affichées seules : le tableau des modes n'a pas à changer.
+  const journaux = [60, 0, 0].map((autres) => {
+    const j = constructeur();
+    for (let i = 0; i < 15; i++) j.ajouter(5, `f${i}`, false, 'saisie');
+    for (let i = 0; i < autres; i++) j.ajouter(5, `x${i}`, true, 'saisie');
+    for (let i = 0; i < 10; i++) {
+      j.ajouter(5, `c${i}`, true, 'choix');
+      j.ajouter(5, `c${i}`, true, 'choix');
+    }
+    for (let i = 0; i < 15; i++) j.ajouter(6, `f${i}`, true, 'saisie');
+    return j.evenements;
+  });
+  const parPersonne = mesuresDe(journaux);
+  const tables = tablesDesReprises(parPersonne, false);
+  expect(tables.apresUnJourDeFaute).toBeNull();
+  expect(tables.omisParCroisement.apresUnJourDeFaute).toBe(true);
+  expect(lignesDuTableau(ensemble(journaux), TITRES.modes)).toEqual([
+    'Choix parmi des propositions',
+  ]);
   verifierLaStructure(journaux);
 });

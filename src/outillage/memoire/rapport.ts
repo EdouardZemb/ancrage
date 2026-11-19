@@ -811,6 +811,25 @@ const resteVideOuAdmis = (reste: readonly number[]): boolean =>
 const lignesDeTable = (table: TableDeReprises | null): readonly LigneDeReprise[] =>
   table === null ? [] : table.forme === 'reunies' ? table.lignes : [...table.faute, ...table.juste];
 
+/** Une ligne du mode des reprises, avec les moitiés (verdicts d'avant) qu'elle compte. */
+export interface LigneDeModeAvecMoities {
+  ligne: LigneDeReprise;
+  verdicts: readonly CleDeVerdict[];
+}
+
+const lignesDuModeAvecMoities = (table: TableDeReprises | null): LigneDeModeAvecMoities[] =>
+  table === null
+    ? []
+    : table.forme === 'reunies'
+      ? table.lignes.map((ligne) => ({ ligne, verdicts: CLES_DE_VERDICT }))
+      : [
+          ...table.faute.map((ligne) => ({ ligne, verdicts: ['faute'] as const })),
+          ...table.juste.map((ligne) => ({ ligne, verdicts: ['juste'] as const })),
+        ];
+
+/** Au-delà, les réunions de lignes des reprises ne s'énumèrent plus : on replie, par prudence. */
+const LIGNES_MAXIMALES_D_UN_TABLEAU = 12;
+
 /** Toutes les parties non vides d'une liste de lignes (au plus 2^10). */
 function reunionsDe<T>(lignes: readonly T[]): T[][] {
   return Array.from({ length: 2 ** lignes.length - 1 }, (_, i) =>
@@ -822,6 +841,8 @@ interface EchecDeReunion {
   tableau: 'mode' | 'moment';
   /** Les clés de mode ou de délai de la réunion de lignes affichées qui laisse un reste refusé. */
   cles: readonly string[];
+  /** Une ligne de « Après un jour de faute » est en cause : on l'omet avant de fondre des modes. */
+  viaApres: boolean;
 }
 
 /**
@@ -834,14 +855,16 @@ interface EchecDeReunion {
  * qui la contient a pour reste celui de V sans elle, déjà vérifié comme réunion. Il faut que V - U soit
  * vide ou passe `caseAdmise`. Cela suffit : pour toute partie S de ces lignes, V - S = (V - U) union
  * (U - S), une réunion disjointe d'un ensemble vide ou admis et de lignes admises, donc admise (une
- * réunion de cases admises disjointes l'est). Les parties S d'une ligne seule, ou de plusieurs lignes,
- * des deux sens (la ligne contenue ou la réunion contenante) sont couvertes. Rend la première réunion
- * qui échoue, ou `null`.
+ * réunion de cases admises disjointes l'est). Le sens inverse est symétrique, même lemme : pour toute
+ * réunion W de lignes affichées d'un même tableau des reprises (le mode, ou le lendemain), soit T la
+ * réunion des lignes affichées d'un même tableau de la section des moments et des modes que W
+ * contient entièrement, personne par personne ; W - T est vide ou passe la règle. Rend la première
+ * réunion qui échoue, ou `null`.
  */
 export function premierEchecDeReunion(
   parPersonne: readonly Mesures[],
   affichees: { delai: readonly LigneDeCase[]; mode: readonly LigneDeCase[] },
-  modes: readonly LigneDeReprise[],
+  modes: readonly LigneDeModeAvecMoities[],
   apres: readonly LigneDeReprise[],
 ): EchecDeReunion | null {
   const sommes = (comptes: readonly (readonly number[])[]): number[] =>
@@ -862,15 +885,17 @@ export function premierEchecDeReunion(
   for (const reunion of reunionsDe(affichees.mode)) {
     const cles = reunion.flatMap((ligne) => ligne.cles);
     const contenues = [
-      ...modes.filter((ligne) => ligne.cles.every((c) => cles.includes(c))),
+      ...modes.map((l) => l.ligne).filter((ligne) => ligne.cles.every((c) => cles.includes(c))),
       ...apresContenues((m, k, c) => m.reprises.apresParMode[k][c as CleDeMode], cles),
     ];
+    const viaApres =
+      apresContenues((m, k, c) => m.reprises.apresParMode[k][c as CleDeMode], cles).length > 0;
     const retire = sommes(contenues.map((ligne) => ligne.comptes));
     const reste = parPersonne.map(
       (m, i) =>
         sommeDeNombres(cles.map((c) => m.modes[c as CleDeMode].reponses)) - (retire[i] ?? 0),
     );
-    if (!resteVideOuAdmis(reste)) return { tableau: 'mode', cles };
+    if (!resteVideOuAdmis(reste)) return { tableau: 'mode', cles, viaApres };
   }
   for (const reunion of reunionsDe(affichees.delai)) {
     const cles = reunion.flatMap((ligne) => ligne.cles);
@@ -883,7 +908,72 @@ export function premierEchecDeReunion(
       (m, i) =>
         sommeDeNombres(cles.map((c) => m.delais[c as CleDeDelai].reponses)) - (retire[i] ?? 0),
     );
-    if (!resteVideOuAdmis(reste)) return { tableau: 'moment', cles };
+    if (!resteVideOuAdmis(reste)) return { tableau: 'moment', cles, viaApres: true };
+  }
+  /** La part de `ligne` (une ligne de la section 6) que `dansW` donne : elle y est toute, ou non. */
+  const contenue = (
+    ligne: LigneDeCase,
+    dansW: (m: Mesures, c: string) => number,
+    toutes: (m: Mesures, c: string) => number,
+  ): number[] | null => {
+    const total = parPersonne.map((m) => sommeDeNombres(ligne.cles.map((c) => toutes(m, c))));
+    const dedans = parPersonne.map((m) => sommeDeNombres(ligne.cles.map((c) => dansW(m, c))));
+    return total.some((n) => n > 0) && dedans.every((n, i) => n === total[i]) ? total : null;
+  };
+  // Le sens inverse : le mode des reprises, puis le lendemain, contre la section des moments et des modes.
+  if (modes.length > LIGNES_MAXIMALES_D_UN_TABLEAU) {
+    return { tableau: 'mode', cles: [], viaApres: false };
+  }
+  for (const w of reunionsDe(modes)) {
+    const reste = sommes(w.map((l) => l.ligne.comptes));
+    const retire = affichees.mode.flatMap((ligne) => {
+      const total = contenue(
+        ligne,
+        (m, c) =>
+          sommeDeNombres(
+            w.flatMap((l) =>
+              l.ligne.cles.includes(c)
+                ? l.verdicts.map((v) => m.reprises.modes[v][c as CleDeMode].reponses)
+                : [],
+            ),
+          ),
+        (m, c) => m.modes[c as CleDeMode].reponses,
+      );
+      return total === null ? [] : [total];
+    });
+    const sansT = reste.map((n, i) => n - sommeDeNombres(retire.map((t) => t[i] ?? 0)));
+    if (!resteVideOuAdmis(sansT)) {
+      return { tableau: 'mode', cles: w.flatMap((l) => l.ligne.cles), viaApres: false };
+    }
+  }
+  for (const w of reunionsDe(apres)) {
+    const reste = sommes(w.map((l) => l.comptes));
+    const sources = [
+      {
+        lignes: affichees.delai,
+        dans: (m: Mesures, k: string, c: string) =>
+          m.reprises.apresParMoment[k as CleApresUneFaute][c as CleDeDelai],
+        toutes: (m: Mesures, c: string) => m.delais[c as CleDeDelai].reponses,
+      },
+      {
+        lignes: affichees.mode,
+        dans: (m: Mesures, k: string, c: string) =>
+          m.reprises.apresParMode[k as CleApresUneFaute][c as CleDeMode],
+        toutes: (m: Mesures, c: string) => m.modes[c as CleDeMode].reponses,
+      },
+    ];
+    for (const source of sources) {
+      const retire = source.lignes.flatMap((ligne) => {
+        const total = contenue(
+          ligne,
+          (m, c) => sommeDeNombres(w.flatMap((l) => l.cles.map((k) => source.dans(m, k, c)))),
+          source.toutes,
+        );
+        return total === null ? [] : [total];
+      });
+      const sansT = reste.map((n, i) => n - sommeDeNombres(retire.map((t) => t[i] ?? 0)));
+      if (!resteVideOuAdmis(sansT)) return { tableau: 'moment', cles: [], viaApres: true };
+    }
   }
   return null;
 }
@@ -955,16 +1045,21 @@ export function tablesDesReprises(
         )
       : null;
     if (personne) break;
-    const lignesDuMode = lignesDeTable(modes);
+    const lignesDuMode = lignesDuModeAvecMoities(modes);
     const lignesDeLApres = apresActif ? (lignesApres ?? []) : [];
     const echec = premierEchecDeReunion(parPersonne, affichees, lignesDuMode, lignesDeLApres);
     if (echec === null) break;
+    if (echec.viaApres && apresActif && lignesDeLApres.length > 0) {
+      apresActif = false;
+      continue;
+    }
     // Un reste de moment ne vient jamais de la composition des lignes du mode : seul le tableau de
     // l'après-faute s'écarte alors. Pour un reste de mode, le moins fourni des modes affichés seuls
     // rejoint « Autres modes » : un mode seul dans ce groupe resterait contenu dans la même ligne.
     const autres =
       echec.tableau === 'mode'
         ? lignesDuMode
+            .map((l) => l.ligne)
             .filter(
               (l) =>
                 l.cles.length === 1 && !ecartes.has(CLES_DE_MODE.indexOf(l.cles[0] as CleDeMode)),

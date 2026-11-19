@@ -11,6 +11,23 @@ export interface Cellule {
   justes: number;
 }
 
+/**
+ * Le moment où une unité revient, d'après sa réponse d'avant : `premiere` (jamais répondue),
+ * `meme-jour` (redonnée le jour même), `boite-N` (à son échéance ou après, depuis la boîte N) et
+ * `avant-echeance` (revue avant son échéance, de n'importe quelle boîte).
+ */
+export const CLES_DE_DELAI = [
+  'premiere',
+  'meme-jour',
+  'boite-1',
+  'boite-2',
+  'boite-3',
+  'boite-4',
+  'boite-5',
+  'avant-echeance',
+] as const;
+export type CleDeDelai = (typeof CLES_DE_DELAI)[number];
+
 /** Les modes d'une révision, puis les réponses qui n'en portent pas : jamais `pretest` (B-D9). */
 export const CLES_DE_MODE = [...MODES_DE_REVISION, 'sans-mode'] as const;
 export type CleDeMode = (typeof CLES_DE_MODE)[number];

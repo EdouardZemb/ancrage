@@ -13,7 +13,9 @@ import { modulesDesPosables } from '../../domaine/seances/semestre.js';
 import {
   ajouterCellule,
   type Cellule,
+  CLES_DE_DELAI,
   CLES_DE_MODE,
+  type CleDeDelai,
   type CleDeMode,
   cellules,
   compter,
@@ -25,7 +27,7 @@ import {
   suivreLesReprises,
 } from './reprises.js';
 
-export { type Cellule, CLES_DE_MODE, type CleDeMode };
+export { type Cellule, CLES_DE_DELAI, CLES_DE_MODE, type CleDeDelai, type CleDeMode };
 
 /*
  * Les mesures d'un journal (M3, rapport de suivi) : des comptes, jamais de texte. Une fonction
@@ -33,23 +35,6 @@ export { type Cellule, CLES_DE_MODE, type CleDeMode };
  * ici ne nomme une personne ; le rapport d'ensemble additionne les mesures de chaque journal
  * (`sommerMesures`) et n'en tire aucun détail par personne.
  */
-
-/**
- * Le moment où une unité revient, d'après sa réponse d'avant : `premiere` (jamais répondue),
- * `meme-jour` (redonnée le jour même), `boite-N` (à son échéance ou après, depuis la boîte N) et
- * `avant-echeance` (revue avant son échéance, de n'importe quelle boîte).
- */
-export const CLES_DE_DELAI = [
-  'premiere',
-  'meme-jour',
-  'boite-1',
-  'boite-2',
-  'boite-3',
-  'boite-4',
-  'boite-5',
-  'avant-echeance',
-] as const;
-export type CleDeDelai = (typeof CLES_DE_DELAI)[number];
 
 export interface Mesures {
   premierJour: string | null;
@@ -226,6 +211,7 @@ export function mesures(
         repondu_a: reponse.repondu_a,
         juste: reponse.resultat.juste,
         mode: reponse.resultat.mode ?? 'sans-mode',
+        delai,
       },
       indice,
     );

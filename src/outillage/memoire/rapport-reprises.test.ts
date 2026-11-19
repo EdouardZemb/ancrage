@@ -3,12 +3,13 @@ import type { Evenement } from '../../domaine/journal/evenement.js';
 import { type Cellule, CLES_DE_MODE } from './cellules.js';
 import { coursDExemple } from './cours-exemple.fixture.js';
 import { reponseInventee } from './ecrire-journal.fixture.js';
-import { caseAdmise, mesures } from './mesures.js';
+import { caseAdmise, mesures, sommerMesures } from './mesures.js';
 import {
   construireRapport,
   couvrirLesModes,
   type DonneesDeCle,
   type LigneDeReprise,
+  lignesDesMoments,
   type TableDeReprises,
   tablesDesReprises,
 } from './rapport.js';
@@ -94,6 +95,9 @@ const nomsDeTable = (table: TableDeReprises | null): string[] =>
       ? noms(table.lignes)
       : [...noms(table.faute), ...noms(table.juste)];
 
+const videOuAdmis = (reste: readonly number[]): boolean =>
+  reste.every((n) => n === 0) || caseAdmise(reste);
+
 const sommeDe = (liste: readonly number[]): number => liste.reduce((s, n) => s + n, 0);
 
 type Genre = 'rangs' | 'espacements' | 'modes' | 'repartition';
@@ -135,6 +139,7 @@ function verifierLaStructure(journaux: readonly (readonly Evenement[])[]): void 
   const parPersonne = mesuresDe(journaux);
   const tables = tablesDesReprises(parPersonne, false);
   const html = ensemble(journaux);
+  const affichees = lignesDesMoments(parPersonne, sommerMesures(parPersonne), caseAdmise, false);
   for (const genre of ['rangs', 'espacements', 'modes', 'repartition'] as const) {
     const table = tables[genre];
     if (table === null) continue;
@@ -148,10 +153,29 @@ function verifierLaStructure(journaux: readonly (readonly Evenement[])[]): void 
     for (const [lignes, verdicts] of moities) {
       expect(lignes.length).toBeGreaterThan(0);
       for (const ligne of lignes) {
-        expect(
-          caseAdmise(recompter(parPersonne, genre, ligne.cles, verdicts)),
-          `${genre} : ${ligne.nom}`,
-        ).toBe(true);
+        const comptes = recompter(parPersonne, genre, ligne.cles, verdicts);
+        expect(caseAdmise(comptes), `${genre} : ${ligne.nom}`).toBe(true);
+        if (genre === 'repartition') continue;
+        // Les reprises sont des réponses « redonnées le jour même » : le reste de cette ligne des
+        // moments est vide ou admis (une réunion d'autres lignes admises, par construction).
+        const memeJour = parPersonne.map((m) => m.delais['meme-jour'].reponses);
+        if (affichees.delai.some((l) => l.cles.length === 1 && l.cles[0] === 'meme-jour')) {
+          expect(
+            videOuAdmis(memeJour.map((n, i) => n - (comptes[i] ?? 0))),
+            `${genre} : ${ligne.nom} dans « Redonnée le jour même »`,
+          ).toBe(true);
+        }
+        if (genre === 'modes') {
+          for (const affichee of affichees.mode) {
+            if (!ligne.cles.every((cle) => affichee.cles.includes(cle))) continue;
+            const reste = parPersonne.map(
+              (m, i) =>
+                sommeDe(affichee.cles.map((cle) => m.modes[cle as 'saisie'].reponses)) -
+                (comptes[i] ?? 0),
+            );
+            expect(videOuAdmis(reste), `${ligne.nom} dans ${affichee.nom}`).toBe(true);
+          }
+        }
       }
       const reunies = lignes.flatMap((l) => l.cles);
       if (genre === 'modes') {
@@ -183,12 +207,50 @@ function verifierLaStructure(journaux: readonly (readonly Evenement[])[]): void 
     }
     expect(apres.flatMap((l) => l.cles)).toEqual([...CLES_APRES_UNE_FAUTE]);
     expect(lignesDuTableau(html, TITRES.apres)).toEqual(noms(apres));
+    // Le reste d'une ligne de moment ou de mode qui contient les réponses d'une ligne est vide ou admis.
+    const dansLesMoments = [
+      ...affichees.delai.map((l) => ({ ...l, reste: 'moment' as const })),
+      ...affichees.mode.map((l) => ({ ...l, reste: 'mode' as const })),
+    ];
+    for (const groupe of apres.map((l) => l.cles)) {
+      const cles = groupe as (typeof CLES_APRES_UNE_FAUTE)[number][];
+      const total = parPersonne.map((m) =>
+        sommeDe(cles.map((cle) => m.reprises.apresUnJourDeFaute[cle].reponses)),
+      );
+      for (const ligne of dansLesMoments) {
+        const dedans = parPersonne.map((m) =>
+          sommeDe(
+            cles.flatMap((cle) =>
+              ligne.cles.map((c) =>
+                ligne.reste === 'moment'
+                  ? m.reprises.apresParMoment[cle][c as 'premiere']
+                  : m.reprises.apresParMode[cle][c as 'saisie'],
+              ),
+            ),
+          ),
+        );
+        if (dedans.some((n, i) => n !== total[i])) continue;
+        const reste = parPersonne.map(
+          (m, i) =>
+            sommeDe(
+              ligne.cles.map((c) =>
+                ligne.reste === 'moment'
+                  ? m.delais[c as 'premiere'].reponses
+                  : m.modes[c as 'saisie'].reponses,
+              ),
+            ) - (total[i] ?? 0),
+        );
+        expect(videOuAdmis(reste), `après dans ${ligne.nom}`).toBe(true);
+      }
+    }
   } else {
     expect(lignesDuTableau(html, TITRES.apres)).toEqual([]);
   }
   // Le rang, l'espacement et le mode ont la même forme, ou sont tous trois omis.
   const formes = [tables.rangs, tables.espacements, tables.modes].map((t) => t?.forme ?? null);
-  expect(new Set(formes).size).toBe(1);
+  // Le mode seul peut être omis : son croisement avec la section des modes le refuse parfois.
+  expect(new Set(formes.slice(0, 2)).size).toBe(1);
+  if (tables.modes !== null) expect(formes[2]).toBe(formes[0]);
   // Affichés, ils font de « Redonnée le jour même » leur réunion exacte, elle aussi affichée.
   if (tables.rangs !== null) expect(html).toContain('<th scope="row">Redonnée le jour même</th>');
 }
@@ -375,7 +437,12 @@ test('une_personne_qui_fait_plus_de_70_pour_cent_des_reprises_les_fait_omettre',
   // Trois personnes sans reprise, 12 couples de chaque première réponse ; la quatrième fait toutes
   // les reprises, en trois couples, qu'elle reprend un autre jour.
   const sansReprise = (n: string) =>
-    premierJour([...couples('F', 12, `${n}f`), ...couples('J', 12, `${n}j`)]);
+    premierJour([
+      ...couples('F', 12, `${n}f`),
+      ...couples('J', 12, `${n}j`),
+      // Deux reprises chacune : la quatrième en fait 15 sur 21, soit plus de 70 %.
+      ...couples('JJ', 2, `${n}r`),
+    ]);
   const quatrieme = premierJour(couples('FJFJFJ', 3, 'q'));
   const journaux = [
     sansReprise('a'),
@@ -435,21 +502,178 @@ test('sous_trois_personnes_actives_le_rapport_limite_ne_dit_rien_des_reprises', 
 
 test('des_pretests_entre_deux_reponses_d_un_element_ne_changent_pas_la_page', () => {
   const sans = journauxAuxReprises(3, ID_DU_COURS);
-  const avec = sans.map((journal, personne) => [
-    ...journal,
-    ...Array.from({ length: 40 }, (_, k) =>
-      reponseInventee(
-        JOUR_1 + k * 1000 + 500,
-        9_000_000 + personne * 100 + k,
-        `u${k % 10}x${k % 7}`,
-        k % 2 === 0,
-        ID_DU_COURS,
-        'pretest',
-      ),
-    ),
-  ]);
+  // Pour chaque élément à plusieurs réponses, un pré-test de la même unité entre ses deux premières.
+  const avec = sans.map((journal, personne) => {
+    const vues = new Map<string, number>();
+    const pretests: Evenement[] = [];
+    for (const evenement of journal) {
+      if (evenement.type !== 'reponse') continue;
+      const instant = Date.parse(evenement.repondu_a);
+      const premier = vues.get(evenement.unite);
+      if (premier === undefined) {
+        vues.set(evenement.unite, instant);
+      } else if (premier >= 0) {
+        vues.set(evenement.unite, -1);
+        pretests.push(
+          reponseInventee(
+            (premier + instant) / 2,
+            9_000_000 + personne * 10_000 + pretests.length,
+            evenement.unite,
+            pretests.length % 2 === 0,
+            ID_DU_COURS,
+            'pretest',
+          ),
+        );
+      }
+    }
+    expect(pretests.length).toBeGreaterThan(60);
+    return [...journal, ...pretests];
+  });
   expect(ensemble(avec)).toBe(ensemble(sans));
   expect(tablesDesReprises(mesuresDe(avec), false)).toEqual(
     tablesDesReprises(mesuresDe(sans), false),
   );
+});
+
+test('une_valeur_affichee_est_arrondie_au_pour_cent_et_la_repartition_se_lit_sur_ses_couples', () => {
+  // Trois personnes identiques : 5 reprises justes et 2 fautes après une réponse juste (71,4 %), et
+  // 14 couples sans reprise contre 7 avec une (66,7 % et 33,3 % des couples).
+  const personne = () =>
+    premierJour([...couples('JJ', 5, 'a'), ...couples('JF', 2, 'b'), ...couples('J', 14, 'c')]);
+  const html = ensemble([personne(), personne(), personne()]);
+  const sec = section(html);
+  const pct = (n: number) => `${n} %`;
+  expect(sec).toContain(`<th scope="row">Toutes les reprises</th><td>${pct(71)}</td>`);
+  expect(lignesDuTableau(html, TITRES.rangs)).toEqual(['Toutes les reprises']);
+  // Une barre de 4 de large par point : 284 pour 71 %.
+  expect(sec).toContain('width="284"');
+  expect(sec).toContain(`Toutes les reprises : ${pct(71)} de justes`);
+  expect(lignesDuTableau(html, TITRES.repartition)).toEqual(['0 reprise', '1 reprise ou plus']);
+  expect(sec).toContain(`<th scope="row">0 reprise</th><td>${pct(67)}</td>`);
+  expect(sec).toContain(`<th scope="row">1 reprise ou plus</th><td>${pct(33)}</td>`);
+});
+
+/** Un constructeur de journal : une réponse par seconde, au jour `jour` de janvier 2026. */
+function constructeur() {
+  const evenements: Evenement[] = [];
+  const secondes = new Map<number, number>();
+  const ajouter = (jour: number, unite: string, juste: boolean, mode?: ElementDeMotif['mode']) => {
+    const s = secondes.get(jour) ?? 0;
+    secondes.set(jour, s + 1);
+    const instant = Date.UTC(2026, 0, jour, 8) + s * 1000;
+    evenements.push(
+      reponseInventee(instant, evenements.length + 1, unite, juste, ID_DU_COURS, mode),
+    );
+  };
+  return { evenements, ajouter };
+}
+
+test('un_mode_dont_le_reste_est_refuse_ne_s_affiche_pas_seul_dans_les_reprises', () => {
+  // A : 40 premières réponses en saisie, 10 reprises en saisie et 10 en retournée. B et C : 5
+  // premières réponses en saisie, 10 reprises en saisie, 10 en retournée, puis 20 réponses en
+  // retournée les jours suivants. « Réponse tapée » vaut [50,15,15] à la section des moments, et
+  // [10,10,10] aux reprises : la différence [40,5,5] est refusée (80 %).
+  const a = constructeur();
+  for (let i = 0; i < 40; i++) {
+    a.ajouter(5, `a${i}`, true, 'saisie');
+    if (i < 10) a.ajouter(5, `a${i}`, true, 'saisie');
+    else if (i < 20) a.ajouter(5, `a${i}`, true, 'retournee');
+  }
+  const bc = (p: string) => {
+    const j = constructeur();
+    for (let u = 0; u < 5; u++) {
+      j.ajouter(5, `${p}${u}`, true, 'saisie');
+      for (let k = 0; k < 5; k++) {
+        if (u < 2) j.ajouter(5, `${p}${u}`, true, 'saisie');
+        else if (u < 4) j.ajouter(5, `${p}${u}`, true, 'retournee');
+      }
+    }
+    for (let jour = 6; jour <= 9; jour++) {
+      for (let u = 0; u < 5; u++) j.ajouter(jour, `${p}${u}`, true, 'retournee');
+    }
+    return j.evenements;
+  };
+  const journaux = [a.evenements, bc('b'), bc('c')];
+  const parPersonne = mesuresDe(journaux);
+  const saisie = parPersonne.map((m) => m.modes.saisie.reponses);
+  const reprisesEnSaisie = parPersonne.map(
+    (m) => m.reprises.modes.juste.saisie.reponses + m.reprises.modes.faute.saisie.reponses,
+  );
+  expect(saisie).toEqual([50, 15, 15]);
+  expect(reprisesEnSaisie).toEqual([10, 10, 10]);
+  expect(caseAdmise(saisie.map((n, i) => n - (reprisesEnSaisie[i] ?? 0)))).toBe(false);
+  const html = ensemble(journaux);
+  // La section des moments et des modes montre « Réponse tapée » ; les reprises ne la montrent pas seule.
+  const debutDesModes = html.indexOf('Selon le mode de la réponse</h3>');
+  const dessMoments = html.slice(debutDesModes, html.indexOf('</details>', debutDesModes));
+  expect(dessMoments).toContain('<th scope="row">Réponse tapée</th>');
+  const modes = lignesDuTableau(html, TITRES.modes);
+  expect(modes).not.toContain('Réponse tapée');
+  expect(modes).toEqual(['Toutes les reprises']);
+  verifierLaStructure(journaux);
+});
+
+test('apres_un_jour_de_faute_est_omis_si_le_reste_d_un_moment_est_refuse', () => {
+  // Tous les retours d'un autre jour suivent un jour de faute : « Autres moments » [95,22,30] moins
+  // « Tous les jours de faute suivis » [15,6,15] donnerait [80,16,15], refusé (72 %). Ces retours sont
+  // les seuls en « choix » : le reste de « Choix parmi des propositions » est vide, seul le moment refuse.
+  const a = constructeur();
+  for (let i = 0; i < 15; i++) a.ajouter(5, `af${i}`, false);
+  for (let i = 0; i < 20; i++) {
+    a.ajouter(5, `aj${i}`, true);
+    a.ajouter(5, `aj${i}`, true);
+  }
+  for (let i = 0; i < 45; i++) a.ajouter(5, `ax${i}`, true);
+  for (let i = 0; i < 15; i++) a.ajouter(6, `af${i}`, true, 'choix');
+  const b = constructeur();
+  for (let i = 0; i < 3; i++) b.ajouter(5, `bf${i}`, false);
+  for (let i = 0; i < 3; i++) {
+    b.ajouter(5, `bg${i}`, false);
+    b.ajouter(5, `bg${i}`, true);
+  }
+  for (let i = 0; i < 10; i++) b.ajouter(5, `bx${i}`, true);
+  for (let i = 0; i < 3; i++) b.ajouter(6, `bf${i}`, true, 'choix');
+  for (let i = 0; i < 3; i++) b.ajouter(6, `bg${i}`, true, 'choix');
+  const c = constructeur();
+  for (let i = 0; i < 15; i++) {
+    c.ajouter(5, `cg${i}`, false);
+    c.ajouter(5, `cg${i}`, true);
+  }
+  for (let i = 0; i < 15; i++) c.ajouter(6, `cg${i}`, true, 'choix');
+  const journaux = [a.evenements, b.evenements, c.evenements];
+  const parPersonne = mesuresDe(journaux);
+  const apres = parPersonne.map((m) =>
+    sommeDe(CLES_APRES_UNE_FAUTE.map((cle) => m.reprises.apresUnJourDeFaute[cle].reponses)),
+  );
+  expect(apres).toEqual([15, 6, 15]);
+  const html = ensemble(journaux);
+  expect(html).toContain('<th scope="row">Autres moments</th>');
+  expect(tablesDesReprises(parPersonne, false).apresUnJourDeFaute).toBeNull();
+  expect(lignesDuTableau(html, TITRES.apres)).toEqual([]);
+  expect(section(html)).toContain('Ce tableau est omis');
+  verifierLaStructure(journaux);
+});
+
+test('apres_un_jour_de_faute_est_omis_si_le_reste_d_un_mode_est_refuse', () => {
+  // Chaque personne : 15 fautes en saisie, reprises le lendemain en saisie. Les retours sont à eux
+  // seuls la ligne de leur moment (le reste est vide), mais la première personne a 60 autres premières
+  // réponses en saisie : « Réponse tapée » [75,15,15] moins les retours [15,15,15] donne [60,0,0].
+  const journaux = [60, 0, 0].map((autres) => {
+    const j = constructeur();
+    for (let i = 0; i < 15; i++) j.ajouter(5, `f${i}`, false, 'saisie');
+    for (let i = 0; i < autres; i++) j.ajouter(5, `x${i}`, true, 'saisie');
+    for (let i = 0; i < 15; i++) j.ajouter(6, `f${i}`, true, 'saisie');
+    return j.evenements;
+  });
+  const parPersonne = mesuresDe(journaux);
+  const retours = parPersonne.map((m) => m.reprises.apresUnJourDeFaute['apres-faute-0'].reponses);
+  expect(retours).toEqual([15, 15, 15]);
+  // Le moment des retours est affiché seul, et son reste est vide.
+  const moments = lignesDesMoments(parPersonne, sommerMesures(parPersonne), caseAdmise, false);
+  const duRetour = moments.delai.filter((l) => l.cles.includes('boite-1'));
+  expect(duRetour.map((l) => l.cles)).toEqual([['boite-1']]);
+  expect(parPersonne.map((m) => m.delais['boite-1'].reponses)).toEqual(retours);
+  expect(tablesDesReprises(parPersonne, false).apresUnJourDeFaute).toBeNull();
+  expect(lignesDuTableau(ensemble(journaux), TITRES.apres)).toEqual([]);
+  verifierLaStructure(journaux);
 });

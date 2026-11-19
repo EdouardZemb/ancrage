@@ -20,6 +20,7 @@ import {
   type Cellule,
   CLES_DE_DELAI,
   CLES_DE_MODE,
+  type CleDeDelai,
   type CleDeMode,
   caseAdmise,
   estActive,
@@ -40,6 +41,7 @@ import {
   CLES_DE_RANG,
   CLES_DE_REPARTITION,
   CLES_DE_VERDICT,
+  type CleApresUneFaute,
   type CleDeVerdict,
 } from './reprises.js';
 
@@ -193,6 +195,43 @@ function lignesDeReussite(
       : (partDeJustes(cellule) ?? 0),
     reponses: cellule.reponses,
   }));
+}
+
+/**
+ * Les lignes de la section des moments et des modes : celles que la règle admet, les autres fondues
+ * dans « autres ». Les reprises du jour les relisent, pour qu'aucune de leurs lignes ne laisse
+ * retrouver par différence une case refusée (M7-D6).
+ */
+export function lignesDesMoments(
+  parPersonne: readonly Mesures[],
+  total: Mesures,
+  admise: (comptes: readonly number[]) => boolean,
+  personne: boolean,
+): { delai: LigneDeCase[]; mode: LigneDeCase[] } {
+  return {
+    delai: lignesDeReussite(
+      CLES_DE_DELAI.map((cle) => ({
+        nom: NOMS_DE_DELAI[cle],
+        cles: [cle],
+        cellule: total.delais[cle],
+        comptes: parPersonne.map((m) => m.delais[cle].reponses),
+      })),
+      admise,
+      'Autres moments',
+      !personne,
+    ),
+    mode: lignesDeReussite(
+      CLES_DE_MODE.map((cle) => ({
+        nom: NOMS_DE_MODE[cle],
+        cles: [cle],
+        cellule: total.modes[cle],
+        comptes: parPersonne.map((m) => m.modes[cle].reponses),
+      })),
+      admise,
+      'Autres modes',
+      !personne,
+    ),
+  };
 }
 
 function tableau(entetes: readonly string[], lignes: readonly (readonly string[])[]): string {
@@ -669,12 +708,15 @@ export function regrouperEnPlages(
 /**
  * Les lignes du mode : une case refusée se fond dans « Autres modes » ; si elle est refusée à son
  * tour, le mode admis le moins fourni la rejoint, et ainsi de suite. « Autres modes » ne dit pas
- * quels modes elle réunit, et la ligne de tous les modes se dit « Toutes les reprises ».
+ * quels modes elle réunit, et la ligne de tous les modes se dit « Toutes les reprises ». `croise` dit
+ * si un groupe de modes (leurs indices) peut s'afficher au regard de la section des moments et des
+ * modes : sinon il se fond comme une case refusée (M7-D6).
  */
 export function couvrirLesModes(
   donnees: readonly DonneesDeCle[],
   admise: (comptes: readonly number[]) => boolean,
   personne: boolean,
+  croise: (indices: readonly number[]) => boolean = () => true,
 ): LigneDeReprise[] | null {
   const cles: readonly string[] = CLES_DE_MODE;
   const nomDe = (i: number): string => NOMS_DE_MODE[CLES_DE_MODE[i] as CleDeMode];
@@ -683,15 +725,17 @@ export function couvrirLesModes(
   if (personne) return presents.map((i) => ligneDe(cles, donnees, [i], nomDe(i)));
   const comptesDe = (indices: readonly number[]): readonly number[] =>
     ligneDe(cles, donnees, indices, '').comptes;
-  let gardes = presents.filter((i) => admise(comptesDe([i])));
+  const passe = (indices: readonly number[]): boolean =>
+    admise(comptesDe(indices)) && croise(indices);
+  let gardes = presents.filter((i) => passe([i]));
   const absorbes = presents.filter((i) => !gardes.includes(i));
   if (absorbes.length > 0) {
-    while (!admise(comptesDe(absorbes)) && gardes.length > 0) {
+    while (!passe(absorbes) && gardes.length > 0) {
       const moins = gardes.reduce((a, b) => (total(b) < total(a) ? b : a));
       absorbes.push(moins);
       gardes = gardes.filter((i) => i !== moins);
     }
-    if (!admise(comptesDe(absorbes))) return null;
+    if (!passe(absorbes)) return null;
   }
   const lignes = gardes.map((i) => ligneDe(cles, donnees, [i], nomDe(i)));
   if (absorbes.length === 0) return lignes;
@@ -743,11 +787,14 @@ function tableDeReprises<K extends string>(
   cles: readonly K[],
   source: SourceDeCle<K>,
   parPersonne: readonly Mesures[],
-  lignesDe: (donnees: readonly DonneesDeCle[]) => LigneDeReprise[] | null,
+  lignesDe: (
+    donnees: readonly DonneesDeCle[],
+    moities: readonly CleDeVerdict[],
+  ) => LigneDeReprise[] | null,
 ): TableDeReprises | null {
   if (forme === null) return null;
   const lignes = (moities: readonly CleDeVerdict[]) =>
-    lignesDe(donneesDesCles(cles, parPersonne, source, moities));
+    lignesDe(donneesDesCles(cles, parPersonne, source, moities), moities);
   if (forme === 'reunies') {
     const reunies = lignes(CLES_DE_VERDICT);
     return reunies === null ? null : { forme, lignes: reunies };
@@ -755,6 +802,97 @@ function tableDeReprises<K extends string>(
   const faute = lignes(['faute']);
   const juste = lignes(['juste']);
   return faute === null || juste === null ? null : { forme, faute, juste };
+}
+
+/** Le reste d'une ligne de la section des moments ou des modes est vide, ou passe la règle. */
+const resteVideOuAdmis = (reste: readonly number[]): boolean =>
+  reste.every((n) => n === 0) || caseAdmise(reste);
+
+/**
+ * Le croisement du mode des reprises avec la section des moments et des modes (M7-D6). Une ligne de
+ * moment ou de mode dont les réponses contiennent celles d'une ligne de reprises (tous ses modes sont
+ * dans la ligne affichée) laisserait retrouver par différence le reste de la ligne affichée : les
+ * réponses du même mode qui ne sont pas des reprises (et celles des autres modes de la ligne). Ce
+ * reste est donc vide ou admis, sans quoi le mode ne s'affiche pas seul. `moities` dit quelles
+ * reprises la ligne compte (une moitié, ou les deux).
+ */
+function croisementDesModes(
+  parPersonne: readonly Mesures[],
+  affichees: readonly LigneDeCase[],
+  indices: readonly number[],
+  moities: readonly CleDeVerdict[],
+): boolean {
+  const modes = indices.map((i) => CLES_DE_MODE[i] as CleDeMode);
+  return affichees.every((ligne) => {
+    if (!modes.every((mode) => ligne.cles.includes(mode))) return true;
+    return resteVideOuAdmis(
+      parPersonne.map(
+        (m) =>
+          sommeDeNombres(ligne.cles.map((cle) => m.modes[cle as CleDeMode].reponses)) -
+          sommeDeNombres(
+            moities.flatMap((verdict) =>
+              modes.map((mode) => m.reprises.modes[verdict][mode].reponses),
+            ),
+          ),
+      ),
+    );
+  });
+}
+
+/**
+ * Le croisement de « Après un jour de faute » avec la section des moments et des modes (M7-D6). Une
+ * ligne de moment (ou de mode) qui contient toutes les réponses d'une ligne de ce tableau, pour chaque
+ * personne, laisserait retrouver par différence le reste : les autres réponses de la ligne affichée.
+ * Ce reste est vide ou admis, sans quoi le tableau est omis. Chaque ligne se garde seule : la réunion de plusieurs lignes n'est pas gardée.
+ */
+function croisementDeLApres(
+  parPersonne: readonly Mesures[],
+  affichees: { delai: readonly LigneDeCase[]; mode: readonly LigneDeCase[] },
+  lignes: readonly LigneDeReprise[],
+): boolean {
+  const groupes = lignes.map((l) => l.cles);
+  const verifier = (
+    cles: readonly string[],
+    ligne: LigneDeCase,
+    dans: (m: Mesures, cleDeFaute: CleApresUneFaute, cle: string) => number,
+    toutes: (m: Mesures, cle: string) => number,
+  ): boolean => {
+    const apres = parPersonne.map((m) =>
+      sommeDeNombres(
+        cles.map((cle) => m.reprises.apresUnJourDeFaute[cle as CleApresUneFaute].reponses),
+      ),
+    );
+    const dedans = parPersonne.map((m) =>
+      sommeDeNombres(
+        cles.flatMap((cle) => ligne.cles.map((c) => dans(m, cle as CleApresUneFaute, c))),
+      ),
+    );
+    if (apres.every((n) => n === 0) || dedans.some((n, i) => n !== apres[i])) return true;
+    return resteVideOuAdmis(
+      parPersonne.map(
+        (m, i) => sommeDeNombres(ligne.cles.map((c) => toutes(m, c))) - (apres[i] ?? 0),
+      ),
+    );
+  };
+  return groupes.every(
+    (cles) =>
+      affichees.delai.every((ligne) =>
+        verifier(
+          cles,
+          ligne,
+          (m, cle, c) => m.reprises.apresParMoment[cle][c as CleDeDelai],
+          (m, c) => m.delais[c as CleDeDelai].reponses,
+        ),
+      ) &&
+      affichees.mode.every((ligne) =>
+        verifier(
+          cles,
+          ligne,
+          (m, cle, c) => m.reprises.apresParMode[cle][c as CleDeMode],
+          (m, c) => m.modes[c as CleDeMode].reponses,
+        ),
+      ),
+  );
 }
 
 /** Ce que la section « Les reprises du jour » affiche ; `null`, un tableau omis (ensemble seulement). */
@@ -776,6 +914,22 @@ export function tablesDesReprises(
     (m, cle) => m.reprises.apresUnJourDeFaute[cle],
     ['faute'],
   );
+  // Les lignes de la section des moments et des modes, que la personne ne lit pas : un rapport
+  // d'une personne n'a pas de règle de case, donc pas de croisement à garder.
+  const affichees = personne
+    ? { delai: [], mode: [] }
+    : lignesDesMoments(parPersonne, sommerMesures(parPersonne), admise, personne);
+  const lignesApres = regrouperEnPlages(
+    CLES_APRES_UNE_FAUTE,
+    apres,
+    NOMS_APRES_UNE_FAUTE,
+    admise,
+    personne,
+  );
+  const apresLesJoursDeFaute =
+    lignesApres === null || croisementDeLApres(parPersonne, affichees, lignesApres)
+      ? lignesApres
+      : null;
   return {
     rangs: tableDeReprises(
       forme,
@@ -796,7 +950,10 @@ export function tablesDesReprises(
       CLES_DE_MODE,
       (m, cle, verdict) => m.reprises.modes[verdict][cle],
       parPersonne,
-      (donnees) => couvrirLesModes(donnees, admise, personne),
+      (donnees, moities) =>
+        couvrirLesModes(donnees, admise, personne, (indices) =>
+          croisementDesModes(parPersonne, affichees.mode, indices, moities),
+        ),
     ),
     repartition: tableDeReprises(
       formeDe(couples('faute'), couples('juste'), admise, personne),
@@ -805,13 +962,7 @@ export function tablesDesReprises(
       parPersonne,
       enPlages(CLES_DE_REPARTITION, NOMS_DE_REPARTITION),
     ),
-    apresUnJourDeFaute: regrouperEnPlages(
-      CLES_APRES_UNE_FAUTE,
-      apres,
-      NOMS_APRES_UNE_FAUTE,
-      admise,
-      personne,
-    ),
+    apresUnJourDeFaute: apresLesJoursDeFaute,
   };
 }
 
@@ -914,10 +1065,10 @@ function sectionDesReprises(tables: TablesDesReprises, personne: boolean): strin
     },
     dessiner: (lignes) => tableDeRepartition(lignes, personne),
   });
-  const definition = `Une reprise est une réponse donnée à un élément qui a déjà été répondu le même jour : ce sont les réponses que réunit la ligne des moments. Chaque tableau sépare les reprises qui suivent une faute et celles qui suivent une réponse juste, d’après la réponse d’avant du même élément ce jour-là. Le rang est le nombre de réponses du jour avant la reprise ; « autres réponses » compte celles des autres éléments entre les deux ; un couple est un élément et un jour, compté selon ses reprises. Les réponses de pré-test sont écartées.${
+  const definition = `Une reprise est une réponse donnée à un élément qui a déjà été répondu le même jour : ce sont les réponses que réunit la ligne des moments. Le rang, les autres réponses et le mode séparent les reprises qui suivent une faute et celles qui suivent une réponse juste, d’après la réponse d’avant du même élément ce jour-là ; la répartition sépare les couples d’après leur première réponse du jour ; le dernier tableau n’a pas de moitiés. Le rang est le nombre de réponses du jour avant la reprise ; « autres réponses » compte celles des autres éléments entre les deux ; un couple est un élément et un jour, compté selon ses reprises. Les réponses de pré-test sont écartées.${
     personne
       ? ' Une ligne donne la part de justes et le nombre de réponses ; une case vide n’a pas de ligne.'
-      : ' Un tableau s’affiche en deux moitiés si chacune passe la règle, réuni sinon, et il est omis si même réuni il ne la passe pas ; une ligne qui ne la passe pas se fond avec sa voisine en une plage (« de … à … », « … et au-delà »), ou, pour le mode, dans une ligne d’autres modes. Ni compte ni total : des pourcentages entiers.'
+      : ' Un tableau s’affiche en deux moitiés si chacune passe la règle, réuni sinon, et il est omis si même réuni il ne la passe pas ; une ligne qui ne la passe pas se fond avec sa voisine en une plage (« de … à … », « … et au-delà »), ou, pour le mode, dans une ligne d’autres modes ; un mode, ou le tableau après un jour de faute, qui laisserait retrouver par différence une case refusée de la section des moments et des modes se fond de même, ou est omis. Ni compte ni total : des pourcentages entiers.'
   }`;
   const apres = tables.apresUnJourDeFaute;
   const dernier =
@@ -986,27 +1137,11 @@ export function construireRapport(donnees: DonneesDuRapport): string {
   const unite = personne ? 'réponses' : 'réponses par personne';
 
   // 6. La réussite, selon le délai et selon le mode : les lignes affichées, et rien d'autre.
-  const lignesDeDelai = lignesDeReussite(
-    CLES_DE_DELAI.map((cle) => ({
-      nom: NOMS_DE_DELAI[cle],
-      cles: [cle],
-      cellule: total.delais[cle],
-      comptes: parPersonne.map((m) => m.delais[cle].reponses),
-    })),
+  const { delai: lignesDeDelai, mode: lignesDeMode } = lignesDesMoments(
+    parPersonne,
+    total,
     admise,
-    'Autres moments',
-    !personne,
-  );
-  const lignesDeMode = lignesDeReussite(
-    CLES_DE_MODE.map((cle) => ({
-      nom: NOMS_DE_MODE[cle],
-      cles: [cle],
-      cellule: total.modes[cle],
-      comptes: parPersonne.map((m) => m.modes[cle].reponses),
-    })),
-    admise,
-    'Autres modes',
-    !personne,
+    personne,
   );
   // Les moments affichés seuls : la réussite observée n'en lit pas d'autres, ni la projection.
   const delaisAffiches = new Set(

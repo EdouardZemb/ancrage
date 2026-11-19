@@ -2,7 +2,9 @@ import { jourDe } from '../../domaine/journal/temps.js';
 import {
   ajouterCellule,
   type Cellule,
+  CLES_DE_DELAI,
   CLES_DE_MODE,
+  type CleDeDelai,
   type CleDeMode,
   cellules,
   compter,
@@ -64,6 +66,12 @@ export interface MesuresDeReprises {
   repartition: Record<CleDeVerdict, Record<CleDeRepartition, number>>;
   /** La première réponse d'un autre jour, selon les reprises qui suivent la première faute. */
   apresUnJourDeFaute: Record<CleApresUneFaute, Cellule>;
+  /**
+   * Ces mêmes réponses d'un autre jour, par moment (le délai de `mesures`) et par mode : le rapport
+   * d'ensemble en tire ce qui reste d'une ligne de moment ou de mode hors de ces réponses (M7-D6).
+   */
+  apresParMoment: Record<CleApresUneFaute, Record<CleDeDelai, number>>;
+  apresParMode: Record<CleApresUneFaute, Record<CleDeMode, number>>;
 }
 
 export interface ReponseSuivie {
@@ -71,6 +79,8 @@ export interface ReponseSuivie {
   repondu_a: string;
   juste: boolean;
   mode: CleDeMode;
+  /** Le moment où elle revient, selon `delaiDe`. */
+  delai: CleDeDelai;
 }
 
 function parVerdict<T>(fabrique: () => T): Record<CleDeVerdict, T> {
@@ -88,6 +98,12 @@ export function reprisesVides(): MesuresDeReprises {
     modes: parVerdict(() => cellules(CLES_DE_MODE)),
     repartition: parVerdict(() => nombres(CLES_DE_REPARTITION)),
     apresUnJourDeFaute: cellules(CLES_APRES_UNE_FAUTE),
+    apresParMoment: Object.fromEntries(
+      CLES_APRES_UNE_FAUTE.map((cle) => [cle, nombres(CLES_DE_DELAI)]),
+    ) as MesuresDeReprises['apresParMoment'],
+    apresParMode: Object.fromEntries(
+      CLES_APRES_UNE_FAUTE.map((cle) => [cle, nombres(CLES_DE_MODE)]),
+    ) as MesuresDeReprises['apresParMode'],
   };
 }
 
@@ -109,6 +125,11 @@ export function ajouterReprises(cible: MesuresDeReprises, source: MesuresDeRepri
   }
   for (const cle of CLES_APRES_UNE_FAUTE) {
     ajouterCellule(cible.apresUnJourDeFaute[cle], source.apresUnJourDeFaute[cle]);
+    for (const moment of CLES_DE_DELAI) {
+      cible.apresParMoment[cle][moment] += source.apresParMoment[cle][moment];
+    }
+    for (const mode of CLES_DE_MODE)
+      cible.apresParMode[cle][mode] += source.apresParMode[cle][mode];
   }
 }
 
@@ -173,10 +194,10 @@ export function suivreLesReprises(): {
       if (couple !== undefined) {
         clore(couple);
         if (couple.apresLaFaute !== null) {
-          compter(
-            resultat.apresUnJourDeFaute[parIndice(CLES_APRES_UNE_FAUTE, couple.apresLaFaute)],
-            reponse.juste,
-          );
+          const cle = parIndice(CLES_APRES_UNE_FAUTE, couple.apresLaFaute);
+          compter(resultat.apresUnJourDeFaute[cle], reponse.juste);
+          resultat.apresParMoment[cle][reponse.delai] += 1;
+          resultat.apresParMode[cle][reponse.mode] += 1;
         }
       }
       ouverts.set(reponse.unite, {

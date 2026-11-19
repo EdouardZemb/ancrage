@@ -357,3 +357,44 @@ test('les_reprises_de_deux_journaux_s_additionnent_et_sans_reponse_tout_est_a_ze
   }
   expect(mesures([], cours, AUJOURDHUI).reprises).toEqual(reprisesVides());
 });
+
+test('la_reponse_d_un_autre_jour_est_comptee_par_moment_et_par_mode_et_la_somme_les_double', () => {
+  const m = surDeuxJours('FJJ', 'J');
+  const parMoment = Object.values(m.apresParMoment['apres-faute-2']);
+  const parMode = Object.values(m.apresParMode['apres-faute-2']);
+  expect(parMoment.reduce((s, n) => s + n, 0)).toBe(1);
+  expect(parMode.reduce((s, n) => s + n, 0)).toBe(1);
+  expect(m.apresParMode['apres-faute-2']['sans-mode']).toBe(1);
+  expect(m.apresParMoment['apres-faute-2']['meme-jour']).toBe(0);
+  expect(m.apresParMoment['apres-faute-2'].premiere).toBe(0);
+  expect(m.apresParMoment['apres-faute-0']).toEqual(
+    reprisesVides().apresParMoment['apres-faute-0'],
+  );
+  const un = mesures(
+    [
+      ...journeeDeMotifs({
+        debut: Date.UTC(2026, 0, 5, 10),
+        rangDepart: 1,
+        elements: [{ unite: A, motif: 'FJJ', mode: 'saisie' }],
+      }),
+      ...journeeDeMotifs({
+        debut: Date.UTC(2026, 0, 6, 10),
+        rangDepart: 1000,
+        elements: [{ unite: A, motif: 'J', mode: 'saisie' }],
+      }),
+    ],
+    cours,
+    AUJOURDHUI,
+  );
+  expect(un.reprises.apresParMode['apres-faute-2'].saisie).toBe(1);
+  expect(sommerMesures([un, un]).reprises.apresParMode['apres-faute-2'].saisie).toBe(2);
+  const moment = Object.entries(un.reprises.apresParMoment['apres-faute-2']).find(
+    ([, n]) => n === 1,
+  );
+  expect(moment).toBeDefined();
+  expect(
+    sommerMesures([un, un]).reprises.apresParMoment['apres-faute-2'][
+      (moment?.[0] ?? 'premiere') as 'premiere'
+    ],
+  ).toBe(2);
+});

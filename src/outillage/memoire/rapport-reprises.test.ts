@@ -910,3 +910,60 @@ test('un_mode_seul_dont_le_reste_est_refuse_omet_le_tableau_des_modes_et_dit_pou
   expect(section(html)).toContain('un croisement avec la section des moments et des modes');
   verifierLaStructure(journaux);
 });
+
+test('apres_un_jour_de_faute_a_cheval_sur_deux_moments_est_omis_si_leur_reunion_laisse_un_reste_refuse', () => {
+  // Chaque personne : 4 fautes isolées (retour le lendemain) et 4 « faux, juste » (retour le
+  // lendemain), soit deux clés de 12 refusées seules, réunies en une ligne de 24 qui a des retours dans
+  // deux moments. Chaque moment, avec ses retours qui ne suivent pas une faute (40 pour la première
+  // personne, 6 pour les autres), passe seul ; leur réunion moins la ligne, [80,12,12], est refusée.
+  const journaux = [40, 6, 6].map((autres, personne) => {
+    const j = constructeur();
+    for (let i = 0; i < 4; i++) j.ajouter(5, `f${i}`, false, 'saisie');
+    for (let i = 0; i < 4; i++) {
+      j.ajouter(5, `g${i}`, false, 'saisie');
+      j.ajouter(5, `g${i}`, true, 'saisie');
+    }
+    for (let i = 0; i < autres; i++) j.ajouter(5, `x${i}`, true, 'saisie');
+    for (let i = 0; i < autres; i++) {
+      j.ajouter(5, `y${i}`, true, 'saisie');
+      j.ajouter(5, `y${i}`, true, 'saisie');
+    }
+    for (let i = 0; i < 4; i++) j.ajouter(6, `f${i}`, true, 'saisie');
+    for (let i = 0; i < 4; i++) j.ajouter(6, `g${i}`, true, 'saisie');
+    for (let i = 0; i < autres; i++) j.ajouter(6, `x${i}`, true, 'saisie');
+    for (let i = 0; i < autres; i++) j.ajouter(6, `y${i}`, true, 'saisie');
+    // Des premières réponses en plus pour les deux autres : « Première réponse » passe seule.
+    for (let i = 0; i < (personne === 0 ? 0 : 40); i++) j.ajouter(5, `z${i}`, true, 'saisie');
+    return j.evenements;
+  });
+  const parPersonne = mesuresDe(journaux);
+  const ligne = (m: (typeof parPersonne)[number]) => ({
+    premier: m.reprises.apresParMoment['apres-faute-0'],
+    second: m.reprises.apresParMoment['apres-faute-1'],
+  });
+  const moments = (cle: 'boite-1' | 'avant-echeance') =>
+    parPersonne.map((m) => m.delais[cle].reponses);
+  // Les deux clés ont leurs retours dans deux moments différents, chacun affiché seul.
+  expect(
+    Object.entries(ligne(parPersonne[0] as (typeof parPersonne)[number]).premier).find(
+      ([, n]) => n > 0,
+    )?.[0],
+  ).not.toBe(
+    Object.entries(ligne(parPersonne[0] as (typeof parPersonne)[number]).second).find(
+      ([, n]) => n > 0,
+    )?.[0],
+  );
+  expect(moments('boite-1')).toEqual([44, 10, 10]);
+  expect(moments('avant-echeance')).toEqual([44, 10, 10]);
+  const html = ensemble(journaux);
+  // Aucune ligne de moment ne contient seule la ligne des retours : elle est à cheval sur deux.
+  const affichees = lignesDesMoments(parPersonne, sommerMesures(parPersonne), caseAdmise, false);
+  expect(affichees.delai.map((l) => l.cles)).toEqual(
+    expect.arrayContaining([['boite-1'], ['avant-echeance'], ['premiere']]),
+  );
+  expect(tablesDesReprises(parPersonne, false).apresUnJourDeFaute).toBeNull();
+  expect(lignesDuTableau(html, TITRES.apres)).toEqual([]);
+  expect(tablesDesReprises(parPersonne, false).omisParCroisement.apresUnJourDeFaute).toBe(true);
+  expect(section(html)).toContain('un croisement avec la section des moments et des modes');
+  verifierLaStructure(journaux);
+});

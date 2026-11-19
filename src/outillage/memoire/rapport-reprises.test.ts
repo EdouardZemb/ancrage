@@ -130,12 +130,83 @@ function recompter(
   );
 }
 
+/** Toutes les parties non vides de `liste`. */
+function parties<T>(liste: readonly T[]): T[][] {
+  const resultat: T[][] = [];
+  for (let masque = 1; masque < 2 ** liste.length; masque++) {
+    resultat.push(liste.filter((_, i) => (masque >> i) % 2 === 1));
+  }
+  return resultat;
+}
+
+/**
+ * Le reste de chaque réunion de lignes affichées de la section des moments (ou des modes), une fois
+ * retirées les lignes affichées des reprises qu'elle contient, est vide ou passe la règle : ce qui
+ * donne, par différence, la même garantie pour toute partie de ces lignes. Recalculé ici, sans
+ * appeler la porte du rapport.
+ */
+function verifierLesReunions(journaux: readonly (readonly Evenement[])[]): void {
+  const parPersonne = mesuresDe(journaux);
+  const tables = tablesDesReprises(parPersonne, false);
+  const affichees = lignesDesMoments(parPersonne, sommerMesures(parPersonne), caseAdmise, false);
+  const lignesDuMode = [tables.modes].flatMap((t) =>
+    t === null ? [] : t.forme === 'reunies' ? t.lignes : [...t.faute, ...t.juste],
+  );
+  const apres = tables.apresUnJourDeFaute ?? [];
+  const reprisesAffichees = [tables.rangs, tables.espacements, tables.modes].some(
+    (t) => t !== null,
+  );
+  const apresContenue = (
+    ligne: LigneDeReprise,
+    cles: readonly string[],
+    genre: 'Mode' | 'Moment',
+  ) =>
+    parPersonne.every((m, i) => {
+      const dedans = sommeDe(
+        ligne.cles.flatMap((k) =>
+          cles.map((c) =>
+            genre === 'Mode'
+              ? m.reprises.apresParMode[k as 'apres-faute-0'][c as 'saisie']
+              : m.reprises.apresParMoment[k as 'apres-faute-0'][c as 'premiere'],
+          ),
+        ),
+      );
+      return dedans === (ligne.comptes[i] ?? 0);
+    }) && ligne.comptes.some((n) => n > 0);
+  for (const reunion of parties(affichees.mode)) {
+    const cles = reunion.flatMap((l) => l.cles);
+    const retirees = [
+      ...lignesDuMode.filter((l) => l.cles.every((c) => cles.includes(c))),
+      ...apres.filter((l) => apresContenue(l, cles, 'Mode')),
+    ];
+    const reste = parPersonne.map(
+      (m, i) =>
+        sommeDe(cles.map((c) => m.modes[c as 'saisie'].reponses)) -
+        sommeDe(retirees.map((l) => l.comptes[i] ?? 0)),
+    );
+    expect(videOuAdmis(reste), `modes ${cles.join('+')}`).toBe(true);
+  }
+  for (const reunion of parties(affichees.delai)) {
+    const cles = reunion.flatMap((l) => l.cles);
+    const retirees = apres.filter((l) => apresContenue(l, cles, 'Moment'));
+    const reprises = reprisesAffichees && cles.includes('meme-jour');
+    const reste = parPersonne.map(
+      (m, i) =>
+        sommeDe(cles.map((c) => m.delais[c as 'premiere'].reponses)) -
+        (reprises ? m.delais['meme-jour'].reponses : 0) -
+        sommeDe(retirees.map((l) => l.comptes[i] ?? 0)),
+    );
+    expect(videOuAdmis(reste), `moments ${cles.join('+')}`).toBe(true);
+  }
+}
+
 /**
  * La structure d'un rapport d'ensemble (M7-D6, M7-D14), sans croire les comptes de `tablesDesReprises` :
  * chaque ligne passe la règle recalculée depuis les mesures, les plages se suivent sans trou, les
  * lignes de la page sont celles des tables, et la forme est commune au rang, à l'espacement et au mode.
  */
 function verifierLaStructure(journaux: readonly (readonly Evenement[])[]): void {
+  verifierLesReunions(journaux);
   const parPersonne = mesuresDe(journaux);
   const tables = tablesDesReprises(parPersonne, false);
   const html = ensemble(journaux);
@@ -609,6 +680,8 @@ test('un_mode_dont_le_reste_est_refuse_ne_s_affiche_pas_seul_dans_les_reprises',
   expect(dessMoments).toContain('<th scope="row">Réponse tapée</th>');
   const modes = lignesDuTableau(html, TITRES.modes);
   expect(modes).not.toContain('Réponse tapée');
+  // Les deux modes se fondent : seule la ligne qui les réunit ne laisse rien retrouver de « Réponse
+  // tapée » ([40,5,5]), car elle n'est dans aucune ligne affichée seule.
   expect(modes).toEqual(['Toutes les reprises']);
   verifierLaStructure(journaux);
 });
@@ -651,13 +724,16 @@ test('apres_un_jour_de_faute_est_omis_si_le_reste_d_un_moment_est_refuse', () =>
   expect(tablesDesReprises(parPersonne, false).apresUnJourDeFaute).toBeNull();
   expect(lignesDuTableau(html, TITRES.apres)).toEqual([]);
   expect(section(html)).toContain('Ce tableau est omis');
+  expect(tablesDesReprises(parPersonne, false).omisParCroisement.apresUnJourDeFaute).toBe(true);
+  expect(section(html)).toContain('un croisement avec la section des moments et des modes');
   verifierLaStructure(journaux);
 });
 
 test('apres_un_jour_de_faute_est_omis_si_le_reste_d_un_mode_est_refuse', () => {
   // Chaque personne : 15 fautes en saisie, reprises le lendemain en saisie. Les retours sont à eux
   // seuls la ligne de leur moment (le reste est vide), mais la première personne a 60 autres premières
-  // réponses en saisie : « Réponse tapée » [75,15,15] moins les retours [15,15,15] donne [60,0,0].
+  // réponses en saisie : « Réponse tapée » vaut [90,30,30] (15 + 60 + 15 pour la première), les retours [15,15,15], et le
+  // reste [75,15,15] est refusé (71 %).
   const journaux = [60, 0, 0].map((autres) => {
     const j = constructeur();
     for (let i = 0; i < 15; i++) j.ajouter(5, `f${i}`, false, 'saisie');
@@ -675,5 +751,162 @@ test('apres_un_jour_de_faute_est_omis_si_le_reste_d_un_mode_est_refuse', () => {
   expect(parPersonne.map((m) => m.delais['boite-1'].reponses)).toEqual(retours);
   expect(tablesDesReprises(parPersonne, false).apresUnJourDeFaute).toBeNull();
   expect(lignesDuTableau(ensemble(journaux), TITRES.apres)).toEqual([]);
+  verifierLaStructure(journaux);
+});
+
+test('un_mode_affiche_dans_les_deux_moities_ne_laisse_pas_retrouver_le_reste_d_une_ligne', () => {
+  // A : 40 premières réponses en saisie ; 10 reprises en saisie après une faute, 10 après une juste,
+  // et autant en retournée. B et C : une unité à 20 reprises en saisie, une à 20 en retournée.
+  const a = constructeur();
+  for (let i = 0; i < 40; i++) {
+    a.ajouter(5, `a${i}`, i % 20 >= 10, 'saisie');
+    a.ajouter(5, `a${i}`, true, i < 20 ? 'saisie' : 'retournee');
+  }
+  const bc = (p: string) => {
+    const j = constructeur();
+    j.ajouter(5, `${p}0`, false, 'saisie');
+    for (let k = 0; k < 20; k++) j.ajouter(5, `${p}0`, k % 2 === 0, 'saisie');
+    j.ajouter(5, `${p}1`, false, 'saisie');
+    for (let k = 0; k < 20; k++) j.ajouter(5, `${p}1`, k % 2 === 0, 'retournee');
+    for (let u = 2; u < 5; u++) j.ajouter(5, `${p}${u}`, true, 'saisie');
+    for (let jour = 6; jour <= 9; jour++) {
+      for (let u = 0; u < 5; u++) j.ajouter(jour, `${p}${u}`, true, 'retournee');
+    }
+    return j.evenements;
+  };
+  const journaux = [a.evenements, bc('b'), bc('c')];
+  const parPersonne = mesuresDe(journaux);
+  const parVerdict = (verdict: CleDeVerdict) =>
+    parPersonne.map((m) => m.reprises.modes[verdict].saisie.reponses);
+  // Deux moitiés de [10,10,10] : chacune passe seule, et leur reste dans la ligne des moments, non.
+  expect(parVerdict('faute')).toEqual([10, 10, 10]);
+  expect(parVerdict('juste')).toEqual([10, 10, 10]);
+  const saisie = parPersonne.map((m) => m.modes.saisie.reponses);
+  const reste = saisie.map(
+    (n, i) => n - (parVerdict('faute')[i] ?? 0) - (parVerdict('juste')[i] ?? 0),
+  );
+  expect(caseAdmise(reste)).toBe(false);
+  const html = ensemble(journaux);
+  expect(lignesDuTableau(html, TITRES.modes)).toEqual([
+    'Toutes les reprises',
+    'Toutes les reprises',
+  ]);
+  verifierLaStructure(journaux);
+});
+
+test('apres_un_jour_de_faute_en_deux_lignes_ne_laisse_pas_retrouver_le_reste_d_un_mode', () => {
+  // Deux lignes de retours : « choix » [224,50,70] moins elles deux laisserait [209,37,47] (71 %).
+  const personne = (
+    p: string,
+    n: { l0: number; l1: number; x: number; xp: number; z: number; extra: number },
+  ) => {
+    const j = constructeur();
+    for (let i = 0; i < n.l0; i++) j.ajouter(5, `${p}l0${i}`, false, 'choix');
+    for (let i = 0; i < n.l1; i++) {
+      j.ajouter(5, `${p}l1${i}`, false, 'choix');
+      j.ajouter(5, `${p}l1${i}`, true, 'saisie');
+    }
+    for (let i = 0; i < n.x; i++) j.ajouter(5, `${p}x${i}`, true, 'choix');
+    for (let i = 0; i < n.xp; i++) {
+      j.ajouter(5, `${p}xp${i}`, true, 'choix');
+      j.ajouter(5, `${p}xp${i}`, true, 'saisie');
+    }
+    for (let i = 0; i < n.z; i++) {
+      j.ajouter(5, `${p}z${i}`, true, 'choix');
+      j.ajouter(5, `${p}z${i}`, true, 'saisie');
+    }
+    for (let i = 0; i < n.extra; i++) j.ajouter(5, `${p}e${i}`, true, 'choix');
+    for (let i = 0; i < n.l0; i++) j.ajouter(6, `${p}l0${i}`, true, 'choix');
+    for (let i = 0; i < n.l1; i++) j.ajouter(6, `${p}l1${i}`, true, 'choix');
+    for (let i = 0; i < n.x; i++) j.ajouter(6, `${p}x${i}`, true, 'saisie');
+    for (let i = 0; i < n.xp; i++) j.ajouter(6, `${p}xp${i}`, true, 'saisie');
+    for (let i = 0; i < n.z; i++) j.ajouter(7, `${p}z${i}`, true, 'saisie');
+    return j.evenements;
+  };
+  const journaux = [
+    personne('a', { l0: 10, l1: 5, x: 7, xp: 7, z: 0, extra: 180 }),
+    personne('b', { l0: 8, l1: 5, x: 7, xp: 7, z: 10, extra: 0 }),
+    personne('c', { l0: 8, l1: 15, x: 7, xp: 7, z: 10, extra: 0 }),
+  ];
+  const parPersonne = mesuresDe(journaux);
+  const choix = parPersonne.map((m) => m.modes.choix.reponses);
+  expect(choix).toEqual([224, 50, 70]);
+  const apres = parPersonne.map((m) =>
+    sommeDe(CLES_APRES_UNE_FAUTE.map((cle) => m.reprises.apresUnJourDeFaute[cle].reponses)),
+  );
+  expect(caseAdmise(choix.map((n, i) => n - (apres[i] ?? 0)))).toBe(false);
+  // Avant la correction, le tableau avait deux lignes de retours, dont la somme (en « choix ») dépasse.
+  verifierLaStructure(journaux);
+  const html = ensemble(journaux);
+  const lignes = lignesDuTableau(html, TITRES.apres);
+  // Soit le tableau est omis, soit ses lignes ne laissent aucun reste refusé (la structure le dit).
+  expect(lignes.length === 0 || lignes.length === 1).toBe(true);
+});
+
+test('un_mode_absent_seul_de_la_section_des_moments_ne_s_affiche_pas_seul_aux_reprises', () => {
+  // « Point touché » est refusé à la section des moments (A y domine) : il passe la règle aux
+  // reprises, mais n'y est pas affiché seul. Le reste de la ligne « Réponse tapée » est admis.
+  const a = constructeur();
+  for (let i = 0; i < 100; i++) a.ajouter(5, `ap${i}`, true, 'pointage');
+  for (let i = 0; i < 7; i++) {
+    a.ajouter(5, `ar${i}`, true, 'saisie');
+    a.ajouter(5, `ar${i}`, true, 'pointage');
+  }
+  for (let i = 0; i < 30; i++) a.ajouter(5, `as${i}`, true, 'saisie');
+  const bc = (p: string) => {
+    const j = constructeur();
+    for (let i = 0; i < 7; i++) {
+      j.ajouter(5, `${p}r${i}`, true, 'saisie');
+      j.ajouter(5, `${p}r${i}`, true, 'pointage');
+    }
+    for (let i = 0; i < 30; i++) j.ajouter(5, `${p}s${i}`, true, 'saisie');
+    return j.evenements;
+  };
+  const journaux = [a.evenements, bc('b'), bc('c')];
+  const html = ensemble(journaux);
+  const debut = html.indexOf('Selon le mode de la réponse</h3>');
+  const moments = html.slice(debut, html.indexOf('</details>', debut));
+  expect(moments).not.toContain('Point touché');
+  const modes = lignesDuTableau(html, TITRES.modes);
+  // Il passe la règle aux reprises, mais n'est affiché seul qu'à la section des moments : il se fond.
+  expect(modes).toEqual(['Toutes les reprises']);
+  verifierLaStructure(journaux);
+});
+
+test('un_reste_vide_ou_une_ligne_non_contenue_laisse_les_tableaux_affiches', () => {
+  // Chaque personne : 15 fautes en saisie, reprises le lendemain en saisie. Les retours sont à eux
+  // seuls la ligne « boîte 1 » (reste vide), et le reste de « Réponse tapée » est admis ([15,15,15]).
+  const journaux = [1, 2, 3].map(() => {
+    const j = constructeur();
+    for (let i = 0; i < 15; i++) j.ajouter(5, `f${i}`, false, 'saisie');
+    for (let i = 0; i < 15; i++) j.ajouter(6, `f${i}`, true, 'saisie');
+    return j.evenements;
+  });
+  const html = ensemble(journaux);
+  expect(lignesDuTableau(html, TITRES.apres)).toEqual(['Tous les jours de faute suivis']);
+  verifierLaStructure(journaux);
+  // Et sans croisement possible : les journaux aux reprises gardent leurs quatre lignes.
+  const completes = journauxAuxReprises(3, ID_DU_COURS);
+  expect(lignesDuTableau(ensemble(completes), TITRES.apres)).toHaveLength(4);
+});
+
+test('un_mode_seul_dont_le_reste_est_refuse_omet_le_tableau_des_modes_et_dit_pourquoi', () => {
+  // Un seul mode : « Réponse tapée » vaut [80,20,20] à la section des moments (66 %), [10,10,10]
+  // aux reprises, et le reste [70,10,10] est refusé (77 %). Rien à lui joindre : le tableau est omis.
+  const journaux = [60, 0, 0].map((premieres) => {
+    const j = constructeur();
+    for (let i = 0; i < premieres; i++) j.ajouter(5, `p${i}`, true, 'saisie');
+    for (let u = 0; u < 10; u++) {
+      j.ajouter(5, `r${u}`, true, 'saisie');
+      j.ajouter(5, `r${u}`, true, 'saisie');
+    }
+    return j.evenements;
+  });
+  const parPersonne = mesuresDe(journaux);
+  expect(parPersonne.map((m) => m.modes.saisie.reponses)).toEqual([80, 20, 20]);
+  const html = ensemble(journaux);
+  expect(lignesDuTableau(html, TITRES.modes)).toEqual([]);
+  expect(tablesDesReprises(parPersonne, false).omisParCroisement.modes).toBe(true);
+  expect(section(html)).toContain('un croisement avec la section des moments et des modes');
   verifierLaStructure(journaux);
 });

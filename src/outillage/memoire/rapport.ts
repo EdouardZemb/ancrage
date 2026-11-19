@@ -20,6 +20,7 @@ import {
   type Cellule,
   CLES_DE_DELAI,
   CLES_DE_MODE,
+  type CleDeMode,
   caseAdmise,
   estActive,
   type Mesures,
@@ -33,6 +34,14 @@ import {
 } from './mesures.js';
 import { moyenneDeProjections, type Projection, projeter, TIRAGES } from './projection.js';
 import { FEUILLE_DE_STYLE } from './rapport-style.js';
+import {
+  CLES_APRES_UNE_FAUTE,
+  CLES_D_ESPACEMENT,
+  CLES_DE_RANG,
+  CLES_DE_REPARTITION,
+  CLES_DE_VERDICT,
+  type CleDeVerdict,
+} from './reprises.js';
 
 /*
  * Le rapport de suivi d'un cours (M3) : une page HTML autonome, sans script, sans rien qui se charge
@@ -40,9 +49,10 @@ import { FEUILLE_DE_STYLE } from './rapport-style.js';
  * - le rapport d'une personne, que le responsable demande avec la date de l'accord de la personne ;
  * - le rapport d'ensemble, sur tous les journaux du cours, qui ne dit que le nombre d'éléments du
  *   cours s'il y a moins de trois personnes actives au jour du rapport, et omet toute case (jour,
- *   semaine, moment, mode, boîte, chapitre) où moins de trois personnes distinctes comptent (ont
- *   répondu, ou ont un élément rebelle pour un chapitre) ou qui compte moins de 20 réponses
- *   (éléments pour une boîte, rebelles pour un chapitre) (M3-P6, M6).
+ *   semaine, moment, mode, boîte, chapitre, reprise) où moins de trois personnes distinctes comptent
+ *   (ont répondu, ou ont un élément rebelle pour un chapitre) ou qui compte moins de 20 réponses
+ *   (éléments pour une boîte, rebelles pour un chapitre, couples pour la répartition des reprises)
+ *   (M3-P6, M6, M7).
  */
 
 /** Les scénarios de la projection : l'algorithme, et le nombre de nouveautés par jour. */
@@ -478,6 +488,463 @@ ${chiffres(
   );
 }
 
+// ---------------------------------------------------------------------------------------------
+// Les reprises du jour (M7)
+// ---------------------------------------------------------------------------------------------
+
+/** Une ligne d'un tableau de reprises : les clés qu'elle réunit, et ses nombres. */
+export interface LigneDeReprise {
+  nom: string;
+  /** Une plage de clés contiguës (le mode : les modes réunis). */
+  cles: readonly string[];
+  /** Pour la répartition, `reponses` compte des couples et `justes` vaut 0. */
+  cellule: Cellule;
+  /** Par personne, ce que compte la ligne. */
+  comptes: readonly number[];
+}
+
+export type TableDeReprises =
+  | { forme: 'moities'; faute: readonly LigneDeReprise[]; juste: readonly LigneDeReprise[] }
+  | { forme: 'reunies'; lignes: readonly LigneDeReprise[] };
+
+export interface TablesDesReprises {
+  rangs: TableDeReprises | null;
+  espacements: TableDeReprises | null;
+  modes: TableDeReprises | null;
+  repartition: TableDeReprises | null;
+  apresUnJourDeFaute: readonly LigneDeReprise[] | null;
+}
+
+/** Les comptes d'une clé : sa cellule, tous journaux, et le compte de chaque personne. */
+export interface DonneesDeCle {
+  cellule: Cellule;
+  comptes: number[];
+}
+
+type SourceDeCle<K extends string> = (m: Mesures, cle: K, moitie: CleDeVerdict) => Cellule;
+
+const admiseDe =
+  (personne: boolean) =>
+  (comptes: readonly number[]): boolean =>
+    personne || caseAdmise(comptes);
+
+const sommeDeNombres = (liste: readonly number[]): number => liste.reduce((s, n) => s + n, 0);
+
+function donneesDesCles<K extends string>(
+  cles: readonly K[],
+  parPersonne: readonly Mesures[],
+  source: SourceDeCle<K>,
+  moities: readonly CleDeVerdict[],
+): DonneesDeCle[] {
+  return cles.map((cle) => {
+    const cellule: Cellule = { reponses: 0, justes: 0 };
+    const comptes = parPersonne.map((m) => {
+      let compte = 0;
+      for (const moitie of moities) {
+        const c = source(m, cle, moitie);
+        cellule.reponses += c.reponses;
+        cellule.justes += c.justes;
+        compte += c.reponses;
+      }
+      return compte;
+    });
+    return { cellule, comptes };
+  });
+}
+
+/** Les noms que prend une plage de clés, selon ses bornes (jamais la liste de ses cases). */
+export interface NomsDePlage {
+  uniques: readonly string[];
+  /** Une plage qui finit à la dernière clé. */
+  ouverte(debut: number): string;
+  fermee(debut: number, fin: number): string;
+  /** La plage de toutes les clés. */
+  toutes: string;
+}
+
+function nommerPlage(noms: NomsDePlage, debut: number, fin: number): string {
+  const derniere = noms.uniques.length - 1;
+  if (debut === 0 && fin === derniere) return noms.toutes;
+  if (debut === fin) return noms.uniques[debut] ?? '';
+  return fin === derniere ? noms.ouverte(debut) : noms.fermee(debut, fin);
+}
+
+const RANGS_ORDINAUX = ['1re', '2e', '3e', '4e'] as const;
+const NOMS_DE_RANG: NomsDePlage = {
+  uniques: ['1re reprise', '2e reprise', '3e reprise', '4e reprise et au-delà'],
+  ouverte: (debut) => `${RANGS_ORDINAUX[debut]} reprise et au-delà`,
+  fermee: (debut, fin) => `de la ${RANGS_ORDINAUX[debut]} à la ${RANGS_ORDINAUX[fin]} reprise`,
+  toutes: 'Toutes les reprises',
+};
+
+const AUTRES_MINIMUM = [0, 1, 3, 6, 11] as const;
+const AUTRES_MAXIMUM = [0, 2, 5, 10] as const;
+const autresReponses = (n: number): string =>
+  `${n} autre${n > 1 ? 's' : ''} réponse${n > 1 ? 's' : ''}`;
+const NOMS_D_ESPACEMENT: NomsDePlage = {
+  uniques: [
+    'Aucune autre réponse entre les deux',
+    '1 ou 2 autres réponses',
+    '3 à 5 autres réponses',
+    '6 à 10 autres réponses',
+    '11 autres réponses ou plus',
+  ],
+  ouverte: (debut) => `${autresReponses(AUTRES_MINIMUM[debut] ?? 0)} ou plus`,
+  fermee: (debut, fin) => `de ${AUTRES_MINIMUM[debut]} à ${AUTRES_MAXIMUM[fin]} autres réponses`,
+  toutes: 'Toutes les reprises',
+};
+
+const reprises = (n: number): string => `${n} reprise${n > 1 ? 's' : ''}`;
+const NOMS_DE_REPARTITION: NomsDePlage = {
+  uniques: ['0 reprise', '1 reprise', '2 reprises', '3 reprises', '4 reprises ou plus'],
+  ouverte: (debut) => `${reprises(debut)} ou plus`,
+  fermee: (debut, fin) => `de ${debut} à ${fin} reprises`,
+  toutes: 'Tous les couples',
+};
+
+const NOMS_APRES_UNE_FAUTE: NomsDePlage = {
+  uniques: [
+    '0 reprise après la faute',
+    '1 reprise après la faute',
+    '2 reprises après la faute',
+    '3 reprises ou plus après la faute',
+  ],
+  ouverte: (debut) => `${reprises(debut)} ou plus après la faute`,
+  fermee: (debut, fin) => `de ${debut} à ${fin} reprises après la faute`,
+  toutes: 'Tous les jours de faute suivis',
+};
+
+/** La ligne qui réunit les clés `indices` : ses cellules, et le compte de chaque personne. */
+function ligneDe(
+  cles: readonly string[],
+  donnees: readonly DonneesDeCle[],
+  indices: readonly number[],
+  nom: string,
+): LigneDeReprise {
+  const parts = indices.flatMap((i) => (donnees[i] === undefined ? [] : [donnees[i]]));
+  return {
+    nom,
+    cles: indices.flatMap((i) => (cles[i] === undefined ? [] : [cles[i]])),
+    cellule: sommeDeCellules(parts.map((d) => d.cellule)),
+    comptes:
+      parts[0]?.comptes.map((_, i) => parts.reduce((s, d) => s + (d.comptes[i] ?? 0), 0)) ?? [],
+  };
+}
+
+const plage = (debut: number, fin: number): number[] =>
+  Array.from({ length: fin - debut + 1 }, (_, i) => debut + i);
+
+/**
+ * Les lignes d'un tableau ordonné. Une personne : une ligne par clé non vide. L'ensemble : les
+ * groupes de `regrouperLesBoites` deviennent des plages sans trou, de la première clé à la dernière :
+ * une clé vide rejoint le groupe de sa gauche, celles d'avant le premier groupe le premier, et le
+ * dernier groupe va jusqu'à la dernière clé. Une plage se nomme par ses bornes. `null` si même la
+ * plage entière est refusée.
+ */
+export function regrouperEnPlages(
+  cles: readonly string[],
+  donnees: readonly DonneesDeCle[],
+  noms: NomsDePlage,
+  admise: (comptes: readonly number[]) => boolean,
+  personne: boolean,
+): LigneDeReprise[] | null {
+  if (personne) {
+    return donnees.flatMap((d, rang) =>
+      d.cellule.reponses > 0 ? [ligneDe(cles, donnees, [rang], nommerPlage(noms, rang, rang))] : [],
+    );
+  }
+  const groupes = regrouperLesBoites(
+    donnees.map((d) => d.comptes),
+    admise,
+  );
+  if (groupes === null) return null;
+  const derniere = cles.length - 1;
+  return groupes.map((groupe, rang) => {
+    const debut = rang === 0 ? 0 : (groupe.rangs[0] ?? 0);
+    const fin = rang === groupes.length - 1 ? derniere : (groupes[rang + 1]?.rangs[0] ?? 1) - 1;
+    return ligneDe(cles, donnees, plage(debut, fin), nommerPlage(noms, debut, fin));
+  });
+}
+
+/**
+ * Les lignes du mode : une case refusée se fond dans « Autres modes » ; si elle est refusée à son
+ * tour, le mode admis le moins fourni la rejoint, et ainsi de suite. « Autres modes » ne dit pas
+ * quels modes elle réunit, et la ligne de tous les modes se dit « Toutes les reprises ».
+ */
+export function couvrirLesModes(
+  donnees: readonly DonneesDeCle[],
+  admise: (comptes: readonly number[]) => boolean,
+  personne: boolean,
+): LigneDeReprise[] | null {
+  const cles: readonly string[] = CLES_DE_MODE;
+  const nomDe = (i: number): string => NOMS_DE_MODE[CLES_DE_MODE[i] as CleDeMode];
+  const total = (i: number): number => donnees[i]?.cellule.reponses ?? 0;
+  const presents = cles.flatMap((_, i) => (total(i) > 0 ? [i] : []));
+  if (personne) return presents.map((i) => ligneDe(cles, donnees, [i], nomDe(i)));
+  const comptesDe = (indices: readonly number[]): readonly number[] =>
+    ligneDe(cles, donnees, indices, '').comptes;
+  let gardes = presents.filter((i) => admise(comptesDe([i])));
+  const absorbes = presents.filter((i) => !gardes.includes(i));
+  if (absorbes.length > 0) {
+    while (!admise(comptesDe(absorbes)) && gardes.length > 0) {
+      const moins = gardes.reduce((a, b) => (total(b) < total(a) ? b : a));
+      absorbes.push(moins);
+      gardes = gardes.filter((i) => i !== moins);
+    }
+    if (!admise(comptesDe(absorbes))) return null;
+  }
+  const lignes = gardes.map((i) => ligneDe(cles, donnees, [i], nomDe(i)));
+  if (absorbes.length === 0) return lignes;
+  const nom = gardes.length === 0 ? 'Toutes les reprises' : 'Autres modes';
+  return [
+    ...lignes,
+    ligneDe(
+      cles,
+      donnees,
+      [...absorbes].sort((a, b) => a - b),
+      nom,
+    ),
+  ];
+}
+
+/**
+ * La forme d'un tableau : deux moitiés si chacune passe la règle, réunies si seul le tout la passe,
+ * `null` (omis) sinon. Jamais les deux formes d'un même tableau : une ligne réunie moins une ligne de
+ * moitié donnerait une part de l'autre moitié. Une personne a toujours les deux moitiés.
+ */
+function formeDe(
+  faute: readonly number[],
+  juste: readonly number[],
+  admise: (comptes: readonly number[]) => boolean,
+  personne: boolean,
+): 'moities' | 'reunies' | null {
+  if (personne || (admise(faute) && admise(juste))) return 'moities';
+  return admise(faute.map((n, i) => n + (juste[i] ?? 0))) ? 'reunies' : null;
+}
+
+/**
+ * La forme du rang, de l'espacement et du mode, qui partagent les mêmes reprises et les mêmes
+ * moitiés : elle se décide une fois pour les trois, et aucun d'eux ne montre une moitié quand un autre
+ * montre la réunion.
+ */
+export function formeDesReprises(
+  parPersonne: readonly Mesures[],
+  personne: boolean,
+): 'moities' | 'reunies' | null {
+  const duVerdict = (verdict: CleDeVerdict): number[] =>
+    parPersonne.map((m) =>
+      sommeDeNombres(CLES_DE_RANG.map((cle) => m.reprises.rangs[verdict][cle].reponses)),
+    );
+  return formeDe(duVerdict('faute'), duVerdict('juste'), admiseDe(personne), personne);
+}
+
+function tableDeReprises<K extends string>(
+  forme: 'moities' | 'reunies' | null,
+  cles: readonly K[],
+  source: SourceDeCle<K>,
+  parPersonne: readonly Mesures[],
+  lignesDe: (donnees: readonly DonneesDeCle[]) => LigneDeReprise[] | null,
+): TableDeReprises | null {
+  if (forme === null) return null;
+  const lignes = (moities: readonly CleDeVerdict[]) =>
+    lignesDe(donneesDesCles(cles, parPersonne, source, moities));
+  if (forme === 'reunies') {
+    const reunies = lignes(CLES_DE_VERDICT);
+    return reunies === null ? null : { forme, lignes: reunies };
+  }
+  const faute = lignes(['faute']);
+  const juste = lignes(['juste']);
+  return faute === null || juste === null ? null : { forme, faute, juste };
+}
+
+/** Ce que la section « Les reprises du jour » affiche ; `null`, un tableau omis (ensemble seulement). */
+export function tablesDesReprises(
+  parPersonne: readonly Mesures[],
+  personne: boolean,
+): TablesDesReprises {
+  const admise = admiseDe(personne);
+  const forme = formeDesReprises(parPersonne, personne);
+  const enPlages =
+    (cles: readonly string[], noms: NomsDePlage) =>
+    (donnees: readonly DonneesDeCle[]): LigneDeReprise[] | null =>
+      regrouperEnPlages(cles, donnees, noms, admise, personne);
+  const couples = (verdict: CleDeVerdict): number[] =>
+    parPersonne.map((m) => sommeDeNombres(Object.values(m.reprises.repartition[verdict])));
+  const apres = donneesDesCles(
+    CLES_APRES_UNE_FAUTE,
+    parPersonne,
+    (m, cle) => m.reprises.apresUnJourDeFaute[cle],
+    ['faute'],
+  );
+  return {
+    rangs: tableDeReprises(
+      forme,
+      CLES_DE_RANG,
+      (m, cle, verdict) => m.reprises.rangs[verdict][cle],
+      parPersonne,
+      enPlages(CLES_DE_RANG, NOMS_DE_RANG),
+    ),
+    espacements: tableDeReprises(
+      forme,
+      CLES_D_ESPACEMENT,
+      (m, cle, verdict) => m.reprises.espacements[verdict][cle],
+      parPersonne,
+      enPlages(CLES_D_ESPACEMENT, NOMS_D_ESPACEMENT),
+    ),
+    modes: tableDeReprises(
+      forme,
+      CLES_DE_MODE,
+      (m, cle, verdict) => m.reprises.modes[verdict][cle],
+      parPersonne,
+      (donnees) => couvrirLesModes(donnees, admise, personne),
+    ),
+    repartition: tableDeReprises(
+      formeDe(couples('faute'), couples('juste'), admise, personne),
+      CLES_DE_REPARTITION,
+      (m, cle, verdict) => ({ reponses: m.reprises.repartition[verdict][cle], justes: 0 }),
+      parPersonne,
+      enPlages(CLES_DE_REPARTITION, NOMS_DE_REPARTITION),
+    ),
+    apresUnJourDeFaute: regrouperEnPlages(
+      CLES_APRES_UNE_FAUTE,
+      apres,
+      NOMS_APRES_UNE_FAUTE,
+      admise,
+      personne,
+    ),
+  };
+}
+
+/** La part de justes d'une ligne ; arrondie au pour cent dans un rapport d'ensemble. */
+function partDeLigne(ligne: LigneDeReprise, personne: boolean): number {
+  const part = partDeJustes(ligne.cellule) ?? 0;
+  return personne ? part : Math.round(part * POURCENT) / POURCENT;
+}
+
+function reussiteDeReprises(
+  lignes: readonly LigneDeReprise[],
+  classe: string,
+  titre: string,
+  entete: string,
+  personne: boolean,
+): string {
+  const dessinees: Ligne[] = lignes.map((l) => ({
+    nom: l.nom,
+    part: partDeLigne(l, personne),
+    reponses: l.cellule.reponses,
+  }));
+  const corps = dessinees.map((l) =>
+    personne
+      ? [echapper(l.nom), pourcent(l.part), nombre(l.reponses)]
+      : [echapper(l.nom), pourcent(l.part)],
+  );
+  const entetes = personne ? [entete, 'Réponses justes', 'Réponses'] : [entete, 'Réponses justes'];
+  return `${barresHorizontales(dessinees, classe, titre, personne)}
+${chiffres(tableau(entetes, corps))}`;
+}
+
+/** La répartition : des couples, en part de la moitié (ou de tous) ; un nombre, pour une personne. */
+function tableDeRepartition(lignes: readonly LigneDeReprise[], personne: boolean): string {
+  const total = Math.max(1, sommeDeNombres(lignes.map((l) => l.cellule.reponses)));
+  const corps = lignes.map((l) => [
+    echapper(l.nom),
+    pourcent(l.cellule.reponses / total),
+    ...(personne ? [nombre(l.cellule.reponses)] : []),
+  ]);
+  const entetes = ['Reprises par couple', 'Part des couples', ...(personne ? ['Couples'] : [])];
+  return chiffres(tableau(entetes, corps));
+}
+
+interface RenduDeTable {
+  titre: string;
+  moities: { faute: string; juste: string };
+  /** Ce que dit une moitié sans ligne (rapport d'une personne). */
+  vides: { faute: string; juste: string };
+  dessiner(lignes: readonly LigneDeReprise[], titre: string): string;
+}
+
+const TABLEAU_OMIS = 'Ce tableau est omis : même réunies, ses lignes ne passent pas la règle.';
+
+function sousSection(table: TableDeReprises | null, rendu: RenduDeTable): string {
+  const entete = `<h3>${echapper(rendu.titre)}</h3>`;
+  if (table === null) return `${entete}\n${p(TABLEAU_OMIS)}`;
+  if (table.forme === 'reunies') return `${entete}\n${rendu.dessiner(table.lignes, rendu.titre)}`;
+  const moitie = (cle: CleDeVerdict): string => {
+    const lignes = table[cle];
+    const sousTitre = rendu.moities[cle];
+    return `<h4>${echapper(sousTitre)}</h4>
+${lignes.length === 0 ? p(rendu.vides[cle]) : rendu.dessiner(lignes, `${rendu.titre} : ${sousTitre}`)}`;
+  };
+  return `${entete}\n${moitie('faute')}\n${moitie('juste')}`;
+}
+
+/**
+ * La section « Les reprises du jour » (M7) : une reprise est une réponse à un élément déjà répondu le
+ * même jour. Cinq tableaux, rendus d'après `tablesDesReprises` ; un rapport d'ensemble n'y met que des
+ * pourcentages entiers et des lignes que la règle admet, nommées par plage (M7-D6).
+ */
+function sectionDesReprises(tables: TablesDesReprises, personne: boolean): string {
+  const apresUneFaute = { faute: 'Après une faute', juste: 'Après une réponse juste' };
+  const videsDeReprise = {
+    faute: 'Aucune reprise après une faute',
+    juste: 'Aucune reprise après une réponse juste',
+  };
+  const tableDeReussite = (
+    titre: string,
+    table: TableDeReprises | null,
+    classe: string,
+    entete: string,
+  ) =>
+    sousSection(table, {
+      titre,
+      moities: apresUneFaute,
+      vides: videsDeReprise,
+      dessiner: (lignes, titreDuDessin) =>
+        reussiteDeReprises(lignes, classe, titreDuDessin, entete, personne),
+    });
+  const repartition = sousSection(tables.repartition, {
+    titre: 'Combien de reprises par élément et par jour',
+    moities: {
+      faute: 'La première réponse du jour est fausse',
+      juste: 'La première réponse du jour est juste',
+    },
+    vides: {
+      faute: 'Aucun couple dont la première réponse est fausse',
+      juste: 'Aucun couple dont la première réponse est juste',
+    },
+    dessiner: (lignes) => tableDeRepartition(lignes, personne),
+  });
+  const definition = `Une reprise est une réponse donnée à un élément qui a déjà été répondu le même jour : ce sont les réponses que réunit la ligne des moments. Chaque tableau sépare les reprises qui suivent une faute et celles qui suivent une réponse juste, d’après la réponse d’avant du même élément ce jour-là. Le rang est le nombre de réponses du jour avant la reprise ; « autres réponses » compte celles des autres éléments entre les deux ; un couple est un élément et un jour, compté selon ses reprises. Les réponses de pré-test sont écartées.${
+    personne
+      ? ' Une ligne donne la part de justes et le nombre de réponses ; une case vide n’a pas de ligne.'
+      : ' Un tableau s’affiche en deux moitiés si chacune passe la règle, réuni sinon, et il est omis si même réuni il ne la passe pas ; une ligne qui ne la passe pas se fond avec sa voisine en une plage (« de … à … », « … et au-delà »), ou, pour le mode, dans une ligne d’autres modes. Ni compte ni total : des pourcentages entiers.'
+  }`;
+  const apres = tables.apresUnJourDeFaute;
+  const dernier =
+    apres === null
+      ? p(TABLEAU_OMIS)
+      : apres.length === 0
+        ? p('Aucun jour de faute suivi d’une réponse un autre jour.')
+        : reussiteDeReprises(
+            apres,
+            's1',
+            'La réussite à la première réponse d’un autre jour',
+            'Reprises après la faute',
+            personne,
+          );
+  return feuille(
+    `${p(definition)}
+${tableDeReussite('Selon le rang de la reprise', tables.rangs, 's1', 'Rang')}
+${tableDeReussite('Selon les autres réponses entre les deux', tables.espacements, 's2', 'Entre les deux')}
+${tableDeReussite('Selon le mode de la reprise', tables.modes, 's3', 'Mode')}
+${repartition}
+<h3>Après un jour de faute : la première réponse d’un autre jour</h3>
+${dernier}
+${p('Le jour de faute est un jour où l’élément a une réponse fausse ; les reprises se comptent depuis cette première faute. La réponse mesurée est la première de l’élément un autre jour. Le délai jusqu’à cette réponse n’est pas mesuré : il suit l’ordonnanceur et l’assiduité. Un jour de faute sans réponse un autre jour ne compte pas.')}`,
+    'Les reprises du jour',
+  );
+}
+
 /** Construit le rapport : une page HTML complète. */
 export function construireRapport(donnees: DonneesDuRapport): string {
   const { cours, accord, aujourdhui } = donnees;
@@ -611,7 +1078,7 @@ export function construireRapport(donnees: DonneesDuRapport): string {
 <p class="meta">${
     personne
       ? `Document privé : il décrit la progression d’une personne, la personne suivie. Accord donné le ${echapper(accord)}, d’après la déclaration du responsable.`
-      : `Document privé : chiffres d’ensemble de ${nombre(journaux.length)} personnes actives. Une case n’est affichée qu’à ${PERSONNES_ACTIVES_MINIMUM} personnes, ${MINIMUM_D_UNE_CASE} réponses (éléments, pour une boîte ; rebelles, pour un chapitre) et si aucune personne n’y fait plus de ${PART_MAXIMALE_D_UNE_PERSONNE} %. Ni compte exact ni total : des pourcentages entiers et des moyennes par personne.`
+      : `Document privé : chiffres d’ensemble de ${nombre(journaux.length)} personnes actives. Une case n’est affichée qu’à ${PERSONNES_ACTIVES_MINIMUM} personnes, ${MINIMUM_D_UNE_CASE} réponses (éléments, pour une boîte ; rebelles, pour un chapitre ; couples, pour la répartition des reprises) et si aucune personne n’y fait plus de ${PART_MAXIMALE_D_UNE_PERSONNE} %. Ni compte exact ni total : des pourcentages entiers et des moyennes par personne.`
   }</p></header>`;
 
   const tuiles: string[] = [];
@@ -838,6 +1305,9 @@ ${p(`${personne ? 'Le nombre de réponses de chaque ligne suit son pourcentage. 
     ),
   );
 
+  // 6 bis. Les reprises du jour.
+  sections.push(sectionDesReprises(tablesDesReprises(parPersonne, personne), personne));
+
   // 7. Comment lire ces chiffres.
   const memoire = memoireDuCours(cours.cours);
   const clesALEcheance = ['boite-1', 'boite-2', 'boite-3', 'boite-4', 'boite-5'] as const;
@@ -859,7 +1329,7 @@ ${li(`<strong>Les minutes</strong> viennent de l’écart médian entre deux ré
 ${li(
   personne
     ? `Document privé : il décrit la progression d’une personne. Accord donné le ${echapper(accord)}, d’après la déclaration du responsable ; l’outil ne peut pas le contrôler.`
-    : `Document privé : chiffres d’ensemble. Seules les personnes actives y comptent (vingt réponses au moins dans les vingt-huit jours qui finissent au jour du rapport). Toute case (jour, semaine, moment, mode, boîte, chapitre, minutes) où moins de ${PERSONNES_ACTIVES_MINIMUM} personnes comptent (ont répondu ; ont un élément rebelle, pour un chapitre), ou de moins de ${MINIMUM_D_UNE_CASE} réponses (éléments, pour une boîte ; rebelles, pour un chapitre), ou dont une personne fait plus de ${PART_MAXIMALE_D_UNE_PERSONNE} %, est omise ou fondue dans « autres ». Les boîtes refusées se fondent avec leur voisine. Les réponses par jour sont des moyennes par personne de la case ; le rapport ne donne ni compte exact ni total, mais des pourcentages entiers. <strong>Ce que cela ne garantit pas</strong> : un pourcentage entier laisse encore estimer une case fondue à quelques unités près, et celui d’un chapitre, dont le nombre d’éléments se lit dans le cours, redonne son nombre de rebelles à un demi pour cent près du produit « éléments × personnes », exactement quand ce produit ne dépasse pas 100 ; un chapitre absent du tableau se lit « zéro, fondu ou omis » ; à trois personnes, une médiane est la valeur de l’une d’elles, sans dire laquelle ; les moyennes de la projection n’ont pas de contrôle de dominance ; deux rapports de dates voisines, ou faits à deux seuils, peuvent se comparer.`,
+    : `Document privé : chiffres d’ensemble. Seules les personnes actives y comptent (vingt réponses au moins dans les vingt-huit jours qui finissent au jour du rapport). Toute case (jour, semaine, moment, mode, boîte, chapitre, reprise, minutes) où moins de ${PERSONNES_ACTIVES_MINIMUM} personnes comptent (ont répondu ; ont un élément rebelle, pour un chapitre), ou de moins de ${MINIMUM_D_UNE_CASE} réponses (éléments, pour une boîte ; rebelles, pour un chapitre ; couples, pour la répartition des reprises), ou dont une personne fait plus de ${PART_MAXIMALE_D_UNE_PERSONNE} %, est omise ou fondue dans « autres » (pour une reprise, réunie avec sa voisine en une plage). Les boîtes refusées se fondent avec leur voisine. Les réponses par jour sont des moyennes par personne de la case ; le rapport ne donne ni compte exact ni total, mais des pourcentages entiers. <strong>Ce que cela ne garantit pas</strong> : un pourcentage entier laisse encore estimer une case fondue à quelques unités près, et celui d’un chapitre, dont le nombre d’éléments se lit dans le cours, redonne son nombre de rebelles à un demi pour cent près du produit « éléments × personnes », exactement quand ce produit ne dépasse pas 100 ; un chapitre absent du tableau se lit « zéro, fondu ou omis » ; à trois personnes, une médiane est la valeur de l’une d’elles, sans dire laquelle ; les moyennes de la projection n’ont pas de contrôle de dominance ; deux rapports de dates voisines, ou faits à deux seuils, peuvent se comparer.`,
 )}
 </ul>`,
       'Comment lire ces chiffres',

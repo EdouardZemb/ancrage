@@ -10,6 +10,22 @@ import { estDue, journalDesRevisions } from '../../domaine/progression/etat.js';
 import { fautesDuJournal } from '../../domaine/progression/rebelles.js';
 import { posablesDuCours } from '../../domaine/seances/heute.js';
 import { modulesDesPosables } from '../../domaine/seances/semestre.js';
+import {
+  ajouterCellule,
+  type Cellule,
+  CLES_DE_MODE,
+  type CleDeMode,
+  cellules,
+  compter,
+} from './cellules.js';
+import {
+  ajouterReprises,
+  type MesuresDeReprises,
+  reprisesVides,
+  suivreLesReprises,
+} from './reprises.js';
+
+export { type Cellule, CLES_DE_MODE, type CleDeMode };
 
 /*
  * Les mesures d'un journal (M3, rapport de suivi) : des comptes, jamais de texte. Une fonction
@@ -17,12 +33,6 @@ import { modulesDesPosables } from '../../domaine/seances/semestre.js';
  * ici ne nomme une personne ; le rapport d'ensemble additionne les mesures de chaque journal
  * (`sommerMesures`) et n'en tire aucun détail par personne.
  */
-
-/** Une case d'un découpage : de combien de réponses, dont combien de justes. */
-export interface Cellule {
-  reponses: number;
-  justes: number;
-}
 
 /**
  * Le moment où une unité revient, d'après sa réponse d'avant : `premiere` (jamais répondue),
@@ -41,10 +51,6 @@ export const CLES_DE_DELAI = [
 ] as const;
 export type CleDeDelai = (typeof CLES_DE_DELAI)[number];
 
-/** Les modes d'une révision, puis les réponses qui n'en portent pas : jamais `pretest` (B-D9). */
-export const CLES_DE_MODE = [...MODES_DE_REVISION, 'sans-mode'] as const;
-export type CleDeMode = (typeof CLES_DE_MODE)[number];
-
 export interface Mesures {
   premierJour: string | null;
   dernierJour: string | null;
@@ -53,6 +59,8 @@ export interface Mesures {
   parJour: Record<string, { reponses: number; decouvertes: number }>;
   delais: Record<CleDeDelai, Cellule>;
   modes: Record<CleDeMode, Cellule>;
+  /** Les reprises du jour (M7) : rang, espacement, mode, répartition, autre jour après une faute. */
+  reprises: MesuresDeReprises;
   /** Les éléments du cours par boîte, de 0 (jamais vus) à 5, d'après l'état du jour. */
   boites: number[];
   /** Les éléments qui se posent seuls, dans le cours (ou leur somme, pour plusieurs journaux). */
@@ -105,17 +113,6 @@ const ECART_MAXIMAL_EN_SECONDES = 120;
 const REUSSITE_PAR_DEFAUT = 0.5;
 const BOITES = [1, 2, 3, 4, 5] as const;
 
-const cellule = (): Cellule => ({ reponses: 0, justes: 0 });
-
-function cellules<T extends string>(cles: readonly T[]): Record<T, Cellule> {
-  return Object.fromEntries(cles.map((cle) => [cle, cellule()])) as Record<T, Cellule>;
-}
-
-function compter(cible: Cellule, juste: boolean): void {
-  cible.reponses += 1;
-  if (juste) cible.justes += 1;
-}
-
 function mediane(triees: readonly number[]): number | null {
   if (triees.length === 0) return null;
   const milieu = Math.floor(triees.length / 2);
@@ -132,6 +129,7 @@ function mesuresVides(): Mesures {
     parJour: {},
     delais: cellules(CLES_DE_DELAI),
     modes: cellules(CLES_DE_MODE),
+    reprises: reprisesVides(),
     boites: [0, 0, 0, 0, 0, 0],
     elements: 0,
     dues: 0,
@@ -199,8 +197,9 @@ export function mesures(
   resultat.reponses = reponses.length;
 
   const parUnite = new Map<string, Evenement[]>();
+  const suivi = suivreLesReprises();
   let instantDAvant: number | undefined;
-  for (const reponse of reponses) {
+  for (const [indice, reponse] of reponses.entries()) {
     const jour = jourDe(reponse.repondu_a);
     resultat.premierJour ??= jour;
     resultat.dernierJour = jour;
@@ -221,7 +220,17 @@ export function mesures(
     if (delai === 'premiere') duJour.decouvertes += 1;
     compter(resultat.delais[delai], reponse.resultat.juste);
     avant.push(reponse);
+    suivi.repondre(
+      {
+        unite: reponse.unite,
+        repondu_a: reponse.repondu_a,
+        juste: reponse.resultat.juste,
+        mode: reponse.resultat.mode ?? 'sans-mode',
+      },
+      indice,
+    );
   }
+  resultat.reprises = suivi.finir();
   resultat.ecarts.sort((a, b) => a - b);
   resultat.ecartMedian = mediane(resultat.ecarts);
 
@@ -250,10 +259,6 @@ export function mesures(
 /** La somme de plusieurs mesures : les comptes s'additionnent, les écarts se mêlent. */
 export function sommerMesures(liste: readonly Mesures[]): Mesures {
   const somme = mesuresVides();
-  const ajouter = (cible: Cellule, source: Cellule) => {
-    cible.reponses += source.reponses;
-    cible.justes += source.justes;
-  };
   for (const m of liste) {
     if (
       m.premierJour !== null &&
@@ -283,8 +288,9 @@ export function sommerMesures(liste: readonly Mesures[]): Mesures {
       cible.reponses += valeurs.reponses;
       cible.decouvertes += valeurs.decouvertes;
     }
-    for (const cle of CLES_DE_DELAI) ajouter(somme.delais[cle], m.delais[cle]);
-    for (const cle of CLES_DE_MODE) ajouter(somme.modes[cle], m.modes[cle]);
+    for (const cle of CLES_DE_DELAI) ajouterCellule(somme.delais[cle], m.delais[cle]);
+    for (const cle of CLES_DE_MODE) ajouterCellule(somme.modes[cle], m.modes[cle]);
+    ajouterReprises(somme.reprises, m.reprises);
     m.boites.forEach((nombre, rang) => {
       somme.boites[rang] = (somme.boites[rang] ?? 0) + nombre;
     });

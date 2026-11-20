@@ -226,8 +226,9 @@ L'effet au lendemain et les moitiés ne sont pas des écarts : ce sont des ajout
   contourne par une réunion de lignes, puis par le sens inverse (4e constat du mécanisme de LE-13,
   LE-17 et LE-26) ; LE-29, des valeurs gardées sans test ni mutant, trouvées encore à la revue
   finale. LE-23 et LE-27 (écarts à l'issue) ne reçoivent pas de ligne : le plan listait ses écarts,
-  et la PR de clôture n'en a pas trouvé d'autre, mais E5 a été complété par l'exemple (e) après la
-  revue finale, et confirmé par Edouard (20/11/2026) : leur critère de sortie reste à juger.
+  et la PR de clôture n'en a pas trouvé d'autre, mais l'exemple (e), trouvé par la revue finale
+  après l'accord du 20/11/2026 sur la forme générale de E5, entre dans cette clause et la PR de
+  clôture le déclare : leur critère de sortie reste à juger.
 - **Dans « Au prochain passage » (ancrage#11)**, section « Les suites du lot M7 » : les croisements
   non gardés, la porte générale de LE-26 (déjà une case de M6), le sens inverse à énumérer sur les
   deux tableaux des reprises réunis, le défaut de nom des boîtes, le temps de calcul, le rendu, le

@@ -96,8 +96,8 @@ Accepté par Edouard le 18/11/2026 (« ok pour les défauts »).
       des modes, soit U la réunion des lignes affichées des reprises que V contient ; V - U est vide
       ou passe `caseAdmise`.
     - Sens inverse : pour toute réunion W de lignes affichées d'un même tableau des reprises, soit T
-      la réunion des lignes de la section des moments et des modes que W contient entièrement,
-      personne par personne ; W - T est vide ou passe la règle.
+      la réunion des lignes d'un même tableau de la section des moments et des modes que W
+      contient entièrement, personne par personne ; W - T est vide ou passe la règle.
     - Le lemme : pour toute partie S de ces lignes, X - S = (X - Y) union (Y - S), réunion disjointe
       d'un ensemble vide ou admis et de lignes admises, donc admise (une réunion de cases admises
       disjointes l'est).
@@ -140,7 +140,7 @@ Accepté par Edouard le 18/11/2026 (« ok pour les défauts »).
   (domaine)` frôle sa limite, EM-3). Chaque valeur gardée par un test est éprouvée par un mutant
   posé à la main.
 - **M7-D11. Les textes.** `docs/exploitation.md`, « Le rapport de suivi » ; la ligne
-`memoire:rapport` de `CLAUDE.md` ; la section « État » à la clôture.
+  `memoire:rapport` de `CLAUDE.md` ; la section « État » à la clôture.
 - **M7-D12. Ni étiquette ni appareil** (M7-C9). `isolation.test.ts` tient que ni le serveur, ni le
   domaine, ni le client n'importent les outils de mémoire.
 - **M7-D13. Les écarts** : voir plus bas.
@@ -155,8 +155,8 @@ Accepté par Edouard le 18/11/2026 (« ok pour les défauts »).
 
 - **PR 69** : le plan, avec les corrections de sa revue.
 - **PR 70** : l'implémentation (les mesures, la section, les textes). Trois passes de corrections
-  l'ont précédée, chacune rouvrant la même garantie : d'abord une case refusée obtenue par
-  différence entre la section des reprises et celle des moments et des modes (une ligne à la fois),
+  ont eu lieu avant sa fusion, chacune rouvrant la même garantie : d'abord une case refusée
+  obtenue par différence entre la section des reprises et celle des moments et des modes (une ligne à la fois),
   puis par une réunion de lignes, puis par le sens inverse. La promesse de M7-D6 est passée de «
   aucune case refusée ne s'obtient par différence » à la liste fermée ci-dessus.
 - **PR 71** : les corrections de la revue finale, qui n'a trouvé aucun bloquant : le test du sens
@@ -174,17 +174,18 @@ pour E1 à E5 ; la forme élargie de E5, avec l'exemple (e), a été confirmée 
 - **E1, critère 2** : la répartition compte des couples (élément, jour), pas des éléments ; un
   élément répondu trois jours compte trois fois (M7-C3, M7-D2).
 - **E2, critères 1, 2 et 3** : un élément est une unité du journal ; toutes les unités comptent ;
-les réponses sont celles que le rapport compte, sans pré-test, doublon ni mode inconnu (M7-D1).
+  les réponses sont celles que le rapport compte, sans pré-test, doublon ni mode inconnu (M7-D1).
 - **E3, critères 1 à 4** : dans un rapport d'ensemble, des pourcentages entiers, sans compte ; une
   case refusée se fond en une plage ou dans « Autres modes » ; un tableau est omis quand même sa
-  forme réunie ne passe pas la règle (M7-D6).
-- **E4, critères 1, 2 et 3** : le rang, l'espacement, le mode et la répartition se donnent en deux
-  moitiés quand les deux passent la règle, réunis sinon. Sous la forme réunie, l'espacement ne
-  sépare plus les reprises qui suivent une faute : le critère 3 n'y est livré que mêlé aux reprises
+  forme réunie ne passe pas la règle, ou quand un croisement avec les moments et les modes
+  l'écarte (M7-D6).
+- **E4, critères 1, 2 et 3** : dans un rapport d'ensemble, le rang, l'espacement, le mode et la
+  répartition se donnent en deux moitiés quand les deux passent la règle, réunis sinon.
+  Sous la forme réunie, l'espacement ne sépare plus les reprises qui suivent une faute : le critère 3 n'y est livré que mêlé aux reprises
   après une réponse juste. Il est livré tel quel par la moitié « après une faute », dans le rapport
   d'une personne et dans un rapport d'ensemble aux deux moitiés.
 - **E5, critère 4** : hors de la porte de croisement de M7-D6, les croisements entre tableaux ne
-sont pas gardés dans un rapport d'ensemble ((a) à (e)) ; une case refusée s'y retrouve avec des
+  sont pas gardés dans un rapport d'ensemble ((a) à (e)) ; une case refusée s'y retrouve avec des
   effectifs que la page ne donne pas, sauf un 0 %, un 100 % ou des rapports de poids qu'elle laisse
   estimer.
 
@@ -206,15 +207,15 @@ L'effet au lendemain et les moitiés ne sont pas des écarts : ce sont des ajout
 ## Ce qui n'a pas été vérifié
 
 - **Le rendu de la section dans un navigateur**, sur ordinateur ou sur téléphone : elle n'est
-vérifiée que par les tests sur le HTML.
+  vérifiée que par les tests sur le HTML.
 - **Le rapport sur des journaux réels** : aucun journal réel n'a servi, ni pour écrire les tests ni
   pour juger la section.
 - **Le temps de calcul de la porte près du plafond** de 12 lignes, sur un cours réel : le plus gros
   jeu de test (`journauxAuxReprises`) reste sous la seconde.
 - **Le mutant presque équivalent « omettre toujours le lendemain d'abord »** : l'étape qui omet le
   lendemain dès qu'une de ses lignes est contenue dans la réunion qui échoue est tenue par des cas,
-  mais le mutant qui l'applique sans condition n'est équivalent qu'à ces cas, et aucun test n'en
-  sépare tous les effets.
+  mais le mutant qui l'applique sans condition survit : il ne diffère du code qu'en des cas
+  qu'aucun test ne construit.
 
 ## Les suites
 

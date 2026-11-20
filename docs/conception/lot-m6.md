@@ -309,6 +309,6 @@ Déclarés dans les PR 63, 66 et 67, avec la promesse qu'ils touchent et l'accor
 - **Dans « Au prochain passage » (ancrage#11)**, section « Les suites du lot M6 » : la liste y
   est, dont le groupe `domaine` de la mutation à couper en deux et la porte de LE-26.
 - **Parmi les lots suivants de la milestone** : le rejeu d'une seule unité (ancrage#31) ; et le
-  rapport de suivi qui mesure les reprises du jour (ancrage#64).
+  rapport de suivi qui mesure les reprises du jour (ancrage#64, livré par le lot M7).
 - **La vérification sur Android et la mise en prod** : à Edouard, au staging d'abord, avant
   l'étiquette.

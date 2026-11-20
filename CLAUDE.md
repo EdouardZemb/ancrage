@@ -292,13 +292,30 @@ personne rate encore et encore ; le lot ne garde rien de nouveau :
 - le rapport de suivi compte les rebelles par chapitre, et donne, pour une personne, un tableau
   selon le seuil.
 
-Ses décisions (« M6-C<n> », « T1-D<n> », « T2-D<n> ») sont dans `docs/conception/lot-m6.md`. Parmi
-les lots suivants de la milestone : le rejeu d'une seule unité (ancrage#31), et un rapport de suivi
-qui mesure les reprises du jour (ancrage#64).
+Ses décisions (« M6-C<n> », « T1-D<n> », « T2-D<n> ») sont dans `docs/conception/lot-m6.md`.
+
+Le lot M7 a donné au rapport de suivi la mesure des reprises du jour (ancrage#64). C'est un outil
+du poste, hors de l'image : rien ne change pour l'apprenante, et aucune étiquette n'est à poser :
+- une reprise est une réponse à un élément déjà répondu le même jour local, celle que « Redonnée
+  le jour même » compte ; la section « Les reprises du jour » suit celle des moments et des modes
+  (`src/outillage/memoire/reprises.ts`, `rapport.ts`) ;
+- quatre tableaux de réussite ou de répartition (le rang de la reprise, les autres réponses entre
+  les deux, le mode, le nombre de reprises par élément et par jour) et l'effet au lendemain, la
+  réussite à la première réponse d'un autre jour selon les reprises faites depuis la
+  première faute ;
+- chaque tableau, sauf le dernier, a deux moitiés, « après une faute » et « après une réponse
+  juste » ; un rapport d'ensemble les donne en pourcentages entiers, deux moitiés ou réunies, ou
+  omis, et nomme une ligne refusée par une plage (« de la 2e à la 3e reprise ») ;
+- la porte de croisement, dans ses deux sens, garde le mode des reprises et l'effet au lendemain
+  contre la section des moments et des modes, par réunions de lignes. Sa promesse est fermée : tout
+  autre croisement n'est pas gardé, et la porte générale de LE-26 reste à écrire.
+
+Ses décisions et ses arbitrages (« M7-C<n> », « M7-D<n> ») sont dans `docs/conception/lot-m7.md`.
+Parmi les lots suivants de la milestone : le rejeu d'une seule unité (ancrage#31).
 
 Les suites sans urgence d'un lot vont dans une issue « Au prochain passage »
 (ancrage-donnees#81 est fermée ; celle des lots 2c, 2d, F3, S1 et S2 est ancrage-donnees#156 ; celle
-des lots M1 à M6 est ancrage#11). Une
+des lots M1 à M7 est ancrage#11). Une
 PR qui touche un fichier de cette liste regarde sa case, et la coche si elle la règle.
 
 Le déploiement est aligné sur la cible `serveur` de `modele-projet` (l'alignement date du lot 2 du
@@ -395,13 +412,13 @@ Sur le poste, `pnpm` s'appelle par `corepack pnpm …` ; en CI, `corepack enable
   ou contenu illisible, ou base en WAL. `docs/exploitation.md`, « Ajuster les paramètres de FSRS d'un cours ».
 - `corepack pnpm memoire:rapport --base <copie.sqlite> --cours <id> --contenu <dossier> --sortie <fichier.html> [--personne <identifiant> --accord <JJ/MM/AAAA>] [--jusquau <AAAA-MM-JJ>] [--ecraser]` :
   outil du poste, hors de l'image. Écrit le rapport de suivi d'un cours, une page HTML autonome et
-  privée (charge par jour, réussite selon le délai et le mode, reprises du jour (rang, autres réponses
-  entre les deux, mode, répartition des couples, première réponse d'un autre jour après une faute),
+  privée (charge par jour, réussite selon le délai et le mode, reprises du jour (rang, autres
+  réponses entre les deux, mode, répartition des couples, première réponse d'un autre jour après une faute),
   part vue et sûre, éléments rebelles par chapitre, projection jusqu'à l'examen par algorithme ; les
   réponses de pré-test n'entrent dans aucune case). Sans `--personne`, rapport d'ensemble : il ne lit que les personnes actives (20
   réponses dans les 28 jours qui finissent au jour du rapport) ; sous trois il ne garde que le nombre
-  d'éléments du cours ; toute case (jour, semaine, délai, mode, boîte, chapitre, reprise, minutes) n'est gardée qu'à 3
-  personnes, 20 réponses et aucune personne au-delà de 70 % ; ni compte exact ni total (des
+  d'éléments du cours ; toute case (jour, semaine, délai, mode, boîte, chapitre, reprise, minutes)
+  n'est gardée qu'à 3 personnes, 20 réponses et aucune personne au-delà de 70 % ; ni compte exact ni total (des
   pourcentages entiers) ; limites déclarées (`caseAdmise`, `docs/exploitation.md`). Avec `--personne`, la date de
   l'accord est obligatoire, et c'est une déclaration que l'outil ne contrôle pas. La sortie est
   refusée dans un dépôt git, et une copie brute en mode WAL aussi (copier par `VACUUM INTO`). Codes :

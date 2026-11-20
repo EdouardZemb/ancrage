@@ -14,7 +14,12 @@ import {
   type TableDeReprises,
   tablesDesReprises,
 } from './rapport.js';
-import { type ElementDeMotif, journauxAuxReprises, journeeDeMotifs } from './reprises.fixture.js';
+import {
+  type ElementDeMotif,
+  journauxAuxReprises,
+  journauxSurDeuxSemaines,
+  journeeDeMotifs,
+} from './reprises.fixture.js';
 import {
   CLES_APRES_UNE_FAUTE,
   CLES_D_ESPACEMENT,
@@ -31,8 +36,13 @@ const JOUR_1 = Date.UTC(2026, 0, 5, 8);
 const JOUR_2 = Date.UTC(2026, 0, 6, 8);
 const NOM_DE_LA_SECTION = 'Les reprises du jour';
 
-const ensemble = (journaux: readonly (readonly Evenement[])[]): string =>
-  construireRapport({ cours, journaux, aujourdhui: AUJOURDHUI });
+const ensemble = (journaux: readonly (readonly Evenement[])[], depuis?: string): string =>
+  construireRapport({
+    cours,
+    journaux,
+    aujourdhui: AUJOURDHUI,
+    ...(depuis === undefined ? {} : { depuis }),
+  });
 const dUnePersonne = (journal: readonly Evenement[]): string =>
   construireRapport({ cours, journaux: [journal], aujourdhui: AUJOURDHUI, accord: '25/01/2026' });
 
@@ -60,8 +70,8 @@ function lendemain(unites: readonly string[], rangDepart: number): Evenement[] {
   });
 }
 
-const mesuresDe = (journaux: readonly (readonly Evenement[])[]) =>
-  journaux.map((journal) => mesures(journal, cours, AUJOURDHUI));
+const mesuresDe = (journaux: readonly (readonly Evenement[])[], depuis?: string) =>
+  journaux.map((journal) => mesures(journal, cours, AUJOURDHUI, depuis));
 
 /** La section de la page, ou `''`. */
 function section(html: string): string {
@@ -146,8 +156,8 @@ function parties<T>(liste: readonly T[]): T[][] {
  * donne, par différence, la même garantie pour toute partie de ces lignes. Recalculé ici, sans
  * appeler la porte du rapport.
  */
-function verifierLesReunions(journaux: readonly (readonly Evenement[])[]): void {
-  const parPersonne = mesuresDe(journaux);
+function verifierLesReunions(journaux: readonly (readonly Evenement[])[], depuis?: string): void {
+  const parPersonne = mesuresDe(journaux, depuis);
   const tables = tablesDesReprises(parPersonne, false);
   const affichees = lignesDesMoments(parPersonne, sommerMesures(parPersonne), caseAdmise, false);
   // Les comptes de chaque ligne sont recalculés depuis les mesures, jamais lus dans `ligne.comptes`.
@@ -313,11 +323,11 @@ function verifierLeSensInverse(
  * chaque ligne passe la règle recalculée depuis les mesures, les plages se suivent sans trou, les
  * lignes de la page sont celles des tables, et la forme est commune au rang, à l'espacement et au mode.
  */
-function verifierLaStructure(journaux: readonly (readonly Evenement[])[]): void {
-  verifierLesReunions(journaux);
-  const parPersonne = mesuresDe(journaux);
+function verifierLaStructure(journaux: readonly (readonly Evenement[])[], depuis?: string): void {
+  verifierLesReunions(journaux, depuis);
+  const parPersonne = mesuresDe(journaux, depuis);
   const tables = tablesDesReprises(parPersonne, false);
-  const html = ensemble(journaux);
+  const html = ensemble(journaux, depuis);
   const affichees = lignesDesMoments(parPersonne, sommerMesures(parPersonne), caseAdmise, false);
   for (const genre of ['rangs', 'espacements', 'modes', 'repartition'] as const) {
     const table = tables[genre];
@@ -532,6 +542,16 @@ test('un_rapport_d_ensemble_aux_deux_moities_a_chaque_cle_seule_en_pourcentages_
   expect(infobulles.length).toBe(barres.length);
   for (const infobulle of infobulles) expect(infobulle).toMatch(/ : \d+\s% de justes$/);
   verifierLaStructure(journaux);
+});
+
+test('la_structure_d_un_rapport_d_ensemble_tient_sur_une_fenetre', () => {
+  const journaux = journauxSurDeuxSemaines(3, ID_DU_COURS);
+  verifierLaStructure(journaux, '2026-01-05');
+  const tables = tablesDesReprises(mesuresDe(journaux, '2026-01-05'), false);
+  for (const genre of ['rangs', 'repartition'] as const) {
+    expect(tables[genre]?.forme).toBe('moities');
+  }
+  verifierLaStructure(journaux, '2026-01-06');
 });
 
 /** Les éléments d'une personne : `n` couples de chaque motif, d'unités à eux. */

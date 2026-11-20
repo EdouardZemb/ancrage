@@ -410,7 +410,7 @@ Sur le poste, `pnpm` s'appelle par `corepack pnpm …` ; en CI, `corepack enable
   copie brute en mode WAL (copier par `VACUUM INTO`). Codes : 0 ajusté ; 2 moins de 1 000 révisions
   exploitables ; 64 usage (sans `--contenu`, ou `--chapitre` qui n'est pas un module de cartes) ; 1 base
   ou contenu illisible, ou base en WAL. `docs/exploitation.md`, « Ajuster les paramètres de FSRS d'un cours ».
-- `corepack pnpm memoire:rapport --base <copie.sqlite> --cours <id> --contenu <dossier> --sortie <fichier.html> [--personne <identifiant> --accord <JJ/MM/AAAA>] [--jusquau <AAAA-MM-JJ>] [--ecraser]` :
+- `corepack pnpm memoire:rapport --base <copie.sqlite> --cours <id> --contenu <dossier> --sortie <fichier.html> [--personne <identifiant> --accord <JJ/MM/AAAA>] [--jusquau <AAAA-MM-JJ>] [--depuis <AAAA-MM-JJ>] [--ecraser]` :
   outil du poste, hors de l'image. Écrit le rapport de suivi d'un cours, une page HTML autonome et
   privée (charge par jour, réussite selon le délai et le mode, reprises du jour (rang, autres
   réponses entre les deux, mode, répartition des couples, première réponse d'un autre jour après une faute),
@@ -421,7 +421,12 @@ Sur le poste, `pnpm` s'appelle par `corepack pnpm …` ; en CI, `corepack enable
   n'est gardée qu'à 3 personnes, 20 réponses et aucune personne au-delà de 70 % ; ni compte exact ni total (des
   pourcentages entiers) ; limites déclarées (`caseAdmise`, `docs/exploitation.md`). Avec `--personne`, la date de
   l'accord est obligatoire, et c'est une déclaration que l'outil ne contrôle pas. La sortie est
-  refusée dans un dépôt git, et une copie brute en mode WAL aussi (copier par `VACUUM INTO`). Codes :
+  refusée dans un dépôt git, et une copie brute en mode WAL aussi (copier par `VACUUM INTO`).
+  `--depuis` (lot M8) : les moments, les modes et les reprises du jour ne comptent que les réponses
+  de ce jour local et des suivants (la projection lit la réussite de la fenêtre) ; l'état, la charge,
+  les minutes et les personnes actives se lisent sur tout le journal ; une date mal formée ou
+  future rend le code 64. Limite : deux rapports d'ensemble à deux fenêtres, ou avec et sans
+  fenêtre, peuvent se comparer. Codes :
   0 écrit ; 64 usage ; 1 base, contenu, cours ou personne illisible, ou base en WAL. `docs/exploitation.md`, « Le rapport de suivi ».
 - `corepack pnpm contenus:reference --references <dossier>` : régénère l'instantané
   `<cours>.reference.json` de chaque cours, et celui de la notice composée, `notice.json`, dans

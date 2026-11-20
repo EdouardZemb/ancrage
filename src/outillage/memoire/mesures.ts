@@ -19,6 +19,7 @@ import {
   type CleDeMode,
   cellules,
   compter,
+  dansLaFenetre,
 } from './cellules.js';
 import {
   ajouterReprises,
@@ -170,11 +171,17 @@ function delaiDe(
   return `boite-${etat.boite}` as CleDeDelai;
 }
 
-/** Les mesures du `journal` d'une personne, pour `cours`, au jour `aujourdhui` du rapport. */
+/**
+ * Les mesures du `journal` d'une personne, pour `cours`, au jour `aujourdhui` du rapport. Avec
+ * `depuis` (M8), les moments, les modes et les reprises ne comptent que les réponses de ce jour local
+ * et des suivants ; tout le reste, et le moment de chaque réponse, se lit sur tout le journal.
+ */
 export function mesures(
   journal: readonly Evenement[],
   cours: CoursPrepare,
   aujourdhui: string,
+  /** Le premier jour local que comptent les moments, les modes et les reprises (M8). */
+  depuis?: string,
 ): Mesures {
   const reponses = reponsesDe(journal);
   const ordonnanceur = ordonnanceurDuCours(cours);
@@ -182,7 +189,7 @@ export function mesures(
   resultat.reponses = reponses.length;
 
   const parUnite = new Map<string, Evenement[]>();
-  const suivi = suivreLesReprises();
+  const suivi = suivreLesReprises(depuis);
   let instantDAvant: number | undefined;
   for (const [indice, reponse] of reponses.entries()) {
     const jour = jourDe(reponse.repondu_a);
@@ -190,7 +197,10 @@ export function mesures(
     resultat.dernierJour = jour;
     const duJour = caseDuJour(resultat.parJour, jour);
     duJour.reponses += 1;
-    compter(resultat.modes[reponse.resultat.mode ?? 'sans-mode'], reponse.resultat.juste);
+    const dedans = dansLaFenetre(jour, depuis);
+    if (dedans) {
+      compter(resultat.modes[reponse.resultat.mode ?? 'sans-mode'], reponse.resultat.juste);
+    }
 
     const instant = Date.parse(reponse.repondu_a);
     if (instantDAvant !== undefined) {
@@ -203,7 +213,7 @@ export function mesures(
     parUnite.set(reponse.unite, avant);
     const delai = delaiDe(reponse, avant, ordonnanceur);
     if (delai === 'premiere') duJour.decouvertes += 1;
-    compter(resultat.delais[delai], reponse.resultat.juste);
+    if (dedans) compter(resultat.delais[delai], reponse.resultat.juste);
     avant.push(reponse);
     suivi.repondre(
       {
@@ -240,6 +250,11 @@ export function mesures(
     ajouterAuxFautes(comptes, fautes.get(id)?.fautes ?? 0, 1);
   }
   return resultat;
+}
+
+/** Les réponses que comptent les moments, donc la fenêtre : la somme des cases de moment. */
+export function reponsesDansLaFenetre(m: Mesures): number {
+  return CLES_DE_DELAI.reduce((somme, cle) => somme + m.delais[cle].reponses, 0);
 }
 
 /** La somme de plusieurs mesures : les comptes s'additionnent, les écarts se mêlent. */

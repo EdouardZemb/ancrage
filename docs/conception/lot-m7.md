@@ -156,7 +156,8 @@ Accepté par Edouard le 18/11/2026 (« ok pour les défauts »).
 - **PR 69** : le plan, avec les corrections de sa revue.
 - **PR 70** : l'implémentation (les mesures, la section, les textes). Trois passes de corrections
   ont eu lieu avant sa fusion, chacune rouvrant la même garantie : d'abord une case refusée
-  obtenue par différence entre la section des reprises et celle des moments et des modes (une ligne à la fois),
+  obtenue par différence entre la section des reprises et celle des moments et des modes (une
+  ligne à la fois),
   puis par une réunion de lignes, puis par le sens inverse. La promesse de M7-D6 est passée de «
   aucune case refusée ne s'obtient par différence » à la liste fermée ci-dessus.
 - **PR 71** : les corrections de la revue finale, qui n'a trouvé aucun bloquant : le test du sens
@@ -181,7 +182,8 @@ pour E1 à E5 ; la forme élargie de E5, avec l'exemple (e), a été confirmée 
   l'écarte (M7-D6).
 - **E4, critères 1, 2 et 3** : dans un rapport d'ensemble, le rang, l'espacement, le mode et la
   répartition se donnent en deux moitiés quand les deux passent la règle, réunis sinon.
-  Sous la forme réunie, l'espacement ne sépare plus les reprises qui suivent une faute : le critère 3 n'y est livré que mêlé aux reprises
+  Sous la forme réunie, l'espacement ne sépare plus les reprises qui suivent une faute : le
+  critère 3 n'y est livré que mêlé aux reprises
   après une réponse juste. Il est livré tel quel par la moitié « après une faute », dans le rapport
   d'une personne et dans un rapport d'ensemble aux deux moitiés.
 - **E5, critère 4** : hors de la porte de croisement de M7-D6, les croisements entre tableaux ne

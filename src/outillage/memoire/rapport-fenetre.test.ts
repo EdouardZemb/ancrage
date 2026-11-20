@@ -3,7 +3,7 @@ import { expect, test } from 'vitest';
 import type { Evenement } from '../../domaine/journal/evenement.js';
 import { coursDExemple, idsDesPosables, journalDeCours } from './cours-exemple.fixture.js';
 import { nombre, pourcent } from './graphiques.js';
-import { mesures } from './mesures.js';
+import { mesures, sommerMesures } from './mesures.js';
 import { construireRapport } from './rapport.js';
 import { journauxAuxReprises } from './reprises.fixture.js';
 
@@ -123,6 +123,13 @@ function fautiveAvant(journal: readonly Evenement[], depuis: string): Evenement[
   );
 }
 
+/** La dernière cellule de la ligne « 20 » et « Leitner » : la part sûre à l'examen. */
+function sureALExamen(html: string): number {
+  const ligne = /<tr><th scope="row">20<\/th><td>Leitner<\/td>(.*?)<\/tr>/.exec(html)?.[1] ?? '';
+  const cellules = [...ligne.matchAll(/<td>([^<]*)<\/td>/g)].map((c) => c[1] ?? '');
+  return Number.parseFloat((cellules.at(-1) ?? '').replace(',', '.'));
+}
+
 const morceaux = (html: string): string[] => html.split('<section');
 const titreDe = (morceau: string): string => /<h2>(.*?)<\/h2>/.exec(morceau)?.[1] ?? '';
 
@@ -170,12 +177,6 @@ test('la_projection_et_la_reussite_a_l_echeance_lisent_la_fenetre', () => {
   expect(avec).toContain(attendue);
   expect(sans).not.toContain(attendue);
 
-  // La dernière cellule de la ligne « 20 » et « Leitner » : la part sûre à l'examen.
-  const sureALExamen = (html: string): number => {
-    const ligne = /<tr><th scope="row">20<\/th><td>Leitner<\/td>(.*?)<\/tr>/.exec(html)?.[1] ?? '';
-    const cellules = [...ligne.matchAll(/<td>([^<]*)<\/td>/g)].map((c) => c[1] ?? '');
-    return Number.parseFloat((cellules.at(-1) ?? '').replace(',', '.'));
-  };
   expect(sureALExamen(sans)).toBeGreaterThanOrEqual(0);
   expect(sureALExamen(avec)).toBeGreaterThan(sureALExamen(sans));
 });
@@ -249,4 +250,25 @@ test('le_rapport_limite_dit_sa_fenetre_et_rien_d_autre', () => {
   expect(sans).toContain('Rapport d’ensemble : moins de trois personnes actives');
   expect(avec).toContain(`\n${LIGNE_DU_RAPPORT_LIMITE}</header>`);
   expect(avec.replace(`\n${LIGNE_DU_RAPPORT_LIMITE}`, '')).toBe(sans);
+});
+
+test('un_rapport_d_ensemble_lit_la_reussite_de_la_fenetre_dans_ses_lignes_et_sa_projection', () => {
+  const journaux = troisPersonnes().map((j) => fautiveAvant(j, DEPUIS));
+  const avec = page(journaux, { depuis: DEPUIS });
+  const sans = page(journaux);
+  const somme = (depuis?: string) =>
+    sommerMesures(journaux.map((j) => mesures(j, cours, AUJOURDHUI, depuis)));
+  const ligne = (part: string): string => `<th scope="row">Carte retournée</th><td>${part}</td>`;
+  const enFenetre = somme(DEPUIS).modes.retournee;
+  const surTout = somme().modes.retournee;
+  const attendue = ligne(pourcent(enFenetre.justes / enFenetre.reponses));
+  const fausse = ligne(pourcent(surTout.justes / surTout.reponses));
+  expect(attendue).not.toBe(fausse);
+  const sections = morceaux(avec);
+  const moments = sections[sections.findIndex((m) => titreDe(m) === 'Les reprises du jour') - 1];
+  expect(moments).toContain(attendue);
+  expect(moments).not.toContain(fausse);
+
+  // La projection d'ensemble lit la réussite de la fenêtre : la part sûre change avec elle.
+  expect(sureALExamen(avec)).not.toBe(sureALExamen(sans));
 });

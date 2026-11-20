@@ -49,7 +49,7 @@ function journalDeLaBorne(): Evenement[] {
   ];
 }
 
-/** A répond faux au 05 local, juste au 04 local (plus tard dans le temps), puis juste au 06. */
+/** A répond faux au 05 local, juste au 04 local (plus tard dans le temps), puis juste au 07. */
 function journalQuiRecule(): Evenement[] {
   rangCourant += 3;
   return [
@@ -269,4 +269,18 @@ test('les_journaux_aux_reprises_decales_sont_les_memes_a_sept_jours_pres', () =>
       expect(ids.has(d?.id ?? '')).toBe(false);
     }
   }
+});
+
+test('l_espacement_d_une_reprise_compte_les_autres_reponses_de_tout_le_journal', () => {
+  const instant = Date.UTC(2026, 0, 5, 12);
+  // B répond au 03 local, hors de la fenêtre, entre les deux réponses de A.
+  const journal = [
+    reponseDecalee(instant, 1, A, true, 0, ID_DU_COURS),
+    reponseDecalee(instant + 30_000, 2, B, true, -3000, ID_DU_COURS),
+    reponseDecalee(instant + 60_000, 3, A, true, 0, ID_DU_COURS),
+  ];
+  const m = mesures(journal, cours, JOUR_DES_REPRISES, DEPUIS_DES_REPRISES);
+  expect(m.reprises.espacements.juste['ecart-1-2']).toEqual(cellule(1, 1));
+  expect(m.reprises.espacements.juste['ecart-0']).toEqual(cellule(0, 0));
+  expect(reponsesDansLaFenetre(m)).toBe(2);
 });

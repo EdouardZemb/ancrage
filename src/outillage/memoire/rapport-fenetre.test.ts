@@ -58,12 +58,20 @@ const pagePersonne = (options?: OptionsDePage): string =>
 const pageDesReprises = (): string =>
   page(journauxAuxReprises(3, ID_DU_COURS), { examen: false, aujourdhui: '2026-01-10' });
 
-const lesTroisPages = (): string[] => [pageEnsemble(), pagePersonne(), pageDesReprises()];
+const pageLimitee = (): string => page([journalDe(1), journalDe(2)]);
+
+const lesTroisPages = (): string[] => [
+  pageEnsemble(),
+  pagePersonne(),
+  pageDesReprises(),
+  pageLimitee(),
+];
 
 const empreinte = (texte: string): string => createHash('sha256').update(texte).digest('hex');
 
 const EMPREINTE_ENSEMBLE = 'd54c4e53c7a3d19dbd14cb7461737376538f573b79c9b72b05bc366e54fc9a38';
 const EMPREINTE_PERSONNE = '53b51d888d5050b91dde4b01b36a134f00cff55afb7f418994c7be5a0c363d46';
+const EMPREINTE_LIMITE = 'f03f458a6733f7376df44e9a3c6a2266a4a527def6ec37f475c8c5ca96bbc52f';
 const EMPREINTE_REPRISES = '9b127955f22c103a52266e4b76e42faee4b3594ad86ddefb4f9643d28884e4ac';
 
 test('sans_depuis_la_page_est_celle_d_avant_le_lot', () => {
@@ -77,6 +85,7 @@ test('sans_depuis_la_page_est_celle_d_avant_le_lot', () => {
     EMPREINTE_ENSEMBLE,
     EMPREINTE_PERSONNE,
     EMPREINTE_REPRISES,
+    EMPREINTE_LIMITE,
   ]);
 });
 
@@ -269,6 +278,10 @@ test('un_rapport_d_ensemble_lit_la_reussite_de_la_fenetre_dans_ses_lignes_et_sa_
   expect(moments).toContain(attendue);
   expect(moments).not.toContain(fausse);
 
-  // La projection d'ensemble lit la réussite de la fenêtre : la part sûre change avec elle.
-  expect(sureALExamen(avec)).not.toBe(sureALExamen(sans));
+  // La projection d'ensemble lit la réussite de la fenêtre : moins de réponses par jour à tenir.
+  const parJour = (html: string): number => {
+    const ligne = /<tr><th scope="row">20<\/th><td>Leitner<\/td>(.*?)<\/tr>/.exec(html)?.[1] ?? '';
+    return Number([...ligne.matchAll(/<td>([^<]*)<\/td>/g)][1]?.[1]);
+  };
+  expect(parJour(avec)).toBeLessThan(parJour(sans));
 });

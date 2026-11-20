@@ -34,7 +34,8 @@ export { type Cellule, CLES_DE_DELAI, CLES_DE_MODE, type CleDeDelai, type CleDeM
  * Les mesures d'un journal (M3, rapport de suivi) : des comptes, jamais de texte. Une fonction
  * pure : le journal d'une personne, le cours et le jour du rapport donnent les mêmes mesures. Rien
  * ici ne nomme une personne ; le rapport d'ensemble additionne les mesures de chaque journal
- * (`sommerMesures`) et n'en tire aucun détail par personne.
+ * (`sommerMesures`) et n'en tire aucun détail par personne. Une entrée de plus, facultative (M8) :
+ * la fenêtre `depuis`, qui borne ce que comptent les moments, les modes et les reprises.
  */
 
 export interface Mesures {

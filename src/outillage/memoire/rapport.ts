@@ -57,8 +57,9 @@ import {
  *   (éléments pour une boîte, rebelles pour un chapitre, couples pour la répartition des reprises)
  *   (M3-P6, M6, M7), ou dont une personne fait plus de 70 % des réponses.
  * - avec `depuis` (M8), les moments, les modes et les reprises du jour ne comptent que les réponses
- *   d'une fenêtre de jours locaux ; l'état (boîtes, rebelles, personnes actives), la charge passée
- *   et les minutes se lisent sur tout le journal, et la page le dit. Chaque case bornée passe la
+ *   d'une fenêtre de jours locaux, et la projection lit la réussite de cette fenêtre ; l'état
+ *   (boîtes, rebelles, personnes actives, point de départ de la projection), la charge passée et
+ *   les minutes se lisent sur tout le journal, et la page le dit. Chaque case bornée passe la
  *   même règle d'un rapport d'ensemble, sur la fenêtre.
  */
 

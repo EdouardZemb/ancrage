@@ -311,11 +311,29 @@ du poste, hors de l'image : rien ne change pour l'apprenante, et aucune étiquet
   autre croisement n'est pas gardé, et la porte générale de LE-26 reste à écrire.
 
 Ses décisions et ses arbitrages (« M7-C<n> », « M7-D<n> ») sont dans `docs/conception/lot-m7.md`.
-Parmi les lots suivants de la milestone : le rejeu d'une seule unité (ancrage#31).
+
+Le lot M8 a donné au rapport de suivi une fenêtre de jours (ancrage#73). C'est un outil du poste,
+hors de l'image : rien ne change pour l'apprenante, et aucune étiquette n'est à poser :
+- `--depuis <AAAA-MM-JJ>` : les moments, les modes et les reprises du jour ne comptent que les
+  réponses de ce jour local et des suivants, la borne ne coupant jamais un jour ; la réussite que
+  lit la projection est celle de la fenêtre (`src/outillage/memoire/`, `mesures.ts`,
+  `reprises.ts`, `cellules.ts`) ;
+- ce que la fenêtre ne borne pas : le moment d'une réponse, les boîtes, les parts vue et sûre, les
+  éléments rebelles, l'état d'où part la projection, l'espacement d'une reprise (toutes les
+  réponses du journal), la charge passée, les minutes et les personnes actives ;
+- la page dit la fenêtre, et sans `--depuis` elle est identique à l'octet près, ce que garde un test
+  d'empreinte de quatre pages (`rapport-fenetre.test.ts`) ; une date mal formée ou future rend 64 ;
+- deux limites : le jour du rapport est le jour UTC du poste, et deux rapports d'ensemble à deux
+  fenêtres, ou avec et sans fenêtre, peuvent se comparer.
+
+Ses décisions et ses arbitrages (« M8-D<n> ») sont dans `docs/conception/lot-m8.md`.
+Parmi les lots suivants de la milestone : le rejeu d'une seule unité (ancrage#31), et la promotion
+après une reprise du jour (ancrage#74 : en Leitner, une reprise du jour ne fait plus monter d'une
+boîte).
 
 Les suites sans urgence d'un lot vont dans une issue « Au prochain passage »
 (ancrage-donnees#81 est fermée ; celle des lots 2c, 2d, F3, S1 et S2 est ancrage-donnees#156 ; celle
-des lots M1 à M7 est ancrage#11). Une
+des lots M1 à M8 est ancrage#11). Une
 PR qui touche un fichier de cette liste regarde sa case, et la coche si elle la règle.
 
 Le déploiement est aligné sur la cible `serveur` de `modele-projet` (l'alignement date du lot 2 du

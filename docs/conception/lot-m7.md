@@ -169,8 +169,9 @@ Accepté par Edouard le 18/11/2026 (« ok pour les défauts »).
 ## Les écarts à la spec
 
 Déclarés dans la PR 70, avec la promesse de l'issue qu'ils touchent. Accord d'Edouard du 19/11/2026
-pour E1 à E5 ; la forme élargie de E5, avec l'exemple (e), a été confirmée par Edouard le
-20/11/2026.
+pour E1 à E5 ; la forme générale de E5 (« hors de la porte, aucun croisement n'est gardé ») a été
+confirmée par Edouard le 20/11/2026. L'exemple (e), que la revue finale a trouvé après cet accord,
+entre dans cette clause ; la PR de clôture le déclare.
 
 - **E1, critère 2** : la répartition compte des couples (élément, jour), pas des éléments ; un
   élément répondu trois jours compte trois fois (M7-C3, M7-D2).

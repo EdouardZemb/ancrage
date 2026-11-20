@@ -1282,3 +1282,29 @@ test('le_lendemain_omis_a_tort_par_le_repli_est_remis_si_la_porte_passe_avec_les
   ]);
   verifierLaStructure(journaux);
 });
+
+test('le_lendemain_n_est_pas_remis_si_la_porte_echoue_avec_le_tableau_des_modes_final', () => {
+  // Chaque personne : 10 couples « retournée, puis saisie juste » ; 10 fautes en retournée revues le
+  // lendemain en saisie ; 10 premières réponses de plus en retournée ; la première a 15 réponses
+  // seules en saisie, les autres 1. « Réponse tapée » des reprises [10,10,10] reste affichée, mais
+  // son reste avec le lendemain est refusé : le lendemain est omis, et il ne revient pas.
+  const journaux = [15, 1, 1].map((seules) => {
+    const j = constructeur();
+    for (let i = 0; i < 10; i++) {
+      j.ajouter(5, `r${i}`, true, 'retournee');
+      j.ajouter(5, `r${i}`, true, 'saisie');
+    }
+    for (let i = 0; i < 10; i++) j.ajouter(5, `a${i}`, false, 'retournee');
+    for (let i = 0; i < 10; i++) j.ajouter(5, `z${i}`, true, 'retournee');
+    for (let i = 0; i < seules; i++) j.ajouter(5, `o${i}`, true, 'saisie');
+    for (let i = 0; i < 10; i++) j.ajouter(6, `a${i}`, i < 6, 'saisie');
+    return j.evenements;
+  });
+  const parPersonne = mesuresDe(journaux);
+  const tables = tablesDesReprises(parPersonne, false);
+  expect(tables.modes).not.toBeNull();
+  expect(lignesDuTableau(ensemble(journaux), TITRES.modes)).toContain('Réponse tapée');
+  expect(tables.apresUnJourDeFaute).toBeNull();
+  expect(tables.omisParCroisement.apresUnJourDeFaute).toBe(true);
+  verifierLaStructure(journaux);
+});

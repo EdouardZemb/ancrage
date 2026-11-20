@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import type { Evenement } from '../../domaine/journal/evenement.js';
 import { executer } from './cli-rapport.js';
 import { coursDExemple, DOSSIER_EXEMPLE, journalDeCours } from './cours-exemple.fixture.js';
@@ -244,4 +244,71 @@ test('une_copie_brute_en_wal_rend_1_et_dit_vacuum_into_sans_rien_creer', async (
   expect(resultat.texte).toContain('VACUUM INTO');
   rienEcrit();
   expect(fs.readdirSync(dossierDuTest()).sort()).toEqual(avant);
+});
+
+test('une_date_de_depuis_mal_formee_ou_future_rend_64_sans_rien_ecrire', async () => {
+  preparer();
+  for (const depuis of ['2026-02-30', '2026-2-15', '15/02/2026', '', 'hier']) {
+    const resultat = await lancer(...arguments_('--depuis', depuis));
+    expect(resultat.code, depuis).toBe(64);
+    expect(resultat.texte, depuis).toContain(
+      '--depuis doit être un jour du calendrier, AAAA-MM-JJ',
+    );
+  }
+  const future = await lancer(...arguments_('--depuis', '2026-03-03'));
+  expect(future.code).toBe(64);
+  expect(future.texte).toContain('--depuis ne peut pas être dans le futur');
+  const sansValeur = await lancer(...arguments_('--depuis'));
+  expect(sansValeur.code).toBe(64);
+  expect(sansValeur.texte).toContain('usage :');
+  rienEcrit();
+});
+
+test('une_date_de_depuis_mal_formee_est_refusee_avant_de_lire_la_base', async () => {
+  // Aucune base n'existe : une lecture rendrait 1, le contrôle de la date rend 64. « hier » se
+  // classe après le jour du rapport (« h » après « 2 ») : seule une date du passé, mais fausse,
+  // prouve que le contrôle du calendrier précède la lecture.
+  for (const depuis of ['2026-02-30', 'hier']) {
+    expect((await lancer(...arguments_('--depuis', depuis))).code, depuis).toBe(64);
+  }
+  rienEcrit();
+});
+
+test('une_fenetre_du_jour_du_rapport_est_acceptee', async () => {
+  preparer();
+  expect((await lancer(...arguments_('--depuis', '2026-03-02'))).code).toBe(0);
+});
+
+test('le_jour_du_rapport_est_le_jour_utc_du_poste', async () => {
+  preparer();
+  vi.useFakeTimers({ toFake: ['Date'] });
+  try {
+    vi.setSystemTime(new Date('2026-03-02T23:30:00.000Z'));
+    const lancerSansContexte = async (...argv: string[]) => {
+      const err: string[] = [];
+      const code = await executer(argv, { out: () => undefined, err: (ligne) => err.push(ligne) });
+      return { code, texte: err.join('\n') };
+    };
+    // La date locale d'un poste en avance d'une heure sur UTC est déjà le 03/03 : refusée.
+    const future = await lancerSansContexte(...arguments_('--depuis', '2026-03-03'));
+    expect(future.code).toBe(64);
+    expect(future.texte).toContain('--depuis ne peut pas être dans le futur');
+    rienEcrit();
+    expect((await lancerSansContexte(...arguments_('--depuis', '2026-03-02'))).code).toBe(0);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test('la_fenetre_de_la_commande_passe_au_rapport', async () => {
+  const personnes = preparer();
+  const id = personnes[0]?.id ?? '';
+  const dUnePersonne = await lancer(
+    ...arguments_('--personne', id, '--accord', '25/02/2026', '--depuis', '2026-02-15'),
+  );
+  expect(dUnePersonne.code).toBe(0);
+  expect(fs.readFileSync(sortie(), 'utf8')).toContain('840 réponses, dont 420 dans la fenêtre · ');
+  const ensemble = await lancer(...arguments_('--depuis', '2026-02-15', '--ecraser'));
+  expect(ensemble.code).toBe(0);
+  expect(fs.readFileSync(sortie(), 'utf8')).toContain('<strong>La fenêtre.</strong>');
 });

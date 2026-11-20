@@ -11,9 +11,11 @@ import { construireRapport } from './rapport.js';
 
 /*
  * `pnpm memoire:rapport --base <copie.sqlite> --cours <id> --contenu <dossier> --sortie <fichier.html>
- * [--personne <identifiant> --accord <JJ/MM/AAAA>] [--jusquau <AAAA-MM-JJ>] [--ecraser]` : écrit le
- * rapport de suivi d'un cours, une page HTML autonome et privée, d'après une copie de la base. Un
- * outil du poste, hors de l'image (M3).
+ * [--personne <identifiant> --accord <JJ/MM/AAAA>] [--jusquau <AAAA-MM-JJ>]
+ * [--depuis <AAAA-MM-JJ>] [--ecraser]` : écrit le rapport de suivi d'un cours, une page HTML
+ * autonome et privée, d'après une copie de la base. Un outil du poste, hors de l'image (M3).
+ * `--depuis` (M8) borne aux réponses de ce jour local et des suivants les tableaux de réussite et
+ * les reprises du jour ; une date mal formée, ou d'après le jour du rapport, rend 64.
  *
  * Sans `--personne`, le rapport est d'ensemble : tous les journaux du cours, et rien par personne.
  * Avec `--personne`, il décrit la progression d'une personne : la date de l'accord, que le responsable
@@ -30,7 +32,7 @@ const SORTIE_ERREUR = 1;
 const SORTIE_USAGE = 64;
 
 const USAGE =
-  'usage : pnpm memoire:rapport --base <copie.sqlite> --cours <identifiant du cours> --contenu <dossier> --sortie <fichier.html> [--personne <identifiant> --accord <JJ/MM/AAAA>] [--jusquau <AAAA-MM-JJ>] [--ecraser]';
+  'usage : pnpm memoire:rapport --base <copie.sqlite> --cours <identifiant du cours> --contenu <dossier> --sortie <fichier.html> [--personne <identifiant> --accord <JJ/MM/AAAA>] [--jusquau <AAAA-MM-JJ>] [--depuis <AAAA-MM-JJ>] [--ecraser]';
 
 export interface Sortie {
   out: (ligne: string) => void;
@@ -87,6 +89,7 @@ export async function executer(
     personne?: string;
     accord?: string;
     jusquau?: string;
+    depuis?: string;
     ecraser?: boolean;
   };
   try {
@@ -100,6 +103,7 @@ export async function executer(
         personne: { type: 'string' },
         accord: { type: 'string' },
         jusquau: { type: 'string' },
+        depuis: { type: 'string' },
         ecraser: { type: 'boolean' },
       },
       allowPositionals: false,
@@ -108,7 +112,16 @@ export async function executer(
   } catch {
     return usage();
   }
-  const { base, cours: idDuCours, contenu, sortie: fichier, personne, accord, jusquau } = valeurs;
+  const {
+    base,
+    cours: idDuCours,
+    contenu,
+    sortie: fichier,
+    personne,
+    accord,
+    jusquau,
+    depuis,
+  } = valeurs;
   if (!base || !idDuCours || !contenu || !fichier) return usage();
 
   const aujourdhui = contexte.aujourdhui ?? new Date().toISOString().slice(0, 10);
@@ -127,6 +140,12 @@ export async function executer(
   }
   if (jusquau !== undefined && !estUnJour(jusquau)) {
     return usage('--jusquau doit être un jour du calendrier, AAAA-MM-JJ');
+  }
+  if (depuis !== undefined && !estUnJour(depuis)) {
+    return usage('--depuis doit être un jour du calendrier, AAAA-MM-JJ');
+  }
+  if (depuis !== undefined && depuis > aujourdhui) {
+    return usage('--depuis ne peut pas être dans le futur');
   }
   if (estDansUnDepot(fichier)) {
     return usage('la sortie serait dans un dépôt git : le rapport est privé, il se pose ailleurs');
@@ -169,6 +188,7 @@ export async function executer(
     ...(accord === undefined ? {} : { accord }),
     aujourdhui,
     ...(examen === undefined ? {} : { jusquau: examen }),
+    ...(depuis === undefined ? {} : { depuis }),
   });
   try {
     fs.writeFileSync(fichier, html, { flag: valeurs.ecraser === true ? 'w' : 'wx' });

@@ -30,6 +30,7 @@ import {
   PART_MAXIMALE_D_UNE_PERSONNE,
   PERSONNES_ACTIVES_MINIMUM,
   partDeJustes,
+  reponsesDansLaFenetre,
   reussiteObservee,
   sommerMesures,
 } from './mesures.js';
@@ -54,7 +55,11 @@ import {
  *   semaine, moment, mode, boîte, chapitre, reprise) où moins de trois personnes distinctes comptent
  *   (ont répondu, ou ont un élément rebelle pour un chapitre) ou qui compte moins de 20 réponses
  *   (éléments pour une boîte, rebelles pour un chapitre, couples pour la répartition des reprises)
- *   (M3-P6, M6, M7).
+ *   (M3-P6, M6, M7), ou dont une personne fait plus de 70 % des réponses.
+ * - avec `depuis` (M8), les moments, les modes et les reprises du jour ne comptent que les réponses
+ *   d'une fenêtre de jours locaux ; l'état (boîtes, rebelles, personnes actives), la charge passée
+ *   et les minutes se lisent sur tout le journal, et la page le dit. Chaque case bornée passe la
+ *   même règle d'un rapport d'ensemble, sur la fenêtre.
  */
 
 /** Les scénarios de la projection : l'algorithme, et le nombre de nouveautés par jour. */
@@ -121,6 +126,8 @@ export interface DonneesDuRapport {
   aujourdhui: string;
   /** Le jour de l'examen ; sans lui, pas de projection. */
   jusquau?: string;
+  /** Le premier jour local que comptent les moments, les modes et les reprises (M8). */
+  depuis?: string;
 }
 
 interface Scenario {
@@ -348,11 +355,16 @@ ${corps}
  * Le rapport d'ensemble de moins de trois personnes actives : le nombre d'éléments du cours, et
  * rien d'autre. Un total de réponses, une période ou un jour décriraient une personne.
  */
-function rapportLimite(cours: CoursPrepare, aujourdhui: string): string {
+function rapportLimite(cours: CoursPrepare, aujourdhui: string, depuis?: string): string {
   return pageHtml(
     'Rapport de suivi',
     `<header><h1>Rapport d’ensemble : moins de trois personnes actives</h1>
-<p class="meta">Cours « ${echapper(cours.cours.titre)} », rapport du ${jourFrancais(aujourdhui)}. Document privé.</p></header>
+<p class="meta">Cours « ${echapper(cours.cours.titre)} », rapport du ${jourFrancais(aujourdhui)}. Document privé.</p>${
+      depuis === undefined
+        ? ''
+        : `
+<p class="meta">Fenêtre : depuis le ${jourFrancais(depuis)} ; ce rapport n’a aucun tableau qu’elle borne.</p>`
+    }</header>
 <section><p>Il y a moins de trois personnes actives (vingt réponses au moins dans les vingt-huit jours qui finissent au jour du rapport) : un chiffre, un graphique, une réussite ou une projection décriraient une personne plutôt que le cours. Le rapport ne garde donc que ce qui ne distingue personne : le nombre d’éléments du cours. Il n’imprime ni total de réponses, ni première ou dernière date du journal.</p>
 ${tableau(['Le cours', 'Valeur'], [['Éléments à savoir', nombre(posablesDuCours(cours).length)]])}</section>`,
   );
@@ -1249,7 +1261,7 @@ ${p('Le jour de faute est un jour où l’élément a une réponse fausse ; les 
 
 /** Construit le rapport : une page HTML complète. */
 export function construireRapport(donnees: DonneesDuRapport): string {
-  const { cours, accord, aujourdhui } = donnees;
+  const { cours, accord, aujourdhui, depuis } = donnees;
   const personne = accord !== undefined;
   // Le rapport d'ensemble ne lit que les journaux des personnes actives au jour du rapport : un
   // compte qui n'est plus actif n'entre dans aucun chiffre, aucune date, aucun graphique.
@@ -1257,10 +1269,10 @@ export function construireRapport(donnees: DonneesDuRapport): string {
     ? donnees.journaux
     : donnees.journaux.filter((journal) => estActive(journal, aujourdhui));
   if (!personne && journaux.length < PERSONNES_ACTIVES_MINIMUM) {
-    return rapportLimite(cours, aujourdhui);
+    return rapportLimite(cours, aujourdhui, depuis);
   }
   const elements = posablesDuCours(cours).length;
-  const parPersonne = journaux.map((journal) => mesures(journal, cours, aujourdhui));
+  const parPersonne = journaux.map((journal) => mesures(journal, cours, aujourdhui, depuis));
   const total = sommerMesures(parPersonne);
   // La règle d'une case, la seule : toute agrégation affichée l'appelle (le rapport d'une personne
   // décrit une personne, par définition : il n'a pas cette règle).
@@ -1359,13 +1371,23 @@ export function construireRapport(donnees: DonneesDuRapport): string {
       : `jours détaillés du ${jourFrancais(premierAffiche)} au ${jourFrancais(dernierAffiche)}`;
   const objectif =
     jusquau === undefined ? 'aucune date d’examen' : `examen le ${jourFrancais(jusquau)}`;
+  const nombreDansLaFenetre = reponsesDansLaFenetre(total);
+  const enFenetre =
+    depuis === undefined
+      ? ' '
+      : `, dont ${nombreDansLaFenetre === 0 ? 'aucune' : nombre(nombreDansLaFenetre)} dans la fenêtre `;
   const enTete = `<header><h1>${echapper(titre)}</h1>
-<p class="meta">Cours « ${echapper(cours.cours.titre)} », rapport du ${jourFrancais(aujourdhui)} · ${periode} · ${personne ? `${nombre(total.reponses)} réponses · ` : ''}objectif : ${objectif}.</p>
+<p class="meta">Cours « ${echapper(cours.cours.titre)} », rapport du ${jourFrancais(aujourdhui)} · ${periode} · ${personne ? `${nombre(total.reponses)} réponses${enFenetre}· ` : ''}objectif : ${objectif}.</p>
 <p class="meta">${
     personne
       ? `Document privé : il décrit la progression d’une personne, la personne suivie. Accord donné le ${echapper(accord)}, d’après la déclaration du responsable.`
       : `Document privé : chiffres d’ensemble de ${nombre(journaux.length)} personnes actives. Une case n’est affichée qu’à ${PERSONNES_ACTIVES_MINIMUM} personnes, ${MINIMUM_D_UNE_CASE} réponses (éléments, pour une boîte ; rebelles, pour un chapitre ; couples, pour la répartition des reprises) et si aucune personne n’y fait plus de ${PART_MAXIMALE_D_UNE_PERSONNE} %. Ni compte exact ni total : des pourcentages entiers et des moyennes par personne.`
-  }</p></header>`;
+  }</p>${
+    depuis === undefined
+      ? ''
+      : `
+<p class="meta">Fenêtre : les tableaux de réussite (moments et modes) et les reprises du jour ne comptent que les réponses du ${jourFrancais(depuis)} et des jours suivants. Le reste se lit sur tout le journal : voir « Comment lire ces chiffres ».</p>`
+  }</header>`;
 
   const tuiles: string[] = [];
   const tuile = (valeur: string, texte: string, detail = ''): void => {
@@ -1604,10 +1626,19 @@ ${p(`${personne ? 'Le nombre de réponses de chaque ligne suit son pourcentage. 
     premierAffiche === null || dernierAffiche === null
       ? null
       : joursEntre(premierAffiche, dernierAffiche) + 1;
+  const laFenetre =
+    depuis === undefined
+      ? ''
+      : `<strong>La fenêtre.</strong> Les tableaux de réussite (moments et modes) et les reprises du jour ne comptent que les réponses du ${jourFrancais(depuis)} et des jours suivants, au jour local de la réponse : un couple compte si son jour est dans la fenêtre, un jour de faute si lui et la première réponse d’un autre jour y sont ; l’espacement d’une reprise compte les autres réponses de tout le journal entre les deux. La réussite que lit la projection (par boîte d’avant avec Leitner ; pour une première réponse et une réponse redonnée le jour même, avec les deux algorithmes), comme la réussite observée à l’échéance, est celle des lignes affichées, donc de la fenêtre ; l’état d’où part la projection se lit sur tout le journal. La fenêtre ne borne ni le moment d’une réponse (sa boîte d’avant, une première réponse, une réponse redonnée le jour même), ni les boîtes, les parts vue et sûre et les éléments rebelles, ni la charge passée et ses jours détaillés, ni les minutes : ils se lisent sur tout le journal.${personne ? '' : ' Les personnes actives ne dépendent pas de la fenêtre : elles se comptent au jour du rapport, comme sans elle. Deux rapports d’ensemble à deux fenêtres, ou avec et sans fenêtre, peuvent se comparer : faits le même jour, ils ont la même population et le même état, et leur différence peut donner une case que la règle refuse.'}`;
   sections.push(
     feuille(
       `<ul>
-${li('<strong>Une réponse</strong> est un élément répondu une fois : une carte retournée, une saisie, un choix, un exercice, une question de fiche ou d’examen, sauf une réponse de pré-test, écartée de tous les chiffres. Une faute redonnée le jour même compte pour une réponse de plus.')}
+${li('<strong>Une réponse</strong> est un élément répondu une fois : une carte retournée, une saisie, un choix, un exercice, une question de fiche ou d’examen, sauf une réponse de pré-test, écartée de tous les chiffres. Une faute redonnée le jour même compte pour une réponse de plus.')}${
+  depuis === undefined
+    ? ''
+    : `
+${li(laFenetre)}`
+}
 ${li(`<strong>La projection</strong> part de l’état du jour et simule jour après jour jusqu’à l’examen : les éléments dus sont répondus, puis les nouveautés sont découvertes dans l’ordre du cours. Le verdict de chaque réponse se tire au hasard, d’une graine fixe, et le résultat est la moyenne de ${nombre(TIRAGES)} tirages : la même graine rend la même projection. Avec Leitner, la réussite est celle observée dans le journal pour la boîte d’avant (0,5 sans donnée affichée) et pour les premières réponses. Une faute se redonne une fois le même jour. La projection ne modélise pas les éléments rebelles, qui ne sont pas redonnés le jour même, et surestime d’autant la charge.`)}
 ${li(`<strong>La ligne FSRS est une hypothèse.</strong> Elle suppose que chaque révision réussit à la rétention visée du cours (${pourcent(memoire?.retention ?? 0.9)}), ce qu’aucune mesure ne vérifie. À côté, la réussite réellement observée à l’échéance, sur les lignes affichées, est de ${observeeALEcheance.reponses === 0 ? 'inconnue (aucune révision à l’échéance affichée)' : `${pourcent(partDeJustes(observeeALEcheance) ?? 0)}${personne ? ` sur ${nombre(observeeALEcheance.reponses)} réponses` : ''}`}.`)}
 ${li(`<strong>Les limites.</strong> ${jourDuJournal === null ? 'Aucun jour n’est détaillé. ' : `Les jours détaillés couvrent ${nombre(jourDuJournal)} jours : une courte durée dit peu de l’oubli à long terme. `}Les taux mêlent les modes d’avant, dont les réponses sans mode. Le cours grandira : la projection ne compte que les éléments d’aujourd’hui (${nombre(elements)}).`)}

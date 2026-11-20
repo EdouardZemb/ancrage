@@ -311,6 +311,7 @@ du poste, hors de l'image : rien ne change pour l'apprenante, et aucune étiquet
   autre croisement n'est pas gardé, et la porte générale de LE-26 reste à écrire.
 
 Ses décisions et ses arbitrages (« M7-C<n> », « M7-D<n> ») sont dans `docs/conception/lot-m7.md`.
+
 Le lot M8 a donné au rapport de suivi une fenêtre de jours (ancrage#73). C'est un outil du poste,
 hors de l'image : rien ne change pour l'apprenante, et aucune étiquette n'est à poser :
 - `--depuis <AAAA-MM-JJ>` : les moments, les modes et les reprises du jour ne comptent que les

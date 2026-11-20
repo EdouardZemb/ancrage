@@ -64,8 +64,8 @@ tirée du code ou de la revue du plan, dite comme telle ; M8-D4 a été tranché
   personne, une puce « La fenêtre. » juste après « Une réponse », suivie dans un rapport d'ensemble
   de la population et de la limite de M8-D8. Précision de la revue du plan : le rapport limité
   (moins de trois personnes actives) dit la fenêtre **en une ligne** et ne change rien d'autre. Les
-  phrases « observée dans le journal » restent telles quelles, à cause de l'empreinte : la puce
-  les précise.
+  phrases « observée dans le journal » restent telles quelles, non conditionnées à la fenêtre : la
+  puce les précise.
 - **M8-D7. Les dates refusées.** Une date mal formée (pas un jour du calendrier `AAAA-MM-JJ`, vide,
   ou absente après `--depuis`) ou future rend le code 64, avant toute lecture de la base et du
   contenu ; « future » veut dire après le jour du rapport, comme pour `--accord`. Ce jour est celui
@@ -99,18 +99,19 @@ tirée du code ou de la revue du plan, dite comme telle ; M8-D4 a été tranché
   au 05 local, au 04 local (décalage de −3 000 minutes, plus tard dans le temps), puis **au 07**
   (et non au 06).
 - **M8-D13. Les écarts à l'issue** : voir plus bas.
-- **M8-D14. Les cases de ancrage#11.** La PR d'implémentation a coché celle du commentaire d'en-tête
-  de `rapport.ts`, qui nomme désormais le critère des 70 %. Elle a laissé les autres ouvertes, dont
+- **M8-D14. Les cases de ancrage#11.** La case du commentaire d'en-tête de `rapport.ts` (suites du
+  lot M3) est réglée par le lot (`rapport.ts:58`, le critère des 70 %) et cochée à la clôture. Les
+  autres restent ouvertes, dont
   « Pas assez de réponses pour comparer la réussite » : une fenêtre la montre plus souvent, mais la
   régler changerait la page sans `--depuis`.
 
 ## Le déroulement
 
-Un plan à tâches : la PR de plan, la PR d'implémentation (ancrage#76), la PR de revue finale
-(ancrage#77) et celle-ci. Chaque tâche a été faite par un agent, puis relue par un autre.
+Un plan à tâches : la PR de plan (ancrage#75), la PR d'implémentation (ancrage#76), la PR de revue
+finale (ancrage#77) et celle-ci. Chaque tâche a été faite par un agent, puis relue par un autre.
 
 - **La revue du plan** a corrigé le plan seize fois, avant toute ligne de code (les précisions de
-  M8-D2, M8-D5, M8-D6 et M8-D7 en viennent).
+  M8-D2, M8-D5, M8-D6 et M8-D7 viennent du code ou de cette revue).
 - **La revue des tâches** a trouvé deux promesses sans test : l'espacement qui compte tout le
   journal, et le rapport d'ensemble qui lit la fenêtre (ses lignes de mode et sa projection).
 - **La revue finale** a trouvé le rapport limité absent de l'empreinte (M8-D6 le promettait) et une
@@ -124,7 +125,8 @@ Accordés par Edouard le 20/11/2026 ; la PR d'implémentation les a déclarés c
 
 - **E1**, critère 2 de l'issue (« seule la fenêtre des tableaux change ») : la projection, pour les
   deux algorithmes, et la réussite observée à l'échéance lisent la réussite de la fenêtre (M8-D5),
-  alors que leur état de départ ne change pas.
+  et ce qui en dérive (le titre de la page et celui de la charge, les tuiles, le tableau des
+  nouveautés, les lignes projetées), alors que leur état de départ ne change pas.
 - **E2**, critère 4 (« chaque case passe `caseAdmise` sur la fenêtre ») : les jours et les semaines
   de la charge passée, et l'écart des minutes, ne sont pas bornés (M8-D4) : leurs cases passent la
   règle sur tout le journal. Les boîtes et les chapitres sont des états : pas un écart.
@@ -138,24 +140,30 @@ Accordés par Edouard le 20/11/2026 ; la PR d'implémentation les a déclarés c
 - La porte générale de LE-26 reste à écrire (ancrage#11) : le lot n'ajoute pas de croisement, mais
   n'en garde pas non plus.
 - La page garde « Les taux mêlent les modes d'avant, dont les réponses sans mode », que la fenêtre
-  peut exclure : la phrase reste telle quelle à cause de l'empreinte.
+  peut exclure : elle n'a pas été conditionnée à la fenêtre.
 
 ## Ce qui n'a pas été vérifié
 
 - `--depuis` sur des journaux réels : tout est éprouvé sur des journaux inventés.
-- Les tests de la commande (`cli-rapport.test.ts`) n'ont pas été vus rouges avant le code : une
-  erreur de formatage les empêchait de compiler ; chacun est tué par au moins un mutant.
+- Les tests de la commande (`cli-rapport.test.ts`) n'ont pas été vus rouges avant le code, un par
+  un : le fichier ne se chargeait pas (erreur d'analyse, de mon insertion) tant que je ne l'avais
+  pas corrigé ; chacun est tué par au moins un mutant.
 - La porte générale de LE-26, toujours à écrire.
 - La vérification sur un téléphone Android ne s'applique pas (outil du poste).
 
 ## Les suites
 
 - **Au registre** (`docs/registre.md`) : LE-30, des promesses de la page ou des décisions sans
-  mutant dans la liste du plan (2e constat du motif de LE-29). LE-23 et LE-27 (écarts à l'issue) ne
-  reçoivent pas de ligne : le plan listait ses écarts, et la clôture n'en a pas trouvé d'autre.
+  mutant dans la liste du plan (2e constat du motif de LE-29). Les autres leçons :
+  - LE-23 et LE-27 (écarts à l'issue) : leur critère est atteint par ce lot (le plan listait ses
+    écarts, ni la revue finale ni la clôture n'en ont trouvé d'autre) ; leur état ne change pas
+    ici, la décision de les fermer revient au responsable ;
+  - LE-28 : aucun constat de déduction à la revue finale, mais la porte générale reste à écrire :
+    ouverte ;
+  - LE-29 : critère non atteint, d'où LE-30.
 - **Dans « Au prochain passage » (ancrage#11)**, section « Les suites du lot M8 » : le jour UTC du
   poste, le rapport sur des journaux réels, la phrase sur les modes d'avant, `dansLaFenetre` et
   `mesures.ts` hors de Stryker, la reprise des quatre empreintes par tout lot qui change la page,
-  et les tableaux vides plus fréquents sous une fenêtre.
+  `lesTroisPages` qui porte quatre pages, et les tableaux vides plus fréquents sous une fenêtre.
 - **Parmi les lots suivants de la milestone** : le rejeu d'une seule unité (ancrage#31), et la
   promotion après une reprise du jour (ancrage#74).

@@ -146,8 +146,8 @@ Accordés par Edouard le 20/11/2026 ; la PR d'implémentation les a déclarés c
 
 - `--depuis` sur des journaux réels : tout est éprouvé sur des journaux inventés.
 - Les tests de la commande (`cli-rapport.test.ts`) n'ont pas été vus rouges avant le code, un par
-  un : le fichier ne se chargeait pas (erreur d'analyse, de mon insertion) tant que je ne l'avais
-  pas corrigé ; chacun est tué par au moins un mutant.
+  un : le fichier ne se chargeait pas (une erreur d'analyse dans le bloc inséré) avant sa
+  correction ; chacun est tué par au moins un mutant.
 - La porte générale de LE-26, toujours à écrire.
 - La vérification sur un téléphone Android ne s'applique pas (outil du poste).
 

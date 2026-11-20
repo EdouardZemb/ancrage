@@ -830,7 +830,7 @@ const lignesDuModeAvecMoities = (table: TableDeReprises | null): LigneDeModeAvec
 /** Au-delà, les réunions de lignes des reprises ne s'énumèrent plus : on replie, par prudence. */
 const LIGNES_MAXIMALES_D_UN_TABLEAU = 12;
 
-/** Toutes les parties non vides d'une liste de lignes (au plus 2^10). */
+/** Toutes les parties non vides d'une liste de lignes (au plus 2^12 - 1 : le mode des reprises). */
 function reunionsDe<T>(lignes: readonly T[]): T[][] {
   return Array.from({ length: 2 ** lignes.length - 1 }, (_, i) =>
     lignes.filter((_ligne, rang) => ((i + 1) >> rang) & 1),
@@ -1074,6 +1074,16 @@ export function tablesDesReprises(
     else if (modesActifs && lignesDuMode.length > 0) modesActifs = false;
     else break;
   }
+  // Le lendemain n'est omis qu'en repli : si la porte passe avec le tableau des modes final, on le garde.
+  if (
+    !personne &&
+    !apresActif &&
+    lignesApres !== null &&
+    premierEchecDeReunion(parPersonne, affichees, lignesDuModeAvecMoities(modes), lignesApres) ===
+      null
+  ) {
+    apresActif = true;
+  }
   const apresAffiche = apresActif ? lignesApres : null;
   return {
     rangs,
@@ -1209,7 +1219,7 @@ function sectionDesReprises(tables: TablesDesReprises, personne: boolean): strin
   const definition = `Une reprise est une réponse donnée à un élément qui a déjà été répondu le même jour : ce sont les réponses que réunit la ligne des moments. Le rang, les autres réponses et le mode séparent les reprises qui suivent une faute et celles qui suivent une réponse juste, d’après la réponse d’avant du même élément ce jour-là ; la répartition sépare les couples d’après leur première réponse du jour ; le dernier tableau n’a pas de moitiés. Le rang est le nombre de réponses du jour avant la reprise ; « autres réponses » compte celles des autres éléments entre les deux ; un couple est un élément et un jour, compté selon ses reprises. Les réponses de pré-test sont écartées.${
     personne
       ? ' Une ligne donne la part de justes et le nombre de réponses ; une case vide n’a pas de ligne.'
-      : ' Un tableau s’affiche en deux moitiés si chacune passe la règle, réuni sinon, et il est omis si même réuni il ne la passe pas ; une ligne qui ne la passe pas se fond avec sa voisine en une plage (« de … à … », « … et au-delà »), ou, pour le mode, dans une ligne d’autres modes ; un mode, ou le tableau après un jour de faute, qui laisserait retrouver par différence une case refusée de la section des moments et des modes se fond de même, ou est omis. Ni compte ni total : des pourcentages entiers.'
+      : ' Un tableau s’affiche en deux moitiés si chacune passe la règle, réuni sinon, et il est omis si même réuni il ne la passe pas ; une ligne qui ne la passe pas se fond avec sa voisine en une plage (« de … à … », « … et au-delà »), ou, pour le mode, dans une ligne d’autres modes ; un mode, ou le tableau après un jour de faute, qui laisserait retrouver une case refusée par différence avec une réunion de lignes d’un même tableau des moments ou des modes, dans l’un ou l’autre sens, se fond de même, ou est omis. Ni compte ni total : des pourcentages entiers.'
   }`;
   const apres = tables.apresUnJourDeFaute;
   const dernier =

@@ -10,6 +10,7 @@ import {
   type DonneesDeCle,
   type LigneDeReprise,
   lignesDesMoments,
+  premierEchecDeReunion,
   type TableDeReprises,
   tablesDesReprises,
 } from './rapport.js';
@@ -1166,6 +1167,118 @@ test('un_reste_de_mode_venu_du_lendemain_omet_le_lendemain_sans_fondre_les_modes
   expect(tables.omisParCroisement.apresUnJourDeFaute).toBe(true);
   expect(lignesDuTableau(ensemble(journaux), TITRES.modes)).toEqual([
     'Choix parmi des propositions',
+  ]);
+  verifierLaStructure(journaux);
+});
+
+test('le_lendemain_contenant_une_ligne_de_moment_est_omis_si_la_difference_est_refusee', () => {
+  // Chaque personne : 10 fautes sans reprise revues le lendemain (à l'échéance, depuis la boîte 1) et
+  // 10 couples « juste, juste » revus le lendemain ; la première personne a 15 couples « faute, reprise
+  // juste », les autres 1, revus le lendemain avant l'échéance. Le tableau du lendemain vaut
+  // [25,11,11] ; « boîte 1 » [10,10,10] y est contenue, et la différence [15,1,1] est refusée.
+  const journaux = [15, 1, 1].map((couples) => {
+    const j = constructeur();
+    for (let i = 0; i < couples; i++) {
+      j.ajouter(5, `c${i}`, false, 'saisie');
+      j.ajouter(5, `c${i}`, true, 'saisie');
+    }
+    for (let i = 0; i < 10; i++) j.ajouter(5, `n${i}`, false, 'saisie');
+    for (let i = 0; i < 10; i++) {
+      j.ajouter(5, `p${i}`, true, 'saisie');
+      j.ajouter(5, `p${i}`, true, 'saisie');
+    }
+    for (let i = 0; i < couples; i++) j.ajouter(6, `c${i}`, true, 'saisie');
+    for (let i = 0; i < 10; i++) j.ajouter(6, `n${i}`, i < 6, 'saisie');
+    for (let i = 0; i < 10; i++) j.ajouter(6, `p${i}`, true, 'saisie');
+    return j.evenements;
+  });
+  const parPersonne = mesuresDe(journaux);
+  const retours = parPersonne.map((m) =>
+    sommeDe(CLES_APRES_UNE_FAUTE.map((cle) => m.reprises.apresUnJourDeFaute[cle].reponses)),
+  );
+  expect(retours).toEqual([25, 11, 11]);
+  expect(parPersonne.map((m) => m.delais['boite-1'].reponses)).toEqual([10, 10, 10]);
+  const tables = tablesDesReprises(parPersonne, false);
+  expect(tables.apresUnJourDeFaute).toBeNull();
+  expect(tables.omisParCroisement.apresUnJourDeFaute).toBe(true);
+  verifierLaStructure(journaux);
+});
+
+test('au_dela_de_douze_lignes_du_mode_la_porte_replie_sans_enumerer', () => {
+  // Treize lignes de [10,10,10] chacune : toute réunion passerait la règle. Seul le plafond refuse.
+  const parPersonne = mesuresDe([[], [], []]);
+  const ligne = (i: number) => ({
+    ligne: {
+      nom: `ligne ${i}`,
+      cles: ['saisie'],
+      cellule: { reponses: 30, justes: 0 },
+      comptes: [10, 10, 10],
+    },
+    verdicts: ['faute'] as readonly CleDeVerdict[],
+  });
+  const vide = { delai: [], mode: [] };
+  const douze = Array.from({ length: 12 }, (_, i) => ligne(i));
+  expect(premierEchecDeReunion(parPersonne, vide, douze, [])).toBeNull();
+  expect(premierEchecDeReunion(parPersonne, vide, [...douze, ligne(12)], [])).toMatchObject({
+    tableau: 'mode',
+  });
+});
+
+test('le_sens_inverse_ne_compte_que_les_moities_de_la_reunion', () => {
+  // « Choix » ne compte que des reprises, 10 après une faute et 10 après une juste par personne : sa
+  // ligne de la section des moments vaut [20,20,20]. La ligne « Choix » de la moitié après une faute
+  // ([10,10,10]) n'en est qu'une part : la réunion des deux lignes la contient, une seule non.
+  const journaux = [1, 2, 3].map(() => {
+    const j = constructeur();
+    for (let i = 0; i < 10; i++) {
+      j.ajouter(5, `f${i}`, false, 'saisie');
+      j.ajouter(5, `f${i}`, true, 'choix');
+    }
+    for (let i = 0; i < 10; i++) {
+      j.ajouter(5, `j${i}`, true, 'saisie');
+      j.ajouter(5, `j${i}`, true, 'choix');
+    }
+    return j.evenements;
+  });
+  const parPersonne = mesuresDe(journaux);
+  expect(parPersonne.map((m) => m.modes.choix.reponses)).toEqual([20, 20, 20]);
+  const html = ensemble(journaux);
+  expect(lignesDuTableau(html, TITRES.modes)).toEqual([
+    'Choix parmi des propositions',
+    'Choix parmi des propositions',
+  ]);
+  verifierLaStructure(journaux);
+});
+
+test('le_lendemain_omis_a_tort_par_le_repli_est_remis_si_la_porte_passe_avec_les_modes_finals', () => {
+  // Chaque personne, en saisie : 30 couples « juste, juste », 10 couples dont la reprise est en
+  // « choix », 8 fautes revues le lendemain ; 30 réponses en « choix » seules ; la première a 240
+  // réponses de plus en saisie. Pour « Réponse tapée », le reste des reprises et des retours
+  // ([288,...]) est refusé : le lendemain y est contenu, on l'omet d'abord, puis le mode se fond.
+  // Avec le mode fondu, la porte passe avec le lendemain : il est remis.
+  const journaux = [240, 0, 0].map((en) => {
+    const j = constructeur();
+    for (let i = 0; i < 30; i++) {
+      j.ajouter(5, `k${i}`, true, 'saisie');
+      j.ajouter(5, `k${i}`, true, 'saisie');
+    }
+    for (let i = 0; i < 10; i++) {
+      j.ajouter(5, `c${i}`, true, 'saisie');
+      j.ajouter(5, `c${i}`, true, 'choix');
+    }
+    for (let i = 0; i < 8; i++) j.ajouter(5, `f${i}`, false, 'saisie');
+    for (let i = 0; i < 30; i++) j.ajouter(5, `y${i}`, true, 'choix');
+    for (let i = 0; i < en; i++) j.ajouter(5, `x${i}`, true, 'saisie');
+    for (let i = 0; i < 8; i++) j.ajouter(6, `f${i}`, true, 'saisie');
+    return j.evenements;
+  });
+  const parPersonne = mesuresDe(journaux);
+  const tables = tablesDesReprises(parPersonne, false);
+  expect(tables.apresUnJourDeFaute).not.toBeNull();
+  expect(tables.omisParCroisement.apresUnJourDeFaute).toBe(false);
+  expect(lignesDuTableau(ensemble(journaux), TITRES.modes)).toEqual(['Toutes les reprises']);
+  expect(lignesDuTableau(ensemble(journaux), TITRES.apres)).toEqual([
+    'Tous les jours de faute suivis',
   ]);
   verifierLaStructure(journaux);
 });

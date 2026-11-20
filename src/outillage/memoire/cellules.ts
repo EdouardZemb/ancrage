@@ -32,6 +32,14 @@ export type CleDeDelai = (typeof CLES_DE_DELAI)[number];
 export const CLES_DE_MODE = [...MODES_DE_REVISION, 'sans-mode'] as const;
 export type CleDeMode = (typeof CLES_DE_MODE)[number];
 
+/**
+ * Le jour local `jour` est dans la fenêtre d'un rapport (M8) : toujours sans `depuis`, sinon
+ * `jour >= depuis`. Un jour est tout entier dans la fenêtre ou hors d'elle.
+ */
+export function dansLaFenetre(jour: string, depuis: string | undefined): boolean {
+  return depuis === undefined || jour >= depuis;
+}
+
 export const celluleVide = (): Cellule => ({ reponses: 0, justes: 0 });
 
 /** Une case vide par clé. */

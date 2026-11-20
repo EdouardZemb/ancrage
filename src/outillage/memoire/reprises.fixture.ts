@@ -99,9 +99,15 @@ const RANG_PAR_PERSONNE = 100_000;
  * un exemplaire sur deux). Chaque personne a donc au moins 7 réponses à chaque case de chaque
  * moitié du rang, de l'espacement et des deux modes, 7 couples à chaque case de chaque moitié de la
  * répartition et 7 jours de faute suivis à chaque case de « Après un jour de faute » ; avec trois
- * personnes, au moins 21 par case, un tiers chacune.
+ * personnes, au moins 21 par case, un tiers chacune. `decalageEnJours` décale tout le journal (les
+ * identifiants, qui dépendent de l'instant, changent avec lui).
  */
-export function journauxAuxReprises(n: number, cours = COURS_DE_TEST): Evenement[][] {
+export function journauxAuxReprises(
+  n: number,
+  cours = COURS_DE_TEST,
+  decalageEnJours = 0,
+): Evenement[][] {
+  const premier = DEBUT_D_UN_JOUR + decalageEnJours * MS_PAR_JOUR;
   return Array.from({ length: n }, (_, personne) => {
     const rangDepart = personne * RANG_PAR_PERSONNE;
     const veille: ElementDeMotif[] = [];
@@ -115,9 +121,9 @@ export function journauxAuxReprises(n: number, cours = COURS_DE_TEST): Evenement
         });
       }
     });
-    const duJour = journeeDeMotifs({ debut: DEBUT_D_UN_JOUR, rangDepart, elements: veille, cours });
+    const duJour = journeeDeMotifs({ debut: premier, rangDepart, elements: veille, cours });
     const lendemain = journeeDeMotifs({
-      debut: DEBUT_D_UN_JOUR + MS_PAR_JOUR,
+      debut: premier + MS_PAR_JOUR,
       rangDepart: rangDepart + duJour.length,
       prefixe: 'l',
       cours,
@@ -125,4 +131,11 @@ export function journauxAuxReprises(n: number, cours = COURS_DE_TEST): Evenement
     });
     return [...duJour, ...lendemain];
   });
+}
+
+/** Par personne : la copie décalée de sept jours en arrière, puis la copie d'aujourd'hui. */
+export function journauxSurDeuxSemaines(n: number, cours = COURS_DE_TEST): Evenement[][] {
+  const avant = journauxAuxReprises(n, cours, -7);
+  const apres = journauxAuxReprises(n, cours);
+  return avant.map((journal, personne) => [...journal, ...(apres[personne] ?? [])]);
 }

@@ -8,6 +8,7 @@ import {
   type CleDeMode,
   cellules,
   compter,
+  dansLaFenetre,
 } from './cellules.js';
 
 /*
@@ -159,8 +160,12 @@ interface Couple {
  * Le suivi des reprises, une réponse après l'autre, dans l'ordre du journal. `indice` est le rang de
  * la réponse dans la liste des réponses que le rapport compte : il sert à compter les autres
  * réponses entre deux réponses d'un élément. `finir` clôt les couples encore ouverts.
+ *
+ * Avec `depuis` (M8), une reprise et un couple ne comptent que si leur jour local est dans la
+ * fenêtre, et l'effet au lendemain que si le jour de faute et celui de la réponse mesurée y sont :
+ * l'état des couples se tient, lui, sur toutes les réponses.
  */
-export function suivreLesReprises(): {
+export function suivreLesReprises(depuis?: string): {
   repondre(reponse: ReponseSuivie, indice: number): void;
   finir(): MesuresDeReprises;
 } {
@@ -168,6 +173,7 @@ export function suivreLesReprises(): {
   const ouverts = new Map<string, Couple>();
 
   const clore = (couple: Couple): void => {
+    if (!dansLaFenetre(couple.jour, depuis)) return;
     resultat.repartition[verdictDe(couple.premiereJuste)][
       parIndice(CLES_DE_REPARTITION, couple.reponses - 1)
     ] += 1;
@@ -178,12 +184,14 @@ export function suivreLesReprises(): {
       const jour = jourDe(reponse.repondu_a);
       const couple = ouverts.get(reponse.unite);
       if (couple !== undefined && couple.jour === jour) {
-        const verdict = verdictDe(couple.derniereJuste);
-        const autres = indice - couple.indiceDeLaDerniere - 1;
-        const rang = parIndice(CLES_DE_RANG, couple.reponses - 1);
-        compter(resultat.rangs[verdict][rang], reponse.juste);
-        compter(resultat.espacements[verdict][classeDEspacement(autres)], reponse.juste);
-        compter(resultat.modes[verdict][reponse.mode], reponse.juste);
+        if (dansLaFenetre(jour, depuis)) {
+          const verdict = verdictDe(couple.derniereJuste);
+          const autres = indice - couple.indiceDeLaDerniere - 1;
+          const rang = parIndice(CLES_DE_RANG, couple.reponses - 1);
+          compter(resultat.rangs[verdict][rang], reponse.juste);
+          compter(resultat.espacements[verdict][classeDEspacement(autres)], reponse.juste);
+          compter(resultat.modes[verdict][reponse.mode], reponse.juste);
+        }
         couple.reponses += 1;
         if (couple.apresLaFaute !== null) couple.apresLaFaute += 1;
         else if (!reponse.juste) couple.apresLaFaute = 0;
@@ -193,7 +201,11 @@ export function suivreLesReprises(): {
       }
       if (couple !== undefined) {
         clore(couple);
-        if (couple.apresLaFaute !== null) {
+        if (
+          couple.apresLaFaute !== null &&
+          dansLaFenetre(couple.jour, depuis) &&
+          dansLaFenetre(jour, depuis)
+        ) {
           const cle = parIndice(CLES_APRES_UNE_FAUTE, couple.apresLaFaute);
           compter(resultat.apresUnJourDeFaute[cle], reponse.juste);
           resultat.apresParMoment[cle][reponse.delai] += 1;

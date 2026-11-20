@@ -21,7 +21,7 @@
 #   exporter_cle_sops                  l'identité age que sops utilise
 #   valeur_sure <valeur>               règle commune aux valeurs de secrets (écriture et lecture)
 #   signaler <variable> ok|echec [msg] signal de supervision (Healthchecks) ; l'adresse ne sort jamais
-#   dc <args…>                         docker compose du projet (compose.yml, compose.projet.yml, et les montages de compose.env)
+#   dc <args…>                         docker compose du projet (compose.yml, compose.projet.yml, puis les montages et le relais du staging de compose.env)
 #   valeur_de <clé> <fichier>          la valeur d'une clé d'un fichier CLE=valeur (lu, jamais sourcé)
 #   lire_projet_env <clé> [<fichier>]  PROJET_MOTS : les mots de cette clé dans deploiement/projet.env (ou ce fichier)
 #   lire_projet_env_facultatif <clé> [<fichier>]  la même chose pour une clé facultative : absente, PROJET_MOTS vide
@@ -38,7 +38,7 @@
 #   sante_locale <version> <révision> [<configuration>]  un essai sur le port de l'environnement : statut, version, révision (et configuration)
 #   attendre_sante <port> <filtre> …   jusqu'à 10 essais de sante_sur
 #   reserver_a_prod <env> <script>     code 64 hors prod (sauvegardes, restauration)
-#   refuser_image_heritee              refus si ANCRAGE_IMAGE, ANCRAGE_VERSION, ANCRAGE_CONFIG ou ANCRAGE_CONTENU est dans l'environnement
+#   refuser_image_heritee              refus si ANCRAGE_IMAGE, ANCRAGE_VERSION, ANCRAGE_CONFIG, ANCRAGE_CONTENU ou ANCRAGE_RELAIS est dans l'environnement
 #   prendre_verrou                     le verrou de l'état, partagé, sur le descripteur 9
 #   lire_version <fichier>             IMAGE_LUE, VERSION_LUE et COMMIT_LU, depuis deploye ou precedent
 #   lire_deploye                       DEPLOYE_IMAGE, DEPLOYE_VERSION et DEPLOYE_COMMIT, depuis le fichier deploye
@@ -219,13 +219,16 @@ prefixer_path() {
 # dc <args…> : docker compose pour le projet courant, sur compose.yml (géré par le modèle) et
 # compose.projet.yml (les ajouts du projet, que compose fusionne au premier), puis, quand compose.env
 # les porte, les montages de l'instantané des données (M-0006, § 5) : compose.config.yml pour
-# ANCRAGE_CONFIG, compose.contenu.yml pour ANCRAGE_CONTENU, gérés, après les ajouts du projet. Le
+# ANCRAGE_CONFIG, compose.contenu.yml pour ANCRAGE_CONTENU, gérés, après les ajouts du projet ; et,
+# en dernier, quand compose.env porte ANCRAGE_RELAIS (en staging seulement : deployer.sh ne
+# l'écrit qu'en staging), compose.marque.yml, géré : le relais de la marque du staging (lot 19). Le
 # fichier compose.env (écrit par le script de déploiement) porte toutes les variables `${…:?}` du
 # compose : `dc down`, `dc logs` ou `dc exec` fonctionnent donc aussi, pas seulement `dc up`. Compose
 # lit le shell avant --env-file. Les variables de l'env de l'environnement, que charger_env exporte,
-# y ont la même valeur. L'image, la version et les montages de l'instantané (ANCRAGE_IMAGE,
-# ANCRAGE_VERSION, ANCRAGE_CONFIG, ANCRAGE_CONTENU) ne viennent que de compose.env : posés dans le shell, ou par
-# une ligne de l'env, ils l'emporteraient, et refuser_image_heritee les refuse.
+# y ont la même valeur. L'image, la version, les montages de l'instantané et l'empreinte du relais
+# (ANCRAGE_IMAGE, ANCRAGE_VERSION, ANCRAGE_CONFIG, ANCRAGE_CONTENU, ANCRAGE_RELAIS) ne viennent que de compose.env :
+# posés dans le shell, ou par une ligne de l'env, ils l'emporteraient, et refuser_image_heritee les
+# refuse.
 dc() {
   : "${ANCRAGE_PROJET:?dc : charger_env doit précéder dc}"
   local -a fichiers=(-f "$ANCRAGE_CLONE/deploiement/compose.yml" -f "$ANCRAGE_CLONE/deploiement/compose.projet.yml")
@@ -234,6 +237,9 @@ dc() {
   fi
   if valeur_de ANCRAGE_CONTENU "$ANCRAGE_ETAT/compose.env" >/dev/null; then
     fichiers+=(-f "$ANCRAGE_CLONE/deploiement/compose.contenu.yml")
+  fi
+  if valeur_de ANCRAGE_RELAIS "$ANCRAGE_ETAT/compose.env" >/dev/null; then
+    fichiers+=(-f "$ANCRAGE_CLONE/deploiement/compose.marque.yml")
   fi
   docker compose -p "$ANCRAGE_PROJET" "${fichiers[@]}" --env-file "$ANCRAGE_ETAT/compose.env" "$@"
 }
@@ -634,16 +640,18 @@ reserver_a_prod() {
     || arreter 64 "$2 est réservé à la prod (reçu : '$1') : le staging n'a que des données factices (M-0005)"
 }
 
-# refuser_image_heritee : ANCRAGE_IMAGE, ANCRAGE_VERSION, ANCRAGE_CONFIG ou ANCRAGE_CONTENU posée dans
-# l'environnement ferait lire à `dc` autre chose que compose.env (compose donne la priorité au shell
-# sur --env-file) : une autre image, ou, pour les deux derniers, un autre dossier monté que
-# l'instantané vérifié, la copie de travail du clone des données par exemple (M-0006, § 5). Refus
-# net (code 1) plutôt qu'effacement silencieux : l'appelant a une erreur à voir. Une ligne de l'env
-# de l'environnement ou des secrets, que charger_env et charger_secrets exportent, compte aussi : à
-# appeler après eux, avant toute action. Le nom est resté celui d'avant les montages.
+# refuser_image_heritee : ANCRAGE_IMAGE, ANCRAGE_VERSION, ANCRAGE_CONFIG, ANCRAGE_CONTENU ou ANCRAGE_RELAIS
+# posée dans l'environnement ferait lire à `dc` autre chose que compose.env (compose donne la
+# priorité au shell sur --env-file) : une autre image ; pour ANCRAGE_CONFIG et ANCRAGE_CONTENU, un
+# autre dossier monté que l'instantané vérifié, la copie de travail du clone des données par exemple
+# (M-0006, § 5) ; pour ANCRAGE_RELAIS, une autre empreinte dans l'étiquette du relais de la marque du
+# staging (compose.marque.yml, lot 19), qui ne suivrait plus son script. Refus net (code 1) plutôt
+# qu'effacement silencieux : l'appelant a une erreur à voir. Une ligne de l'env de l'environnement
+# ou des secrets, que charger_env et charger_secrets exportent, compte aussi : à appeler après eux,
+# avant toute action. Le nom est resté celui d'avant les montages.
 refuser_image_heritee() {
   local variable
-  for variable in ANCRAGE_IMAGE ANCRAGE_VERSION ANCRAGE_CONFIG ANCRAGE_CONTENU; do
+  for variable in ANCRAGE_IMAGE ANCRAGE_VERSION ANCRAGE_CONFIG ANCRAGE_CONTENU ANCRAGE_RELAIS; do
     if [ -n "${!variable+present}" ]; then
       arreter 1 "$variable est posée dans l'environnement : elle prendrait le pas sur compose.env. Rien n'a changé ; relancer sans elle (unset $variable)"
     fi

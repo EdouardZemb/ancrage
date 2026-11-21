@@ -6,38 +6,38 @@ import { type UniteDeCarte, unitesDeCartes } from '../../../domaine/cartes/unite
 import { coursServiDeTest } from '../../../domaine/cours/cours.fixture.js';
 import { contexteDeTest, rendreDansLeCours } from '../contexte-cours.fixture.js';
 import { TEXTES_COURS } from '../textes-cours.js';
-import { AideDuRebelle } from './AideDuRebelle.js';
+import { AideDeLElement } from './AideEtMarque.js';
 import { ETAT_DE_CARTE_NEUF, type EtatDeCarte, QuestionCarte } from './QuestionCarte.js';
 
 afterEach(cleanup);
 
 const t = TEXTES_COURS.de;
 
-describe('AideDuRebelle', () => {
+describe('AideDeLElement', () => {
   it.each([
     ['vide', ''],
     ['faite d_espaces', '   '],
   ])('un_texte_%s_n_est_pas_une_aide', (_nom, texte) => {
-    rendreDansLeCours(<AideDuRebelle aide={{ texte }} />, contexteDeTest());
+    rendreDansLeCours(<AideDeLElement aide={{ texte }} />, contexteDeTest());
 
-    expect(screen.queryByText(t.rebelle_aide)).toBeNull();
+    expect(screen.queryByText(t.aide_titre)).toBeNull();
   });
 
   it('une_confusion_sans_texte_utile_reste_une_aide', () => {
     rendreDansLeCours(
-      <AideDuRebelle aide={{ texte: ' ', confusion: { recto: 'Leber', verso: 'Drüse' } }} />,
+      <AideDeLElement aide={{ texte: ' ', confusion: { recto: 'Leber', verso: 'Drüse' } }} />,
       contexteDeTest(),
     );
 
-    expect(screen.getByText(t.rebelle_aide)).toBeTruthy();
+    expect(screen.getByText(t.aide_titre)).toBeTruthy();
     expect(screen.getByText('Leber')).toBeTruthy();
-    expect(document.querySelector('.aide-rebelle > p:not(.muted)')).toBeNull();
+    expect(document.querySelector('.aide > p:not(.muted)')).toBeNull();
   });
 
   it('rien_a_montrer_ne_rend_rien', () => {
-    rendreDansLeCours(<AideDuRebelle aide={undefined} />, contexteDeTest());
+    rendreDansLeCours(<AideDeLElement aide={undefined} />, contexteDeTest());
 
-    expect(document.querySelector('.aide-rebelle')).toBeNull();
+    expect(document.querySelector('.aide')).toBeNull();
   });
 });
 
@@ -86,12 +86,12 @@ describe('QuestionCarte, la marque et l_aide d_un rebelle', () => {
 
   it('l_aide_reste_invisible_tant_que_la_carte_n_est_pas_retournee_puis_suit_la_carte', () => {
     rendreDansLeCours(<Posee />, contexteDeTest({ cours: avecAide }));
-    expect(screen.queryByText(t.rebelle_aide)).toBeNull();
+    expect(screen.queryByText(t.aide_titre)).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: t.cartes_retourner }));
 
     const carte = screen.getByRole('button', { name: t.cartes_retourner });
-    const aide = screen.getByText('Herz pumpt.').closest('.aide-rebelle');
+    const aide = screen.getByText('Herz pumpt.').closest('.aide');
     expect(carte.contains(aide)).toBe(false);
     // Après la carte, avant la zone de réponse.
     expect(carte.nextElementSibling).toBe(aide);

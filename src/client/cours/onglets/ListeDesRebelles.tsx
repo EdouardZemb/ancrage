@@ -10,7 +10,7 @@ import { aReprendre } from '../../../domaine/progression/rebelles.js';
 import { posablesDuCours } from '../../../domaine/seances/heute.js';
 import { modulesDesPosables } from '../../../domaine/seances/semestre.js';
 import { useCours } from '../contexte-cours.js';
-import { AideDuRebelle } from '../questions/AideDuRebelle.js';
+import { AideDeLElement } from '../questions/AideEtMarque.js';
 import { questionEtReponse } from '../questions/question-et-reponse.js';
 import { formater } from '../textes-cours.js';
 
@@ -57,7 +57,7 @@ export function ListeDesRebelles() {
                       <em>{formater(t.progression_fausses, { n })}</em>
                     </div>
                     {indication !== undefined && <span class="meta indication">{indication}</span>}
-                    <AideDuRebelle aide={aide} />
+                    <AideDeLElement aide={aide} />
                   </li>
                 );
               })}

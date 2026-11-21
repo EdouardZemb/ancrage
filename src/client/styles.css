@@ -901,19 +901,19 @@ form.typed input {
   padding: 2px;
 }
 
-/* Un élément rebelle (M6) : l'étiquette au-dessus de sa question, et son aide une fois répondu. */
+/* L'étiquette d'un rebelle (M6) au-dessus de sa question, et l'aide d'un élément une fois répondu. */
 p.rebelle {
   margin: 0 0 4px;
 }
 
-.aide-rebelle {
+.aide {
   margin: 8px 0;
   padding: 6px 10px;
   border-left: 3px solid var(--accent);
   text-align: left;
 }
 
-.aide-rebelle p {
+.aide p {
   margin: 2px 0 0;
 }
 
@@ -1220,7 +1220,7 @@ ol.chapters .meta .morceau {
   white-space: nowrap;
 }
 
-.rebelles .aide-rebelle {
+.rebelles .aide {
   margin: 0;
 }
 

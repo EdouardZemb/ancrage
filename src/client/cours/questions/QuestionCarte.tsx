@@ -15,7 +15,7 @@ import { useTouches } from '../clavier.js';
 import { Enonce, focaliser } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
 import { formater } from '../textes-cours.js';
-import { AideDuRebelle, MarqueDeRebelle } from './AideDuRebelle.js';
+import { AideDeLElement, MarqueDeRebelle } from './AideEtMarque.js';
 
 /** L'état d'une carte posée : retournée ou non, et le jugement de la saisie, avec ce qui fut tapé. */
 export interface EtatDeCarte {
@@ -126,7 +126,7 @@ export function QuestionCarte(props: {
           )}
           {meta}
         </div>
-        {etat.verdict !== null && <AideDuRebelle aide={aide} />}
+        {etat.verdict !== null && <AideDeLElement aide={aide} />}
         <p class="kbd">{t.cartes_touches_saisie}</p>
       </>
     );
@@ -152,7 +152,7 @@ export function QuestionCarte(props: {
         )}
         {meta}
       </div>
-      {etat.retournee && <AideDuRebelle aide={aide} />}
+      {etat.retournee && <AideDeLElement aide={aide} />}
       {etat.retournee && (
         <div class="answer">
           <button type="button" class="no" onClick={() => onReponse(false, 'retournee')}>

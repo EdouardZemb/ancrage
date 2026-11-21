@@ -79,7 +79,7 @@ describe('la marque des rebelles dans les onglets', () => {
     cliquer(t.examen_starten);
 
     expect(screen.queryByText(t.rebelle_marque)).toBeNull();
-    expect(screen.queryByText(t.rebelle_aide)).toBeNull();
+    expect(screen.queryByText(t.aide_titre)).toBeNull();
     // L'examen est bien lancé : sa première question est posée.
     expect(screen.queryByRole('button', { name: t.examen_starten })).toBeNull();
   });
@@ -88,7 +88,7 @@ describe('la marque des rebelles dans les onglets', () => {
     rendreDansLeCours(<Schemas />, contexteRebelle());
 
     expect(screen.getAllByText('Übungsschema ohne Vorbild')).toHaveLength(1);
-    expect(screen.queryByText(t.rebelle_aide)).toBeNull();
+    expect(screen.queryByText(t.aide_titre)).toBeNull();
   });
 });
 

@@ -357,12 +357,12 @@ describe('Heute, les rebelles', () => {
 describe('Heute, l_aide du rebelle', () => {
   it('une_carte_retournee_montre_l_aide_au_verso_et_pas_au_recto', () => {
     rendreDansLeCours(<Heute />, contexteDe({ cours: coursAvecAide(), evenements: rebelle(HERZ) }));
-    expect(screen.queryByText(t.rebelle_aide)).toBeNull();
+    expect(screen.queryByText(t.aide_titre)).toBeNull();
     expect(screen.queryByText('Herz pumpt, Leber filtert.')).toBeNull();
 
     cliquer(t.cartes_retourner);
 
-    expect(screen.getByText(t.rebelle_aide)).toBeTruthy();
+    expect(screen.getByText(t.aide_titre)).toBeTruthy();
     expect(screen.getByText('Herz pumpt, Leber filtert.')).toBeTruthy();
     expect(screen.getByText(/Nicht verwechseln mit:/)).toBeTruthy();
     expect(screen.getByText('Leber')).toBeTruthy();
@@ -379,7 +379,7 @@ describe('Heute, l_aide du rebelle', () => {
           saisie: true,
         }),
       );
-      expect(screen.queryByText(t.rebelle_aide)).toBeNull();
+      expect(screen.queryByText(t.aide_titre)).toBeNull();
 
       fireEvent.input(screen.getByLabelText(t.cartes_saisie_etiquette), {
         target: { value: saisie },
@@ -395,7 +395,7 @@ describe('Heute, l_aide du rebelle', () => {
 
     cliquer(t.cartes_retourner);
 
-    expect(screen.queryByText(t.rebelle_aide)).toBeNull();
+    expect(screen.queryByText(t.aide_titre)).toBeNull();
     expect(screen.queryByText('Herz pumpt, Leber filtert.')).toBeNull();
   });
 
@@ -404,7 +404,7 @@ describe('Heute, l_aide du rebelle', () => {
 
     cliquer(t.cartes_retourner);
 
-    expect(screen.queryByText(t.rebelle_aide)).toBeNull();
+    expect(screen.queryByText(t.aide_titre)).toBeNull();
   });
 
   it('une_aide_qui_n_est_pas_un_texte_ne_s_affiche_pas', () => {
@@ -413,7 +413,7 @@ describe('Heute, l_aide du rebelle', () => {
 
     cliquer(t.cartes_retourner);
 
-    expect(screen.queryByText(t.rebelle_aide)).toBeNull();
+    expect(screen.queryByText(t.aide_titre)).toBeNull();
   });
 
   it('une_aide_avec_des_signes_de_balisage_s_affiche_telle_quelle', () => {
@@ -422,9 +422,7 @@ describe('Heute, l_aide du rebelle', () => {
 
     cliquer(t.cartes_retourner);
 
-    expect(document.querySelector('.aide-rebelle p')?.innerHTML).toBe(
-      '&lt;b&gt;Herz&lt;/b&gt; &amp; Co',
-    );
+    expect(document.querySelector('.aide p')?.innerHTML).toBe('&lt;b&gt;Herz&lt;/b&gt; &amp; Co');
   });
 
   it('la_note_du_schema_s_affiche_apres_la_reponse_d_un_point_rebelle', () => {
@@ -433,7 +431,7 @@ describe('Heute, l_aide du rebelle', () => {
 
     choisir('Mitte');
 
-    expect(screen.getByText(t.rebelle_aide)).toBeTruthy();
+    expect(screen.getByText(t.aide_titre)).toBeTruthy();
     expect(screen.getByText('Übungsschema ohne Vorbild')).toBeTruthy();
   });
 
@@ -443,7 +441,7 @@ describe('Heute, l_aide du rebelle', () => {
 
     choisir(t.feuille_richtig);
 
-    expect(screen.getByText(t.rebelle_aide)).toBeTruthy();
+    expect(screen.getByText(t.aide_titre)).toBeTruthy();
     expect(screen.getByText('Der Magen ist ein Hohlorgan.')).toBeTruthy();
   });
 

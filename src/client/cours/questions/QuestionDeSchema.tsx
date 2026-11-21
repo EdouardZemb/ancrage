@@ -11,7 +11,7 @@ import { enGras, focaliser, Options } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
 import { DessinSchema } from '../DessinSchema.js';
 import { formater } from '../textes-cours.js';
-import { AideDuRebelle, MarqueDeRebelle } from './AideDuRebelle.js';
+import { AideDeLElement, MarqueDeRebelle } from './AideEtMarque.js';
 
 /** Les touches 1 à 4 choisissent le premier à le quatrième nom (H:2248). */
 const NUMEROS_D_OPTIONS = ['1', '2', '3', '4'];
@@ -68,7 +68,7 @@ export function QuestionDeSchema(props: {
         </b>
         <span class="muted">{point.sens}</span>
       </div>
-      {rebelle === true && aide !== undefined && <AideDuRebelle aide={{ texte: aide }} />}
+      {rebelle === true && aide !== undefined && <AideDeLElement aide={{ texte: aide }} />}
       <button type="button" class="primary" ref={focaliser} onClick={suivante}>
         {t.suivante}
       </button>

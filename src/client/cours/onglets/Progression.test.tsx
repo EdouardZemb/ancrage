@@ -455,9 +455,7 @@ describe('Progression', () => {
       const balisee = coursAvecChampsDeCarte(leCours(), HERZ, { aide: '<b>x</b> & y' });
       rendre(rebelle(0, HERZ, 2), balisee);
 
-      expect(document.querySelector('.aide-rebelle p')?.innerHTML).toBe(
-        '&lt;b&gt;x&lt;/b&gt; &amp; y',
-      );
+      expect(document.querySelector('.aide p')?.innerHTML).toBe('&lt;b&gt;x&lt;/b&gt; &amp; y');
     });
 
     it('les_fautes_sont_celles_du_rejeu_une_par_jour', () => {

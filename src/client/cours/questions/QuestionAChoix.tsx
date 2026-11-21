@@ -21,7 +21,7 @@ import {
   Options,
 } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
-import { AideDuRebelle, MarqueDeRebelle } from './AideDuRebelle.js';
+import { AideDeLElement, MarqueDeRebelle } from './AideEtMarque.js';
 
 /** Les touches 1 à 4 choisissent la première à la quatrième option (H:2245). */
 const NUMEROS_D_OPTIONS = ['1', '2', '3', '4'];
@@ -104,7 +104,7 @@ export function QuestionAChoix(props: {
         }
       />
       {question.choisie !== null && rebelle === true && aide !== undefined && (
-        <AideDuRebelle aide={{ texte: aide }} />
+        <AideDeLElement aide={{ texte: aide }} />
       )}
       {question.choisie === null ? (
         <p class="kbd">{t.quiz_touches}</p>

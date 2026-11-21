@@ -50,6 +50,8 @@ Accepté par Edouard le 18/11/2026.
 - **M6-C3.** « Une fois par séance du jour » veut dire une fois par jour : un rebelle manqué ne
   revient ni en fin de ronde ni dans « Nächste Runde ». Il revient le lendemain.
 - **M6-C4.** L'aide s'affiche après la réponse, juste ou fausse, et toujours dans la liste.
+  *Depuis le lot M9 : toute réponse fausse la montre aussi, rebelle ou non ; une réponse juste ne la
+  montre qu'à un rebelle (`docs/conception/lot-m9.md`, M9-D1).*
 - **M6-C5.** Une carte reçoit deux clés facultatives : `aide` (une phrase libre) et `confondu_avec`
   (l'identifiant d'une autre carte, dont on montre le recto et le verso). Les autres genres n'ont
   pas de clé nouvelle : on réemploie les morceaux du mot, la `regle` d'un exercice, la `correction`
@@ -189,6 +191,9 @@ Accepté par Edouard le 18/11/2026.
   - un point de schéma, dans « Heute » : la `note` de son schéma, après la réponse. Dans l'onglet
     des schémas, la note est déjà au-dessus de la question : elle n'est pas répétée.
   Un rebelle sans aide n'affiche rien de plus. Dans le Quiz et la Prüfung, rien ne s'affiche.
+  *Depuis le lot M9 : une carte, une affirmation vrai-faux et un point de schéma de « Heute » montrent
+  leur aide après toute réponse fausse, rebelle ou non, et la carte retournée la montre à tous au
+  verso (M9-C1 à M9-C3, `docs/conception/lot-m9.md`). Le reste de cette décision tient.*
 - **T2-D9.** La liste (M6-C6) est une section de Fortschritt, à la place de « Schwierige Karten ».
   Son titre, tel que la revue finale l'a fixé pour qu'elle n'ait qu'un nom, est « Schwierige
   Begriffe – nochmal ansehen » (le plan écrivait « Schwierig – nochmal ansehen »). Elle rassemble
@@ -202,7 +207,8 @@ Accepté par Edouard le 18/11/2026.
   schéma ; un exercice, son énoncé et la réponse que sa question montre ; une question fermée, son
   énoncé et le libellé de sa bonne option (« Richtig » ou « Falsch » pour un vrai-faux, jamais le
   code). Une seule fonction rend ce couple (`question-et-reponse.ts`), et un seul composant rend
-  l'aide (`AideDuRebelle`) : la liste et les questions les partagent.
+  l'aide (`AideDuRebelle`) : la liste et les questions les partagent. *Depuis le lot M9 : il se
+  nomme `AideDeLElement`, dans `AideEtMarque.tsx` (M9-D7, `docs/conception/lot-m9.md`).*
 - **T2-D11.** « Heute » renvoie à la liste (M6-C6) : sur l'écran de fin de séance et sur « Heute
   ist nichts fällig », un lien « Schwierige Begriffe ansehen ({n}) » ouvre Fortschritt, quand la
   liste n'est pas vide ; `n` est le nombre de rebelles de T2-D2.
@@ -251,7 +257,8 @@ Déclarés dans les PR 63, 66 et 67, avec la promesse qu'ils touchent et l'accor
 - **« Une fois par séance du jour » ne vaut que dans « Heute »** (T2-D4), critère 2.
 - **La marque est absente du Quiz et de la Prüfung**, qui sont des épreuves (T2-D5), critère 2.
 - **L'aide ne s'affiche que pour un rebelle**, jamais dans le Quiz ni la Prüfung ; sur une carte
-  retournée, elle est au verso, avant le geste qui juge (T2-D8), critère 3.
+  retournée, elle est au verso, avant le geste qui juge (T2-D8), critère 3. *Depuis le lot M9 : toute
+  réponse fausse la montre aussi (`docs/conception/lot-m9.md`).*
 - **Seule une carte reçoit des clés d'aide** (`aide`, `confondu_avec`) : un mot, un point, un
   exercice et une question de fiche n'ont ni « confondu avec » ni exemple écrit pour eux (M6-C5),
   critère 3.

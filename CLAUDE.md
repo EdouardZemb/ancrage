@@ -286,7 +286,8 @@ personne rate encore et encore ; le lot ne garde rien de nouveau :
   file, et revient le lendemain. Übersicht retire ces éléments de son compte du jour. L'ordonnanceur
   ne change pas, et les autres onglets posent un rebelle comme avant ;
 - la question d'un rebelle porte la marque « schwierig », et montre une aide après la réponse (celle
-  de la carte, ou ce que le genre porte déjà) ; le Quiz et la Prüfung n'ont ni l'une ni l'autre ;
+  de la carte, ou ce que le genre porte déjà ; depuis le lot M9, toute réponse fausse la montre
+  aussi) ; le Quiz et la Prüfung n'ont ni l'une ni l'autre ;
 - la liste « Schwierige Begriffe – nochmal ansehen » de Fortschritt remplace « Schwierige Karten » :
   tous les rebelles, par module, avec leur réponse et leur aide, en lecture seule ;
 - le rapport de suivi compte les rebelles par chapitre, et donne, pour une personne, un tableau
@@ -327,13 +328,38 @@ hors de l'image : rien ne change pour l'apprenante, et aucune étiquette n'est �
   fenêtres, ou avec et sans fenêtre, peuvent se comparer.
 
 Ses décisions et ses arbitrages (« M8-D<n> ») sont dans `docs/conception/lot-m8.md`.
-Parmi les lots suivants de la milestone : le rejeu d'une seule unité (ancrage#31), et la promotion
-après une reprise du jour (ancrage#74 : en Leitner, une reprise du jour ne fait plus monter d'une
-boîte).
+
+Le lot M9 a fait montrer l'aide d'un élément dès la faute (ancrage#74). Sa mesure (le rapport de suivi
+avec `--depuis`) a écarté la première forme de l'issue, qui retirait la montée d'une boîte après une
+reprise du jour : le point faible est ce qui est retenu au moment de la faute. Seul le client change ;
+ni le journal, ni l'API, ni le manifeste, ni l'ordonnanceur, ni la notice :
+- `montrerLAide(rebelle, juste)` (`src/client/cours/questions/montrer-l-aide.ts`) rend `rebelle ||
+  !juste` : après une réponse fausse, l'aide se montre à tous ; une réponse juste ne la montre
+  qu'à un rebelle, comme avant. La carte saisie, la question à choix et le point de schéma la lisent ;
+- une carte retournée montre son aide au verso, à tous, avant le geste qui juge. Une saisie tolérée
+  (faute de frappe, tréma) est juste, donc sans aide ; « Fast » est une faute, donc avec ;
+- dans « Heute », la `correction` d'une affirmation et la `note` d'un schéma suivent la règle ;
+  Karteikarten suit celle d'une carte. L'onglet des schémas, Arbeitsblätter, Wortbaukasten et les
+  exercices montrent déjà la leur à tous ; le Quiz, la Prüfung et le pré-test n'en montrent aucune ;
+  la marque, la liste de Fortschritt et le calcul des rebelles ne changent pas ;
+- `AideDuRebelle` devient `AideDeLElement` (`AideEtMarque.tsx`), la classe `aide-rebelle` devient `aide` ;
+- un test de bout en bout, dans la suite des deux versions, voit l'aide de deux cartes de l'exemple
+  après une faute (`e2e/mise-a-jour/aide-apres-faute.spec.ts`). Le client est hors de Stryker : les
+  promesses sont tenues par des mutants posés à la main.
+
+La version qui porte le lot est la prochaine `vX.Y.Z`, à Edouard, sans étiquette de données. Au
+staging, Edouard voit la correction et la note dans « Heute » ; il ne voit pas l'aide d'une carte,
+dont le cours de l'instance n'a pas encore l'écriture (une PR de données), et le test de bout en bout
+en est la preuve. Une nouvelle mesure, `memoire:rapport --depuis` le jour de la mise en ligne, est
+prévue deux semaines plus tard.
+
+Ses décisions et ses arbitrages (« M9-C<n> », « M9-D<n> », cinq écarts accordés le 21/11/2026) sont
+dans `docs/conception/lot-m9.md`.
+Parmi les lots suivants de la milestone : le rejeu d'une seule unité (ancrage#31).
 
 Les suites sans urgence d'un lot vont dans une issue « Au prochain passage »
 (ancrage-donnees#81 est fermée ; celle des lots 2c, 2d, F3, S1 et S2 est ancrage-donnees#156 ; celle
-des lots M1 à M8 est ancrage#11). Une
+des lots M1 à M9 est ancrage#11). Une
 PR qui touche un fichier de cette liste regarde sa case, et la coche si elle la règle.
 
 Le déploiement est aligné sur la cible `serveur` de `modele-projet` (l'alignement date du lot 2 du

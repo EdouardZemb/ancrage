@@ -91,6 +91,23 @@ test('l_aide_d_une_carte_se_voit_apres_une_faute', async ({ page }) => {
           largeur,
         );
         await sansDefilementHorizontal(page);
+        // L'aide est dans la carte, avant « Weiter » : le bas de l'un et l'autre reste dans l'écran.
+        const hauteur = page.viewportSize()?.height ?? 0;
+        const suivante = await page
+          .getByRole('button', { name: deCours.cartes_suivante })
+          .boundingBox();
+        expect(suivante, 'le bouton « Weiter »').not.toBeNull();
+        test.info().annotations.push({
+          type: 'mesure du bas',
+          description: JSON.stringify({ aide: boite, suivante, hauteur }),
+        });
+        expect((boite?.y ?? 0) + (boite?.height ?? 0), 'bas de l’aide').toBeLessThanOrEqual(
+          hauteur,
+        );
+        expect(
+          (suivante?.y ?? 0) + (suivante?.height ?? 0),
+          'bas de « Weiter »',
+        ).toBeLessThanOrEqual(hauteur);
       }
     }
     await page.getByRole('button', { name: deCours.cartes_suivante }).click();

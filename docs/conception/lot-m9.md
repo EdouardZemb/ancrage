@@ -197,12 +197,14 @@ l'onglet des schémas et Arbeitsblätter ne changent pas, le pré-test reste san
 
 ## Les limites
 
-- **L'aide d'une saisie fausse est sous la carte**, après « Weiter » qui a le focus. Au Pixel 7 elle
-  finit près du bas de l'écran ; une aide longue ou un écran moins haut la font passer dessous, et
-  les boutons d'une carte retournée descendent de même. Le test de bout en bout ne mesure que la
-  largeur. Case de ancrage#11.
-- Le bloc d'aide n'est pas annoncé à un lecteur d'écran, comme le verdict d'une carte saisie (case
-  de ancrage#11, lot M5).
+- **L'aide d'une saisie fausse était sous la carte**, après « Weiter » qui a le focus : sur un
+  téléphone, elle passait sous le bas de l'écran (au staging, le bloc commençait à 657 px sur une
+  fenêtre de 641 px). Depuis le correctif de ancrage#11, elle est dans la carte, entre le verdict et
+  « Weiter », et le test de bout en bout mesure que le bas de l'aide et de « Weiter » reste dans
+  l'écran. Une carte retournée garde l'ordre carte, aide, boutons : au Pixel 7 (839 px de haut), le
+  bas des boutons est à 754 px.
+- Le bloc d'aide porte `role="status"` depuis le correctif de ancrage#11 ; le verdict d'une carte
+  saisie n'est toujours pas annoncé (lot M5).
 - La classe `.aide` est générique dans `styles.css`, et `QuestionAChoix.test.tsx` n'a pas de
   question vrai-faux en codes.
 - Une saisie tolérée (faute de frappe, tréma) ne montre pas l'aide : la personne n'a pas manqué le

@@ -80,6 +80,8 @@ export function QuestionCarte(props: {
   const marque = rebelle === true && <MarqueDeRebelle bloc />;
   // L'aide ne vient qu'après la recherche : au verso d'une carte retournée, et avec le verdict
   // d'une saisie fausse, ou juste pour un rebelle (M9-D1). Une faute de frappe tolérée est juste.
+  // Celle d'une saisie est dans la carte, entre le verdict et « Weiter » : sous la carte, elle
+  // passait sous le bas d'un téléphone (ancrage#11).
   const aide = aideDeLUnite(unite, cours.unites);
 
   if (saisieAttendue) {
@@ -119,6 +121,7 @@ export function QuestionCarte(props: {
                   </button>
                 )}
               </div>
+              {montrerLAide(rebelle === true, etat.verdict.juste) && <AideDeLElement aide={aide} />}
               <button
                 type="button"
                 class="primary"
@@ -131,9 +134,6 @@ export function QuestionCarte(props: {
           )}
           {meta}
         </div>
-        {etat.verdict !== null && montrerLAide(rebelle === true, etat.verdict.juste) && (
-          <AideDeLElement aide={aide} />
-        )}
         <p class="kbd">{t.cartes_touches_saisie}</p>
       </>
     );

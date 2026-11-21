@@ -9,7 +9,8 @@
 # ces aides.
 #
 # Variables disponibles après `preparer_environnement` :
-#   DEPOT    racine du dépôt réel        CLONE    clone temporaire (copie de deploiement/)
+#   DEPOT    racine du dépôt réel        CLONE    clone temporaire (copie de deploiement/, et du
+#                                                 relais du staging, scripts/modele/marque.py)
 #   DOUBLES  dossier des doubles (en tête du PATH)
 #   APPELS   journal des appels des doubles
 #   CLONE_DONNEES  le clone des données du test : un dépôt git factice, à côté du clone
@@ -42,6 +43,9 @@ preparer_environnement() {
   # siens (preparer_cles_de_test, preparer_secrets_de_test).
   cp -R "$DEPOT/deploiement" "$CLONE/deploiement"
   rm -rf "$CLONE/deploiement/secrets" "$CLONE/deploiement/cles"
+  # Le relais de la marque du staging (lot 19) : deployer.sh lit le script du clone en staging.
+  mkdir -p "$CLONE/scripts/modele"
+  cp "$DEPOT/scripts/modele/marque.py" "$CLONE/scripts/modele/"
 
   # Deux dépôts (M-0006, § 6) : l'instance vit dans un clone des données factice, un dépôt git de
   # test que charger_env trouve par la surcharge ANCRAGE_CLONE_DONNEES. Ses env portent les
@@ -245,8 +249,17 @@ installer_doubles() {
 
 # --- État de déploiement (sonde, déploiement) -------------------------------------------------
 
+# empreinte_du_relais : l'empreinte SHA-256 du relais de la marque du staging du clone temporaire,
+# ses 64 caractères hexadécimaux, calculée par le test.
+empreinte_du_relais() {
+  local ligne
+  ligne="$(sha256sum <"$CLONE/scripts/modele/marque.py")" || return 1
+  printf '%s\n' "${ligne%% *}"
+}
+
 # contenu_compose_env <env> <image> <version> : le compose.env que deployer.sh écrit pour cette
-# version.
+# version. En staging, il finit par ANCRAGE_RELAIS, l'empreinte du relais du clone (lot 19) : un
+# test qui veut le compose.env d'avant le relais retire cette ligne (grep -v).
 contenu_compose_env() {
   local nom_env="$1" sauvegardes="$ANCRAGE_RACINE_SAUVEGARDES" port=4310 url=https://ancrage.exemple.org
   if [ "$nom_env" = staging ]; then
@@ -257,10 +270,16 @@ contenu_compose_env() {
   printf '%s\n' "ANCRAGE_IMAGE=$2" "ANCRAGE_VERSION=$3" "ANCRAGE_ENV=$nom_env" \
     "ANCRAGE_PORT=$port" "ANCRAGE_DONNEES=$ANCRAGE_RACINE_DONNEES/$nom_env/donnees" \
     "ANCRAGE_SAUVEGARDES=$sauvegardes" "ANCRAGE_URL_PUBLIQUE=$url"
+  if [ "$nom_env" = staging ]; then
+    local empreinte
+    empreinte="$(empreinte_du_relais)" || return 1
+    printf 'ANCRAGE_RELAIS=%s\n' "$empreinte"
+  fi
 }
 
 # en_service <env> <image> <version> : l'état laissé par un déploiement réussi de cette version
-# (deploye, compose.env), et l'application qui tourne pour les doubles de docker et de curl.
+# (deploye, compose.env, en staging avec la ligne du relais : contenu_compose_env), et l'application
+# qui tourne pour les doubles de docker et de curl.
 en_service() {
   local etat="$ANCRAGE_RACINE_ETAT/$1"
   mkdir -p "$etat"

@@ -224,7 +224,8 @@ lire_les_chemins='charger_env prod; charger_secrets prod
 
 # Les montages de l'instantané (M-0006, § 5) ne sont décrits que pour ce que compose.env monte :
 # compose.config.yml pour ANCRAGE_CONFIG, compose.contenu.yml pour ANCRAGE_CONTENU, après les
-# fichiers du projet.
+# fichiers du projet. Le relais de la marque du staging (lot 19), compose.marque.yml, vient en
+# dernier, sur la seule ligne ANCRAGE_RELAIS, quel que soit l'ordre des lignes de compose.env.
 @test "dc : les fichiers de montage suivent compose.env" {
   creer_double docker
   local etat="$ANCRAGE_RACINE_ETAT/prod" fichiers cas lignes attendus
@@ -236,7 +237,10 @@ lire_les_chemins='charger_env prod; charger_secrets prod
     "ANCRAGE_IMAGE=x,ANCRAGE_CONFIG=/i/config|-f $CLONE/deploiement/compose.config.yml" \
     "ANCRAGE_CONTENU=/i/contenu,ANCRAGE_IMAGE=x|-f $CLONE/deploiement/compose.contenu.yml" \
     "ANCRAGE_CONTENU=/i/contenu,ANCRAGE_CONFIG=/i/config|-f $CLONE/deploiement/compose.config.yml -f $CLONE/deploiement/compose.contenu.yml" \
-    "ANCRAGE_CONFIGURATION=x,ANCRAGE_CONTENUS=x,#ANCRAGE_CONFIG=/i/config|"; do
+    "ANCRAGE_CONFIGURATION=x,ANCRAGE_CONTENUS=x,#ANCRAGE_CONFIG=/i/config|" \
+    "ANCRAGE_IMAGE=x,ANCRAGE_RELAIS=x|-f $CLONE/deploiement/compose.marque.yml" \
+    "ANCRAGE_RELAIS=x,ANCRAGE_CONTENU=/i/contenu,ANCRAGE_CONFIG=/i/config|-f $CLONE/deploiement/compose.config.yml -f $CLONE/deploiement/compose.contenu.yml -f $CLONE/deploiement/compose.marque.yml" \
+    "ANCRAGE_IMAGE=x,#ANCRAGE_RELAIS=x,ANCRAGE_RELAISX=x|"; do
     IFS=',' read -r -a lignes <<<"${cas%%|*}"
     printf '%s\n' "${lignes[@]}" >"$etat/compose.env"
     attendus="$fichiers"
@@ -914,6 +918,8 @@ messages_du_journal() {
   [[ "$output" == *"environnement inconnu"* ]]
 }
 
+# L'empreinte du relais du staging (lot 19) aussi : posée dans le shell, elle remplacerait celle de
+# compose.env dans l'étiquette du service, et le relais ne suivrait plus son script.
 @test "refuser_image_heritee_refuse_image_et_version_du_shell" {
   avec_lib 'refuser_image_heritee; echo ok'
   [ "$status" -eq 0 ]
@@ -923,6 +929,13 @@ messages_du_journal() {
   ANCRAGE_VERSION="" avec_lib 'refuser_image_heritee'
   [ "$status" -eq 1 ]
   [[ "$output" == *"ANCRAGE_VERSION est posée dans l'environnement"* ]]
+  ANCRAGE_RELAIS=x avec_lib 'refuser_image_heritee; echo pas de refus'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"ANCRAGE_RELAIS est posée dans l'environnement : elle prendrait le pas sur compose.env"* ]]
+  [[ "$output" != *"pas de refus"* ]]
+  ANCRAGE_RELAIS="" avec_lib 'refuser_image_heritee'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"ANCRAGE_RELAIS est posée dans l'environnement"* ]]
 }
 
 # Les montages de l'instantané aussi : compose prend ANCRAGE_CONFIG et ANCRAGE_CONTENU du shell avant

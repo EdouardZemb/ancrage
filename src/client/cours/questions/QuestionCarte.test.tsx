@@ -246,6 +246,17 @@ describe('QuestionCarte', () => {
     expect(screen.getByText(AIDE)).toBeTruthy();
   });
 
+  it('l_aide_d_une_saisie_fausse_est_dans_la_carte_avant_weiter', () => {
+    rendreDansLeCours(<Posee unite={AVEC_AIDE} saisie onReponse={vi.fn()} />, contexteDeTest());
+    saisir('Zimbolwesp');
+
+    const aide = bloc() as Element;
+    const suivante = screen.getByRole('button', { name: t.cartes_suivante });
+    expect(aide.closest('.card')).not.toBeNull();
+    expect(aide.closest('.card')?.contains(suivante)).toBe(true);
+    expect(aide.compareDocumentPosition(suivante)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
   it('une_saisie_presque_juste_montre_l_aide', () => {
     rendreDansLeCours(<Posee unite={AVEC_AIDE} saisie onReponse={vi.fn()} />, contexteDeTest());
 

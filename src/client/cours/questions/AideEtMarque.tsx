@@ -23,7 +23,7 @@ export function AideDeLElement(props: { aide: AideDeCarte | undefined }) {
   const texte = aide?.texte?.trim() ? aide.texte : undefined;
   if (aide === undefined || (texte === undefined && aide.confusion === undefined)) return null;
   return (
-    <div class="aide">
+    <div class="aide" role="status">
       <b class="kind">{t.aide_titre}</b>
       {texte !== undefined && <p>{texte}</p>}
       {aide.confusion !== undefined && (

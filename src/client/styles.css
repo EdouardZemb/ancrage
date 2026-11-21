@@ -917,6 +917,12 @@ p.rebelle {
   margin: 2px 0 0;
 }
 
+/* Dans une carte (grille centrée), l'aide prend toute la largeur, alignée à gauche. */
+.card .aide {
+  justify-self: stretch;
+  margin: 0;
+}
+
 /* Le lien de pose de « Heute » : toute la ligne se touche. */
 p.muted > .linkbtn {
   display: inline-flex;

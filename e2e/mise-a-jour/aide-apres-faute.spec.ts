@@ -2,9 +2,10 @@
  * L'aide d'une carte après une faute (M9), de bout en bout : dans Karteikarten, sur le premier
  * module de cartes du cours d'exemple, dans le sens « Bedeutung → Begriff » avec la saisie cochée,
  * un compte neuf donne une réponse fausse à chacune des neuf cartes. Après le verdict, les deux
- * cartes qui portent une aide (« Sieb » et « Reibe »,
- * `exemple-contenu/kueche/cartes/01-geraete.yaml`) la montrent, avec la confusion pour la première ; les sept autres n'en montrent aucune. Aucune de
- * ces cartes n'est un élément rebelle : l'aide vient de la faute seule.
+ * cartes qui portent une aide, « Sieb » et « Reibe »
+ * (`exemple-contenu/kueche/cartes/01-geraete.yaml`), la montrent, avec la confusion pour la
+ * première ; les sept autres n'en montrent aucune. Aucune de ces cartes n'est un élément rebelle :
+ * l'aide vient de la faute seule.
  *
  * Il tourne avec les tests des deux versions (`pnpm e2e:mise-a-jour`), sur son compte et sa base :
  * le lien du propriétaire de la suite principale ne sert qu'une fois (`compte-neuf.ts`).

@@ -25,6 +25,7 @@ function Posee(props: {
   saisie?: boolean;
   onReponse(juste: boolean): void;
   onEtat?(e: EtatDeCarte): void;
+  rebelle?: boolean;
 }) {
   const [etat, setEtat] = useState<EtatDeCarte>(ETAT_DE_CARTE_NEUF);
   return (
@@ -37,6 +38,7 @@ function Posee(props: {
         props.onEtat?.(e);
       }}
       onReponse={props.onReponse}
+      rebelle={props.rebelle}
     />
   );
 }
@@ -48,6 +50,14 @@ const LONG = {
   question: 'Tierchen im Brummelwald',
   reponse: 'Murmelkrat',
 };
+
+const AIDE = 'Ein Murmelkrat brummt im Wald.';
+const AVEC_AIDE = { ...LONG, aide: AIDE };
+const GRUENWURM = { ...LONG, id: 'c9000002:inverse', question: 'Gartentier', reponse: 'Grünwurm' };
+const GRUENWURM_AIDE = { ...GRUENWURM, aide: AIDE };
+
+/** Le bloc de l'aide, ou `null` : la classe que rend `AideDeLElement`. */
+const bloc = () => document.querySelector('.aide');
 
 function saisir(valeur: string) {
   fireEvent.input(screen.getByLabelText(t.cartes_saisie_etiquette), { target: { value: valeur } });
@@ -208,5 +218,89 @@ describe('QuestionCarte', () => {
     saisir('MURMELKRAT');
     expect(container.querySelectorAll('.verdict span')).toHaveLength(1);
     expect(container.querySelector('s')).toBeNull();
+  });
+  it('une_carte_retournee_montre_son_aide_au_verso_sans_etre_rebelle', () => {
+    rendreDansLeCours(<Posee unite={AVEC_AIDE} onReponse={vi.fn()} />, contexteDeTest());
+    expect(bloc()).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: t.cartes_retourner }));
+
+    expect(screen.getByText(t.aide_titre)).toBeTruthy();
+    expect(screen.getByText(AIDE)).toBeTruthy();
+    const carte = document.querySelector('.card') as HTMLElement;
+    const reponses = document.querySelector('.answer') as HTMLElement;
+    expect(carte.compareDocumentPosition(bloc() as Element)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(
+      (bloc() as Element).compareDocumentPosition(reponses) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('une_saisie_fausse_montre_l_aide_avec_le_verdict', () => {
+    rendreDansLeCours(<Posee unite={AVEC_AIDE} saisie onReponse={vi.fn()} />, contexteDeTest());
+    expect(bloc()).toBeNull();
+
+    saisir('Zimbolwesp');
+
+    expect(screen.getByText(t.cartes_fausse)).toBeTruthy();
+    expect(screen.getByText(t.aide_titre)).toBeTruthy();
+    expect(screen.getByText(AIDE)).toBeTruthy();
+  });
+
+  it('une_saisie_presque_juste_montre_l_aide', () => {
+    rendreDansLeCours(<Posee unite={AVEC_AIDE} saisie onReponse={vi.fn()} />, contexteDeTest());
+
+    saisir('Murmelkrattt');
+
+    expect(screen.getByText(t.cartes_presque)).toBeTruthy();
+    expect(screen.getByText(AIDE)).toBeTruthy();
+  });
+
+  it('une_saisie_juste_ne_montre_pas_l_aide', () => {
+    rendreDansLeCours(<Posee unite={AVEC_AIDE} saisie onReponse={vi.fn()} />, contexteDeTest());
+
+    saisir('murmelkrat');
+
+    expect(screen.getByText(t.cartes_juste)).toBeTruthy();
+    expect(bloc()).toBeNull();
+  });
+
+  it('une_saisie_toleree_ne_montre_pas_l_aide_sauf_a_un_rebelle', () => {
+    const cas: [typeof AVEC_AIDE, string, string][] = [
+      [AVEC_AIDE, 'Murmelkat', t.cartes_frappe],
+      [GRUENWURM_AIDE, 'Grunwurm', t.cartes_frappe],
+      [GRUENWURM_AIDE, 'Gruenwurm', t.cartes_juste],
+    ];
+    for (const rebelle of [false, true]) {
+      for (const [unite, saisie, verdict] of cas) {
+        cleanup();
+        rendreDansLeCours(
+          <Posee unite={unite} saisie rebelle={rebelle} onReponse={vi.fn()} />,
+          contexteDeTest(),
+        );
+        saisir(saisie);
+        expect(screen.getByText(verdict)).toBeTruthy();
+        expect(bloc() !== null).toBe(rebelle);
+      }
+    }
+  });
+
+  it('une_carte_sans_aide_ne_montre_rien_apres_une_faute', () => {
+    rendreDansLeCours(<Posee unite={LONG} saisie onReponse={vi.fn()} />, contexteDeTest());
+
+    saisir('Zimbolwesp');
+
+    expect(screen.getByText(t.cartes_fausse)).toBeTruthy();
+    expect(bloc()).toBeNull();
+  });
+
+  it('la_confusion_s_affiche_apres_une_faute_sans_etre_rebelle', () => {
+    const confondue = { ...LONG, confonduAvec: HERZ.id };
+    rendreDansLeCours(<Posee unite={confondue} saisie onReponse={vi.fn()} />, contexteDeTest());
+
+    saisir('Zimbolwesp');
+
+    expect(screen.getByText(t.cartes_fausse)).toBeTruthy();
+    expect(screen.getByText(/Nicht verwechseln mit:/)).toBeTruthy();
+    expect(screen.getByText(HERZ.question)).toBeTruthy();
   });
 });

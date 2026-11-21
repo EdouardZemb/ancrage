@@ -354,7 +354,15 @@ describe('Heute, les rebelles', () => {
   });
 });
 
-describe('Heute, l_aide du rebelle', () => {
+/** L'aide de Herz et sa confusion avec Leber, montrées sous la carte retournée. */
+function verAideEtConfusion(): void {
+  expect(screen.getByText(t.aide_titre)).toBeTruthy();
+  expect(screen.getByText('Herz pumpt, Leber filtert.')).toBeTruthy();
+  expect(screen.getByText(/Nicht verwechseln mit:/)).toBeTruthy();
+  expect(screen.getByText('Leber')).toBeTruthy();
+}
+
+describe('Heute, l_aide d_un element', () => {
   it('une_carte_retournee_montre_l_aide_au_verso_et_pas_au_recto', () => {
     rendreDansLeCours(<Heute />, contexteDe({ cours: coursAvecAide(), evenements: rebelle(HERZ) }));
     expect(screen.queryByText(t.aide_titre)).toBeNull();
@@ -362,10 +370,7 @@ describe('Heute, l_aide du rebelle', () => {
 
     cliquer(t.cartes_retourner);
 
-    expect(screen.getByText(t.aide_titre)).toBeTruthy();
-    expect(screen.getByText('Herz pumpt, Leber filtert.')).toBeTruthy();
-    expect(screen.getByText(/Nicht verwechseln mit:/)).toBeTruthy();
-    expect(screen.getByText('Leber')).toBeTruthy();
+    verAideEtConfusion();
   });
 
   it('une_carte_saisie_montre_l_aide_avec_le_verdict_juste_ou_faux', () => {
@@ -390,13 +395,38 @@ describe('Heute, l_aide du rebelle', () => {
     }
   });
 
-  it('un_element_qui_n_est_pas_rebelle_n_a_pas_d_aide', () => {
+  it('une_carte_retournee_qui_n_est_pas_rebelle_montre_son_aide_au_verso', () => {
     rendreDansLeCours(<Heute />, contexteDe({ cours: coursAvecAide(), evenements: fragile(HERZ) }));
+    expect(screen.queryByText(t.aide_titre)).toBeNull();
 
     cliquer(t.cartes_retourner);
 
+    verAideEtConfusion();
+  });
+
+  it('une_carte_saisie_qui_n_est_pas_rebelle_montre_l_aide_apres_une_faute_seulement', () => {
+    const poser = (saisie: string) => {
+      rendreDansLeCours(
+        <Heute />,
+        contexteDe({
+          cours: coursAvecAide(),
+          evenements: fragile(`${HERZ}:inverse`),
+          saisie: true,
+        }),
+      );
+      fireEvent.input(screen.getByLabelText(t.cartes_saisie_etiquette), {
+        target: { value: saisie },
+      });
+      cliquer(t.cartes_verifier);
+    };
+    poser('Nichts');
+    expect(screen.getByText(t.cartes_fausse)).toBeTruthy();
+    expect(screen.getByText('Herz pumpt, Leber filtert.')).toBeTruthy();
+    cleanup();
+
+    poser('Herz');
+    expect(screen.getByText(t.cartes_juste)).toBeTruthy();
     expect(screen.queryByText(t.aide_titre)).toBeNull();
-    expect(screen.queryByText('Herz pumpt, Leber filtert.')).toBeNull();
   });
 
   it('un_rebelle_sans_aide_n_affiche_rien_de_plus', () => {
@@ -445,12 +475,47 @@ describe('Heute, l_aide du rebelle', () => {
     expect(screen.getByText('Der Magen ist ein Hohlorgan.')).toBeTruthy();
   });
 
-  it('un_vrai_faux_qui_n_est_pas_rebelle_ne_montre_pas_sa_correction_ici', () => {
+  it('un_vrai_faux_qui_n_est_pas_rebelle_montre_sa_correction_apres_une_faute_seulement', () => {
     rendreDansLeCours(<Heute />, contexteDe({ evenements: fragile(MAGEN_FAUX) }));
+    expect(screen.queryByText('Der Magen ist ein Hohlorgan.')).toBeNull();
 
     choisir(t.feuille_richtig);
 
+    expect(screen.getByText('Der Magen ist ein Hohlorgan.')).toBeTruthy();
+    cleanup();
+
+    rendreDansLeCours(<Heute />, contexteDe({ evenements: fragile(MAGEN_FAUX) }));
+    choisir(t.feuille_falsch);
+
+    expect(document.querySelector('.options .right')).not.toBeNull();
+    expect(document.querySelector('.options .wrong')).toBeNull();
     expect(screen.queryByText('Der Magen ist ein Hohlorgan.')).toBeNull();
+  });
+
+  it('un_point_qui_n_est_pas_rebelle_montre_la_note_apres_une_faute_seulement', () => {
+    rendreDansLeCours(<Heute />, contexteDe({ evenements: fragile(MITTE) }));
+    expect(screen.queryByText('Übungsschema ohne Vorbild')).toBeNull();
+
+    choisir('Rand');
+
+    expect(screen.getByText(t.verdict_fausse)).toBeTruthy();
+    expect(screen.getByText('Übungsschema ohne Vorbild')).toBeTruthy();
+    cleanup();
+
+    rendreDansLeCours(<Heute />, contexteDe({ evenements: fragile(MITTE) }));
+    choisir('Mitte');
+
+    expect(screen.getByText(t.verdict_juste)).toBeTruthy();
+    expect(screen.queryByText('Übungsschema ohne Vorbild')).toBeNull();
+  });
+
+  it('un_vrai_faux_rebelle_montre_sa_correction_apres_une_reponse_juste', () => {
+    rendreDansLeCours(<Heute />, contexteDe({ evenements: rebelle(MAGEN_FAUX) }));
+
+    choisir(t.feuille_falsch);
+
+    expect(document.querySelector('.options .wrong')).toBeNull();
+    expect(screen.getByText('Der Magen ist ein Hohlorgan.')).toBeTruthy();
   });
 });
 

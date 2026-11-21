@@ -12,6 +12,7 @@ import { useCours } from '../contexte-cours.js';
 import { DessinSchema } from '../DessinSchema.js';
 import { formater } from '../textes-cours.js';
 import { AideDeLElement, MarqueDeRebelle } from './AideEtMarque.js';
+import { montrerLAide } from './montrer-l-aide.js';
 
 /** Les touches 1 à 4 choisissent le premier à le quatrième nom (H:2248). */
 const NUMEROS_D_OPTIONS = ['1', '2', '3', '4'];
@@ -33,7 +34,7 @@ export function QuestionDeSchema(props: {
   suivante(): void;
   /** Un élément rebelle (M6) : sa question porte « schwierig ». */
   rebelle?: boolean;
-  /** Le texte montré à un rebelle une fois répondu (la note du schéma, dans « Heute »). */
+  /** Le texte montré une fois répondu, après une faute ou à un rebelle (la note, dans « Heute »). */
   aide?: string;
 }) {
   const { schema, mode, tache, repondre, suivante, rebelle, aide } = props;
@@ -68,7 +69,9 @@ export function QuestionDeSchema(props: {
         </b>
         <span class="muted">{point.sens}</span>
       </div>
-      {rebelle === true && aide !== undefined && <AideDeLElement aide={{ texte: aide }} />}
+      {aide !== undefined && montrerLAide(rebelle === true, juste) && (
+        <AideDeLElement aide={{ texte: aide }} />
+      )}
       <button type="button" class="primary" ref={focaliser} onClick={suivante}>
         {t.suivante}
       </button>

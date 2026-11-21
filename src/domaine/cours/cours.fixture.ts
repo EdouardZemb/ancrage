@@ -477,3 +477,18 @@ export function coursAvecChampsDeCarte(
     ),
   };
 }
+
+/** Le cours, chaque carte avec une aide inventée tirée de son identifiant (« Merkhilfe <id> »). */
+export function coursAvecUneAideParCarte(servi: CoursServi): CoursServi {
+  return {
+    ...servi,
+    modules: servi.modules.map((module) =>
+      module.type === 'cartes'
+        ? {
+            ...module,
+            cartes: module.cartes.map((carte) => ({ ...carte, aide: `Merkhilfe ${carte.id}` })),
+          }
+        : module,
+    ),
+  };
+}

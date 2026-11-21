@@ -7,6 +7,7 @@ import {
   CHAPITRE_2,
   coursAvecChapitreAuManuelInconnu,
   coursAvecManuels,
+  coursAvecUneAideParCarte,
   coursServiDeTest,
 } from '../../../domaine/cours/cours.fixture.js';
 import type { CoursServi } from '../../../domaine/cours/servi.js';
@@ -220,6 +221,36 @@ describe('Cartes', () => {
 
     expect(contexte.enregistrer).toHaveBeenCalledTimes(3);
     expect(screen.getByText(`1 von 3 richtig. ${t.cartes_retour_des_dues}`)).toBeTruthy();
+  });
+
+  it('karteikarten_montre_l_aide_au_verso_et_apres_une_saisie_fausse', () => {
+    const aide = `Merkhilfe ${HERZ}`;
+    const cours = coursAvecUneAideParCarte(coursAvec([HERZ]));
+    const avec = (sens: 'direct' | 'inverse') => {
+      const contexte = contexteDeTest({ cours });
+      contexte.preferences = {
+        ...contexte.preferences,
+        cartes: { chapitre: CHAPITRE_1, sens, saisie: true, saisieChoisie: false },
+      };
+      return contexte;
+    };
+    rendreDansLeCours(<Cartes />, avec('direct'));
+    expect(screen.queryByText(aide)).toBeNull();
+    retourner();
+    expect(screen.getByText(t.aide_titre)).toBeTruthy();
+    expect(screen.getByText(aide)).toBeTruthy();
+    cleanup();
+
+    rendreDansLeCours(<Cartes />, avec('inverse'));
+    taper('Leber');
+    expect(screen.getByText(t.cartes_fausse)).toBeTruthy();
+    expect(screen.getByText(aide)).toBeTruthy();
+    cleanup();
+
+    rendreDansLeCours(<Cartes />, avec('inverse'));
+    taper('herz');
+    expect(screen.getByText(t.cartes_juste)).toBeTruthy();
+    expect(document.querySelector('.aide')).toBeNull();
   });
 
   it('saisie_envoyee_par_entree_dans_le_champ', () => {

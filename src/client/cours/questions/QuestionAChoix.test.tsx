@@ -12,6 +12,7 @@ import { QuestionAChoix, type QuestionDeChoix, questionDeLElement } from './Ques
 afterEach(cleanup);
 
 const t = TEXTES_COURS.de;
+const AIDE = 'Eine Merkhilfe zum Testen.';
 
 function question(choisie: number | null = null): QuestionDeChoix {
   return {
@@ -23,11 +24,19 @@ function question(choisie: number | null = null): QuestionDeChoix {
   };
 }
 
-function poser(q: QuestionDeChoix, onChoix = vi.fn(), onSuivante = vi.fn(), sansFaute = false) {
+function poser(
+  q: QuestionDeChoix,
+  onChoix = vi.fn(),
+  onSuivante = vi.fn(),
+  sansFaute = false,
+  extra: { aide?: string; rebelle?: boolean } = {},
+) {
   rendreDansLeCours(
     <QuestionAChoix
       question={q}
       sansFaute={sansFaute}
+      aide={extra.aide}
+      rebelle={extra.rebelle}
       libelleSuivante="Weiter"
       onChoix={onChoix}
       onSuivante={onSuivante}
@@ -107,5 +116,41 @@ describe('QuestionAChoix', () => {
       expect(q.options).toContain(q.reponse);
       expect(q.id).toBe(element.genre === 'qcm' ? element.question.id : element.affirmation.id);
     }
+  });
+  it('une_faute_montre_l_aide_sans_etre_rebelle', () => {
+    poser(question(0), vi.fn(), vi.fn(), false, { aide: AIDE });
+    expect(boutons().map((b) => b.className)).toEqual(['wrong', 'right', '']);
+    expect(screen.getByText(t.aide_titre)).toBeTruthy();
+    expect(screen.getByText(AIDE)).toBeTruthy();
+  });
+
+  it('une_reponse_juste_ne_montre_pas_l_aide_sauf_a_un_rebelle', () => {
+    poser(question(1), vi.fn(), vi.fn(), false, { aide: AIDE });
+    expect(boutons().map((b) => b.className)).toEqual(['', 'right', '']);
+    expect(document.querySelector('.aide')).toBeNull();
+    cleanup();
+    poser(question(1), vi.fn(), vi.fn(), false, { aide: AIDE, rebelle: true });
+    expect(boutons().map((b) => b.className)).toEqual(['', 'right', '']);
+    expect(screen.getByText(AIDE)).toBeTruthy();
+  });
+
+  it('l_aide_attend_la_reponse', () => {
+    for (const rebelle of [false, true]) {
+      cleanup();
+      poser(question(), vi.fn(), vi.fn(), false, { aide: AIDE, rebelle });
+      expect(screen.getByText(t.quiz_touches)).toBeTruthy();
+      expect(document.querySelector('.aide')).toBeNull();
+      expect(screen.queryByText(AIDE)).toBeNull();
+    }
+  });
+
+  it('sans_aide_rien_ne_s_affiche_apres_une_faute', () => {
+    poser(question(0));
+    expect(boutons().map((b) => b.className)).toEqual(['wrong', 'right', '']);
+    expect(document.querySelector('.aide')).toBeNull();
+    cleanup();
+    poser(question(0), vi.fn(), vi.fn(), false, { aide: '' });
+    expect(boutons().map((b) => b.className)).toEqual(['wrong', 'right', '']);
+    expect(document.querySelector('.aide')).toBeNull();
   });
 });

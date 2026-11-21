@@ -22,6 +22,7 @@ import {
 } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
 import { AideDeLElement, MarqueDeRebelle } from './AideEtMarque.js';
+import { montrerLAide } from './montrer-l-aide.js';
 
 /** Les touches 1 à 4 choisissent la première à la quatrième option (H:2245). */
 const NUMEROS_D_OPTIONS = ['1', '2', '3', '4'];
@@ -64,7 +65,10 @@ export function QuestionAChoix(props: {
   onSuivante(): void;
   /** Un élément rebelle (M6) : sa question porte « schwierig ». Jamais dans le Quiz ni la Prüfung. */
   rebelle?: boolean;
-  /** Le texte montré à un rebelle une fois répondu (la `correction`, dans « Heute »). */
+  /**
+   * Le texte montré une fois répondu, après une faute ou à un rebelle (la `correction`, dans
+   * « Heute »). Le Quiz et le pré-test n'en donnent pas.
+   */
   aide?: string;
 }) {
   const { question, libelleSuivante, sansFaute, onChoix, onSuivante, rebelle, aide } = props;
@@ -103,9 +107,11 @@ export function QuestionAChoix(props: {
             : { choisie: question.choisie, reponse: libelle(question.reponse) }
         }
       />
-      {question.choisie !== null && rebelle === true && aide !== undefined && (
-        <AideDeLElement aide={{ texte: aide }} />
-      )}
+      {question.choisie !== null &&
+        aide !== undefined &&
+        montrerLAide(rebelle === true, question.options[question.choisie] === question.reponse) && (
+          <AideDeLElement aide={{ texte: aide }} />
+        )}
       {question.choisie === null ? (
         <p class="kbd">{t.quiz_touches}</p>
       ) : (

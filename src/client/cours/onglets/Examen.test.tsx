@@ -7,6 +7,7 @@ import {
   coursAvecChapitreAuManuelInconnu,
   coursAvecManuels,
   coursAvecReglages,
+  coursAvecUneAideParCarte,
   coursSans,
   coursServiDeTest,
 } from '../../../domaine/cours/cours.fixture.js';
@@ -978,6 +979,22 @@ describe('Examen', () => {
 
       expect(vi.mocked(contexte.enregistrerExamen).mock.lastCall?.[0].minutes).toBe(4);
       expect(screen.getByText('0 von 20 Punkten (0 %) · 4 Min.')).toBeTruthy();
+    });
+
+    it('la_pruefung_ne_montre_aucune_aide', () => {
+      const contexte = contexteDe({ cours: coursAvecUneAideParCarte(coursServiDeTest()) });
+      rendreDansUnCoursVivant(<Examen />, contexte);
+      demarrer();
+      expect(document.querySelector('.aide')).toBeNull();
+      toutSauter();
+      cliquer(t.examen_abgeben);
+
+      expect(screen.getByText('0 von 20 Punkten (0 %) · 1 Min.')).toBeTruthy();
+      expect(screen.getByRole('heading', { name: /^Fehler \(\d+\)$/ })).toBeTruthy();
+      expect(document.querySelectorAll('.fautes > div').length).toBeGreaterThan(0);
+      expect(document.querySelector('.aide')).toBeNull();
+      expect(screen.queryByText(t.aide_titre)).toBeNull();
+      expect(screen.queryByText(/Merkhilfe/)).toBeNull();
     });
 
     it('remise_immediate_compte_une_minute', () => {

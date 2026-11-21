@@ -7,6 +7,7 @@ import {
   CHAPITRE_2,
   coursAvecChapitreAuManuelInconnu,
   coursAvecManuels,
+  coursAvecUneAideParCarte,
   coursServiDeTest,
 } from '../../../domaine/cours/cours.fixture.js';
 import type { CoursServi } from '../../../domaine/cours/servi.js';
@@ -347,6 +348,37 @@ describe('Quiz', () => {
 
     expect(contexte.enregistrer).toHaveBeenCalledWith('fb000008', true, 'choix');
     expect(progression()).toBe('1 / 1 richtig');
+  });
+
+  it('le_quiz_ne_montre_aucune_aide_apres_une_faute', () => {
+    const contexte = contexteDeTest({ cours: coursAvecUneAideParCarte(coursAvec(CINQ)) });
+    contexte.preferences = {
+      ...contexte.preferences,
+      quiz: { chapitre: CHAPITRE_1, sens: 'direct' },
+    };
+    rendreDansLeCours(<Quiz />, contexte);
+    const unite = uniteAffichee(contexte);
+    fireEvent.click(selon(unite).fausses[0]);
+
+    expect(document.querySelector('.options .wrong')).not.toBeNull();
+    expect(document.querySelector('.aide')).toBeNull();
+    expect(screen.queryByText(t.aide_titre)).toBeNull();
+    expect(screen.queryByText(/Merkhilfe/)).toBeNull();
+    cleanup();
+
+    // Au Quiz des fiches, une affirmation fausse qui porte une correction : elle n'est pas montrée.
+    const fiches = contexteDe(CINQ, { chapitre: 'feuilles' });
+    fiches.hasard = hasardScripte([0.9]);
+    rendreDansLeCours(<Quiz />, fiches);
+    expect(document.querySelector('.card .front')?.textContent).toBe(
+      'Der Magen ist ein paariges Organ.',
+    );
+    fireEvent.click(boutons()[0]);
+
+    expect(fiches.enregistrer).toHaveBeenCalledWith('fb000009', false, 'choix');
+    expect(document.querySelector('.options .wrong')).not.toBeNull();
+    expect(screen.queryByText('Der Magen ist ein Hohlorgan.')).toBeNull();
+    expect(document.querySelector('.aide')).toBeNull();
   });
 });
 

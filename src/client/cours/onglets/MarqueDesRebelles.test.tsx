@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, screen } from '@testing-library/preact';
+import { cleanup, fireEvent, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { coursServiDeTest } from '../../../domaine/cours/cours.fixture.js';
 import { preparerCours } from '../../../domaine/cours/prepare.js';
@@ -13,7 +13,7 @@ import { Cartes } from './Cartes.js';
 import { Examen } from './Examen.js';
 import { Exercices } from './Exercices.js';
 import { Mots } from './Mots.js';
-import { cliquer } from './onglets.fixture.js';
+import { boutons, cliquer, texteDe } from './onglets.fixture.js';
 import { Quiz } from './Quiz.js';
 import { Schemas } from './Schemas.js';
 
@@ -89,6 +89,23 @@ describe('la marque des rebelles dans les onglets', () => {
 
     expect(screen.getAllByText('Übungsschema ohne Vorbild')).toHaveLength(1);
     expect(screen.queryByText(t.aide_titre)).toBeNull();
+  });
+
+  it('la_note_d_un_schema_n_est_pas_repetee_apres_une_faute', () => {
+    rendreDansLeCours(<Schemas />, contexteRebelle([]));
+    const numero = /Nummer (\d+)/.exec(document.querySelector('.card p')?.textContent ?? '');
+    const cible = Number(numero?.[1]) - 1;
+    const juste = coursServiDeTest().modules.flatMap((m) => (m.type === 'schema' ? m.points : []))[
+      cible
+    ].terme;
+    fireEvent.click(
+      boutons().find((b) => texteDe(b) !== juste && b.textContent !== '') as HTMLButtonElement,
+    );
+
+    expect(screen.getByText(t.verdict_fausse)).toBeTruthy();
+    expect(screen.getAllByText('Übungsschema ohne Vorbild')).toHaveLength(1);
+    expect(screen.queryByText(t.aide_titre)).toBeNull();
+    expect(document.querySelector('.aide')).toBeNull();
   });
 });
 

@@ -1,7 +1,11 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CHAPITRE_2, coursServiDeTest } from '../../../domaine/cours/cours.fixture.js';
+import {
+  CHAPITRE_2,
+  coursAvecUneAideParCarte,
+  coursServiDeTest,
+} from '../../../domaine/cours/cours.fixture.js';
 import { preparerCours } from '../../../domaine/cours/prepare.js';
 import { hasardDeterministe } from '../../../domaine/hasard.js';
 import { type PretestPropose, questionsDuPretest } from '../../../domaine/seances/pretest.js';
@@ -104,6 +108,30 @@ describe('PretestDeHeute', () => {
     expect(screen.getByText(t.heute_pretest_danach)).toBeTruthy();
     // Aucun verdict ni compte : seul le rang de la question se dit.
     expect(document.body.textContent).not.toMatch(/richtig|falsch|fehler/i);
+  });
+
+  it('le_pre_test_ne_montre_aucune_aide_apres_une_faute', () => {
+    const servi = coursAvecUneAideParCarte(coursServiDeTest());
+    const avecAide = preparerCours(servi);
+    const unites = avecAide.unites.filter(
+      ({ module, sens }) => module === CHAPITRE_2 && sens === 'direct',
+    );
+    const base = demarrerPretest(
+      { etape, neuves: unites, pool: unites },
+      avecAide,
+      hasardDeterministe(3),
+    );
+    const mauvaise = base.questions[0]?.options.findIndex((o) => o !== bonne(base)) ?? -1;
+    const questions = base.questions.map((q, i) => (i === 0 ? { ...q, choisie: mauvaise } : q));
+    rendreDansLeCours(
+      <PretestDeHeute etat={{ ...base, questions, faites: 1 }} changer={vi.fn()} />,
+      contexteDeTest({ cours: servi }),
+    );
+
+    expect(screen.getByText(t.heute_pretest_danach)).toBeTruthy();
+    expect(document.querySelector('.aide')).toBeNull();
+    expect(screen.queryByText(t.aide_titre)).toBeNull();
+    expect(screen.queryByText(/Merkhilfe/)).toBeNull();
   });
 
   it('la_suite_avance_d_une_question_sans_rien_enregistrer', () => {

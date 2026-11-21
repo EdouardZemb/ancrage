@@ -135,4 +135,28 @@ describe('TacheAChoix', () => {
       [[{ id: 'fb000034', juste: true, mode: 'choix' }]],
     ]);
   });
+
+  it('vrai_faux_affiche_la_correction_apres_un_choix_juste_aussi', () => {
+    const tache: Extract<Tache, { genre: 'vrai-faux' }> = {
+      id: 'fa000036',
+      genre: 'vrai-faux',
+      consigne: 'Richtig oder falsch?',
+      affirmations: [
+        {
+          id: 'fb000036',
+          affirmation: 'Der Topf ist ein Besteck.',
+          vrai: false,
+          correction: 'Der Topf ist ein Kochgeschirr mit Deckel.',
+          statut: 'source',
+        },
+      ],
+    };
+    rendreDansLeCours(<TacheVraiFaux tache={tache} onRepondu={vi.fn()} />, contexteDeTest());
+    expect(screen.queryByText('Der Topf ist ein Kochgeschirr mit Deckel.')).toBeNull();
+
+    choisirDans('Der Topf ist ein Besteck.', 'Falsch');
+
+    expect(optionsDe('Der Topf ist ein Besteck.').map((x) => x.className)).toEqual(['', 'right']);
+    expect(screen.getByText('Der Topf ist ein Kochgeschirr mit Deckel.')).toBeTruthy();
+  });
 });

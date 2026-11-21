@@ -78,8 +78,8 @@ export function QuestionCarte(props: {
   // La marque est au-dessus de la carte, en bloc : l'`aria-label` d'une carte à retourner cacherait
   // ce qui est dedans à un lecteur d'écran.
   const marque = rebelle === true && <MarqueDeRebelle bloc />;
-  // L'aide ne vient qu'après la recherche : au verso d'une carte retournée, et avec le verdict d'une
-  // saisie fausse, ou juste pour un rebelle (M9-D1). Une faute de frappe tolérée est juste.
+  // L'aide ne vient qu'après la recherche : au verso d'une carte retournée, et avec le verdict
+  // d'une saisie fausse, ou juste pour un rebelle (M9-D1). Une faute de frappe tolérée est juste.
   const aide = aideDeLUnite(unite, cours.unites);
 
   if (saisieAttendue) {

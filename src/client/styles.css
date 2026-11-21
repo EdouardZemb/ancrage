@@ -901,7 +901,7 @@ form.typed input {
   padding: 2px;
 }
 
-/* L'étiquette d'un rebelle (M6) au-dessus de sa question, et l'aide d'un élément une fois répondu. */
+/* L'étiquette d'un rebelle (M6) sur sa question ; l'aide d'un élément, une fois répondu. */
 p.rebelle {
   margin: 0 0 4px;
 }

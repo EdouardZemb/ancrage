@@ -14,7 +14,7 @@ export function MarqueDeRebelle(props: { bloc?: boolean }) {
   return props.bloc ? <p class="rebelle">{marque}</p> : marque;
 }
 
-/** L'aide d'un élément : son texte sous « Merkhilfe », puis la carte avec laquelle on le confond. */
+/** L'aide d'un élément : son texte sous « Merkhilfe », puis la carte qu'on confond avec lui. */
 export function AideDeLElement(props: { aide: AideDeCarte | undefined }) {
   const { t } = useCours();
   const { aide } = props;

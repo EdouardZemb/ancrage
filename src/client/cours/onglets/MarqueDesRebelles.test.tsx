@@ -91,13 +91,18 @@ describe('la marque des rebelles dans les onglets', () => {
     expect(screen.queryByText(t.aide_titre)).toBeNull();
   });
 
-  it('la_note_d_un_schema_n_est_pas_repetee_apres_une_faute', () => {
-    rendreDansLeCours(<Schemas />, contexteRebelle([]));
-    const numero = /Nummer (\d+)/.exec(document.querySelector('.card p')?.textContent ?? '');
+  it.each([
+    ['sans_rebelle', []],
+    ['avec_un_rebelle', toutRebelle()],
+  ])('la_note_d_un_schema_n_est_pas_repetee_apres_une_faute_%s', (_nom, evenements) => {
+    const contexte = contexteRebelle(evenements);
+    rendreDansLeCours(<Schemas />, contexte);
+    const motif = new RegExp(t.schemas_nummer.replace('{n}', '(\\d+)'));
+    const numero = motif.exec(document.querySelector('.card p')?.textContent ?? '');
     const cible = Number(numero?.[1]) - 1;
-    const juste = coursServiDeTest().modules.flatMap((m) => (m.type === 'schema' ? m.points : []))[
-      cible
-    ].terme;
+    const [schema] = contexte.cours.schemas;
+    if (schema === undefined) throw new Error('cours de test changé');
+    const juste = schema.points[cible].terme;
     fireEvent.click(
       boutons().find((b) => texteDe(b) !== juste && b.textContent !== '') as HTMLButtonElement,
     );

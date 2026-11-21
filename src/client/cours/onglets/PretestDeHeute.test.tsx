@@ -122,6 +122,7 @@ describe('PretestDeHeute', () => {
       hasardDeterministe(3),
     );
     const mauvaise = base.questions[0]?.options.findIndex((o) => o !== bonne(base)) ?? -1;
+    expect(mauvaise).toBeGreaterThanOrEqual(0);
     const questions = base.questions.map((q, i) => (i === 0 ? { ...q, choisie: mauvaise } : q));
     rendreDansLeCours(
       <PretestDeHeute etat={{ ...base, questions, faites: 1 }} changer={vi.fn()} />,

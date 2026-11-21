@@ -26,10 +26,11 @@ import { type EtatDeHeute, Heute } from './Heute.js';
 import { boutons, choisir, cliquer, progression, texteDe } from './onglets.fixture.js';
 
 /*
- * Les éléments rebelles dans « Heute » (M6, tranche 2) : un rebelle ne passe qu'une fois par jour,
- * porte « schwierig » et montre son aide une fois qu'il a cherché. Le cours de test prend un seuil
- * de 2 fautes : une unité juste, puis fausse deux jours différents, est rebelle. Données factices,
- * écrites à la main (invariant 7).
+ * Les éléments rebelles dans « Heute » (M6, tranche 2) : un rebelle ne passe qu'une fois par jour
+ * et porte « schwierig ». Son aide se montre après toute réponse ; celle d'un élément qui n'est pas
+ * rebelle, après une faute seulement (M9). Le cours de test prend un seuil de 2 fautes : une unité
+ * juste, puis fausse deux jours différents, est rebelle. Données factices, écrites à la main
+ * (invariant 7).
  */
 
 afterEach(cleanup);

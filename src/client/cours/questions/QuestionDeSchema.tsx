@@ -34,7 +34,7 @@ export function QuestionDeSchema(props: {
   suivante(): void;
   /** Un élément rebelle (M6) : sa question porte « schwierig ». */
   rebelle?: boolean;
-  /** Le texte montré une fois répondu, après une faute ou à un rebelle (la note, dans « Heute »). */
+  /** Le texte montré une fois répondu, après une faute ou à un rebelle (la note, « Heute »). */
   aide?: string;
 }) {
   const { schema, mode, tache, repondre, suivante, rebelle, aide } = props;

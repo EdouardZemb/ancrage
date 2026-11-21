@@ -580,9 +580,9 @@ sort au lieu de revenir en fin de file ; l'ordonnanceur, lui, ne change pas, et 
 posent un rebelle comme avant. Le compte « heute zu wiederholen » d'« Übersicht » est celui de
 « Heute » : il retire les rebelles écartés. Un rebelle porte l'étiquette « schwierig » sur sa
 question, et son aide, que décrit « L'aide d'un élément », lui est montrée après toute réponse ; la
-liste de Fortschritt la montre aussi. La marque est absente du Quiz et de la Prüfung. Dans les onglets
-(Wortbaukasten, schémas, exercices, fiches), la marque suit le journal : un élément qui devient
-rebelle par sa réponse la gagne sur l'écran du verdict. Fortschritt remplace
+liste de Fortschritt la montre aussi. La marque est absente du Quiz et de la Prüfung. Dans les
+onglets (Wortbaukasten, schémas, exercices, fiches), la marque suit le journal : un élément qui
+devient rebelle par sa réponse la gagne sur l'écran du verdict. Fortschritt remplace
 l'ancienne liste des cartes difficiles par la liste « Schwierige Begriffe – nochmal ansehen » : tous les rebelles, par module
 puis par nombre de fautes, avec leur réponse, leur aide et « n× falsch ».
 
@@ -595,8 +595,8 @@ Le cours d'exemple fait exception : il est dans l'image, et l'écrit (`fautes: 3
 
 L'aide d'un élément (M6, M9) est l'`aide` d'une carte et la carte avec laquelle on la confond
 (`confondu_avec`), la `correction` d'une affirmation vrai-faux, ou la `note` d'un schéma. Elle se
-montre après une réponse fausse, à tous, et à un rebelle après toute réponse. Le client seul en
-décide : le manifeste, le journal et l'API ne changent pas.
+montre après une réponse fausse, à tous, et à un rebelle après toute réponse. Le format n'y change
+rien : aucun champ nouveau, et rien n'en est gardé ni servi de plus.
 
 - Une carte retournée la montre au verso, quelle que soit la réponse qui suit (M9-C1) : la carte n'a
   pas d'écran après le geste qui juge.

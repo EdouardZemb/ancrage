@@ -2,15 +2,15 @@
  * L'aide d'une carte après une faute (M9), de bout en bout : dans Karteikarten, sur le premier
  * module de cartes du cours d'exemple, dans le sens « Bedeutung → Begriff » avec la saisie cochée,
  * un compte neuf donne une réponse fausse à chacune des neuf cartes. Après le verdict, les deux
- * cartes qui portent une aide (« Sieb » et « Reibe », `exemple-contenu/kueche/cartes/01-geraete.yaml`)
- * la montrent, avec la confusion pour la première ; les sept autres n'en montrent aucune. Aucune de
+ * cartes qui portent une aide (« Sieb » et « Reibe »,
+ * `exemple-contenu/kueche/cartes/01-geraete.yaml`) la montrent, avec la confusion pour la première ; les sept autres n'en montrent aucune. Aucune de
  * ces cartes n'est un élément rebelle : l'aide vient de la faute seule.
  *
  * Il tourne avec les tests des deux versions (`pnpm e2e:mise-a-jour`), sur son compte et sa base :
  * le lien du propriétaire de la suite principale ne sert qu'une fois (`compte-neuf.ts`).
  */
 import { expect } from '@playwright/test';
-import { TEXTES_COURS } from '../../src/client/cours/textes-cours.js';
+import { formater, TEXTES_COURS } from '../../src/client/cours/textes-cours.js';
 import { ouvrirOnglet } from '../aide-cours.js';
 import { test } from '../aide-csp.js';
 import { sansDefilementHorizontal } from '../aide-mise-en-page.js';
@@ -51,7 +51,12 @@ test('l_aide_d_une_carte_se_voit_apres_une_faute', async ({ page }) => {
   const saisie = page.getByRole('checkbox', { name: deCours.cartes_saisie });
   if (!(await saisie.isChecked())) await saisie.check();
   await expect(
-    page.getByText(`0 beantwortet · ${CARTES_DU_MODULE} übrig`, { exact: true }),
+    page.getByText(
+      formater(deCours.cartes_progression, { faites: 0, restantes: CARTES_DU_MODULE }),
+      {
+        exact: true,
+      },
+    ),
   ).toBeVisible();
 
   const vues = new Set<string>();
@@ -90,7 +95,8 @@ test('l_aide_d_une_carte_se_voit_apres_une_faute', async ({ page }) => {
     await page.getByRole('button', { name: deCours.cartes_suivante }).click();
   }
 
-  // Une faute remet la carte en fin de file : après neuf réponses, chaque unité a été posée une fois.
+  // Une faute remet la carte en fin de file : après neuf réponses, chaque unité a été posée
+  // une fois.
   expect(vues.size, 'termes distincts').toBe(CARTES_DU_MODULE);
   expect([...vues]).toEqual(expect.arrayContaining(Object.keys(AIDES)));
 });

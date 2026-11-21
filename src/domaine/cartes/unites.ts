@@ -23,7 +23,10 @@ export interface UniteDeCarte {
   reponse: string;
   /** Présentes sur l'inverse seulement, quand la carte en a. */
   reponses?: string[];
-  /** L'aide de la carte, sur les deux sens (M6, T2-D8). */
+  /**
+   * L'aide de la carte, sur les deux sens (M6, T2-D8 ; M9) : au verso d'une carte retournée, et
+   * après une faute ou à un rebelle sur une carte saisie.
+   */
   aide?: string;
   /** L'identifiant de la carte avec laquelle celle-ci se confond, sur les deux sens (M6). */
   confonduAvec?: string;
@@ -122,8 +125,9 @@ export interface AideDeCarte {
 }
 
 /**
- * Ce qu'on montre à un élément rebelle sous une carte (M6, T2-D8) : son aide, et la carte avec
- * laquelle on la confond, cherchée parmi les unités directes de `unites`. Lit sans rigueur
+ * Ce qu'on montre sous une carte (M6, T2-D8 ; M9) : au verso d'une carte retournée, après une faute
+ * ou à un rebelle sur une carte saisie, son aide, et la carte avec laquelle on la confond, cherchée
+ * parmi les unités directes de `unites`. Lit sans rigueur
  * (T2-D13) : une aide qui n'est pas un texte, ou un `confonduAvec` qui ne désigne aucune carte
  * des unités, n'est pas montré. `undefined` quand il n'y a rien à montrer.
  */

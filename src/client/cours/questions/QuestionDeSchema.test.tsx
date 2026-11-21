@@ -12,9 +12,15 @@ afterEach(cleanup);
 const t = TEXTES_COURS.de;
 const schema = contexteDeTest().cours.schemas[0] as ModuleServiDe<'schema'>;
 
+const AIDE = 'Eine Notiz zum Testen.';
+
 const TACHE: TacheDeSchema = { cible: 1, options: [3, 1, 0, 2], choisi: null };
 
-function poser(mode: 'benennen' | 'zeigen', tache: TacheDeSchema = TACHE) {
+function poser(
+  mode: 'benennen' | 'zeigen',
+  tache: TacheDeSchema = TACHE,
+  extra: { aide?: string; rebelle?: boolean } = {},
+) {
   const repondre = vi.fn();
   const suivante = vi.fn();
   rendreDansLeCours(
@@ -22,6 +28,8 @@ function poser(mode: 'benennen' | 'zeigen', tache: TacheDeSchema = TACHE) {
       schema={schema}
       mode={mode}
       tache={tache}
+      aide={extra.aide}
+      rebelle={extra.rebelle}
       repondre={repondre}
       suivante={suivante}
     />,
@@ -64,5 +72,30 @@ describe('QuestionDeSchema', () => {
     touche('1');
     expect(repondre).not.toHaveBeenCalled();
     expect(boutons()).toHaveLength(0);
+  });
+  it('un_point_manque_montre_l_aide_sans_etre_rebelle', () => {
+    poser('benennen', { ...TACHE, choisi: 3 }, { aide: AIDE });
+    expect(screen.getByText(t.verdict_fausse)).toBeTruthy();
+    expect(screen.getByText(t.aide_titre)).toBeTruthy();
+    expect(screen.getByText(AIDE)).toBeTruthy();
+  });
+
+  it('un_point_bien_nomme_ne_montre_pas_l_aide_sauf_a_un_rebelle', () => {
+    poser('benennen', { ...TACHE, choisi: 1 }, { aide: AIDE });
+    expect(screen.getByText(t.verdict_juste)).toBeTruthy();
+    expect(document.querySelector('.aide')).toBeNull();
+    cleanup();
+    poser('benennen', { ...TACHE, choisi: 1 }, { aide: AIDE, rebelle: true });
+    expect(screen.getByText(t.verdict_juste)).toBeTruthy();
+    expect(screen.getByText(AIDE)).toBeTruthy();
+  });
+
+  it('l_aide_d_un_point_attend_la_reponse', () => {
+    for (const rebelle of [false, true]) {
+      cleanup();
+      poser('benennen', TACHE, { aide: AIDE, rebelle });
+      expect(boutons()).toHaveLength(4);
+      expect(document.querySelector('.aide')).toBeNull();
+    }
   });
 });

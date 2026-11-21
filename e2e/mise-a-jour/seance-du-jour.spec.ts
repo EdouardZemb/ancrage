@@ -13,7 +13,6 @@
  */
 import { expect, type Page } from '@playwright/test';
 import { formater, TEXTES_COURS } from '../../src/client/cours/textes-cours.js';
-import { textes } from '../../src/client/textes.js';
 import { ajouterJours } from '../../src/domaine/journal/temps.js';
 import { jourAffiche } from '../../src/domaine/seances/semestre.js';
 import {
@@ -24,14 +23,12 @@ import {
   resultatDeHeute,
 } from '../aide-cours.js';
 import { test } from '../aide-csp.js';
-import { ajouterAuthentificateur } from '../aide-webauthn.js';
-import { lienDuProprietaire } from '../amorcage.js';
-import { DOSSIER_DU_DEPOT, ORIGINE, servirVersion, type VersionServie } from './aide-versions.js';
+import type { VersionServie } from './aide-versions.js';
+import { compteNeufSurHeute } from './compte-neuf.js';
 
 // Les écrans en allemand, comme sur le téléphone de l'apprenante.
 test.use({ locale: 'de-DE' });
 
-const de = textes.de;
 const deCours = TEXTES_COURS.de;
 
 /** La taille d'une séance (`TAILLE_DE_SEANCE`) : la boucle des réponses ne dépasse jamais le double. */
@@ -154,21 +151,11 @@ async function fauteSurUnExercice(page: Page): Promise<void> {
 
 test('la_seance_du_jour_mele_les_types', async ({ page }) => {
   test.setTimeout(120_000);
-  await ajouterAuthentificateur(page);
   // Le jour du premier geste : le départ du planning relatif, d'où se datent ses étapes.
   const premierJour = jourLocal(new Date());
 
   await test.step('1. un compte neuf arrive sur « Heute »', async () => {
-    serveur = await servirVersion('a', test.info().outputPath('ancrage.sqlite'));
-    const lien = lienDuProprietaire({
-      dossier: DOSSIER_DU_DEPOT,
-      base: test.info().outputPath('ancrage.sqlite'),
-      urlPublique: ORIGINE,
-    });
-    await page.goto(lien);
-    await page.getByLabel(de.nom_affiche).fill('Prüfer Test');
-    await page.getByRole('button', { name: de.creer_passkey }).click();
-    await expect(page).toHaveURL(/\/cours\/[0-9a-z]{8}\/heute$/);
+    serveur = await compteNeufSurHeute(page, test.info().outputPath('ancrage.sqlite'));
   });
 
   // Les unités dont la dernière réponse est fausse : une faute chacune, dans un onglet.

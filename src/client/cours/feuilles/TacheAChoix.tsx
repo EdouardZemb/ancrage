@@ -13,7 +13,7 @@ import type { Affirmation, QuestionAChoix } from '../../../domaine/contenu/model
 import { FAUX, optionsDeQcm, VRAI } from '../../../domaine/feuilles/correction.js';
 import { Options } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
-import { MarqueDeRebelle } from '../questions/AideDuRebelle.js';
+import { MarqueDeRebelle } from '../questions/AideEtMarque.js';
 import { type PropsDeTache, useEtatDesElements } from './tache.js';
 
 interface Choix {

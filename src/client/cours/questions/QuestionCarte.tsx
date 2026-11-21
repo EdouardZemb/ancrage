@@ -15,7 +15,8 @@ import { useTouches } from '../clavier.js';
 import { Enonce, focaliser } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
 import { formater } from '../textes-cours.js';
-import { AideDuRebelle, MarqueDeRebelle } from './AideDuRebelle.js';
+import { AideDeLElement, MarqueDeRebelle } from './AideEtMarque.js';
+import { montrerLAide } from './montrer-l-aide.js';
 
 /** L'état d'une carte posée : retournée ou non, et le jugement de la saisie, avec ce qui fut tapé. */
 export interface EtatDeCarte {
@@ -41,7 +42,10 @@ export function QuestionCarte(props: {
    * juge le terme tapé), `corrigee` (une saisie jugée fausse, déclarée juste par la personne).
    */
   onReponse(juste: boolean, mode: ModeDeReponse): void;
-  /** Un élément rebelle (M6) : la carte porte « schwierig » et montre son aide une fois cherchée. */
+  /**
+   * Un élément rebelle (M6) : la carte porte « schwierig ». Son aide se montre au verso d'une carte
+   * retournée, et avec le verdict d'une saisie fausse, ou juste pour un rebelle (M9).
+   */
   rebelle?: boolean;
 }) {
   const { unite, saisie, etat, onEtat, onReponse, rebelle } = props;
@@ -74,8 +78,9 @@ export function QuestionCarte(props: {
   // La marque est au-dessus de la carte, en bloc : l'`aria-label` d'une carte à retourner cacherait
   // ce qui est dedans à un lecteur d'écran.
   const marque = rebelle === true && <MarqueDeRebelle bloc />;
-  // L'aide ne vient qu'après la recherche : avec le verdict d'une saisie, au verso d'une carte retournée.
-  const aide = rebelle === true ? aideDeLUnite(unite, cours.unites) : undefined;
+  // L'aide ne vient qu'après la recherche : au verso d'une carte retournée, et avec le verdict
+  // d'une saisie fausse, ou juste pour un rebelle (M9-D1). Une faute de frappe tolérée est juste.
+  const aide = aideDeLUnite(unite, cours.unites);
 
   if (saisieAttendue) {
     return (
@@ -126,7 +131,9 @@ export function QuestionCarte(props: {
           )}
           {meta}
         </div>
-        {etat.verdict !== null && <AideDuRebelle aide={aide} />}
+        {etat.verdict !== null && montrerLAide(rebelle === true, etat.verdict.juste) && (
+          <AideDeLElement aide={aide} />
+        )}
         <p class="kbd">{t.cartes_touches_saisie}</p>
       </>
     );
@@ -152,7 +159,7 @@ export function QuestionCarte(props: {
         )}
         {meta}
       </div>
-      {etat.retournee && <AideDuRebelle aide={aide} />}
+      {etat.retournee && <AideDeLElement aide={aide} />}
       {etat.retournee && (
         <div class="answer">
           <button type="button" class="no" onClick={() => onReponse(false, 'retournee')}>

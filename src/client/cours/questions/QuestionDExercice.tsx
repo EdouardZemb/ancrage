@@ -11,7 +11,7 @@ import type { ModeDeReponse } from '../../../domaine/journal/evenement.js';
 import { useTouches } from '../clavier.js';
 import { classeDeLaQuestion, focaliser, Options, SaisieDeLaReponse } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
-import { MarqueDeRebelle } from './AideDuRebelle.js';
+import { MarqueDeRebelle } from './AideEtMarque.js';
 
 /** L'invite d'un article commence ainsi : la bonne réponse vient la compléter (H:2181). */
 const TROU_D_ARTICLE = /^___\s*/;

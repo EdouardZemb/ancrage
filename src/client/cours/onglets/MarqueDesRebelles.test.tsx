@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, screen } from '@testing-library/preact';
+import { cleanup, fireEvent, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { coursServiDeTest } from '../../../domaine/cours/cours.fixture.js';
 import { preparerCours } from '../../../domaine/cours/prepare.js';
@@ -13,7 +13,7 @@ import { Cartes } from './Cartes.js';
 import { Examen } from './Examen.js';
 import { Exercices } from './Exercices.js';
 import { Mots } from './Mots.js';
-import { cliquer } from './onglets.fixture.js';
+import { boutons, cliquer, texteDe } from './onglets.fixture.js';
 import { Quiz } from './Quiz.js';
 import { Schemas } from './Schemas.js';
 
@@ -79,7 +79,7 @@ describe('la marque des rebelles dans les onglets', () => {
     cliquer(t.examen_starten);
 
     expect(screen.queryByText(t.rebelle_marque)).toBeNull();
-    expect(screen.queryByText(t.rebelle_aide)).toBeNull();
+    expect(screen.queryByText(t.aide_titre)).toBeNull();
     // L'examen est bien lancé : sa première question est posée.
     expect(screen.queryByRole('button', { name: t.examen_starten })).toBeNull();
   });
@@ -88,7 +88,29 @@ describe('la marque des rebelles dans les onglets', () => {
     rendreDansLeCours(<Schemas />, contexteRebelle());
 
     expect(screen.getAllByText('Übungsschema ohne Vorbild')).toHaveLength(1);
-    expect(screen.queryByText(t.rebelle_aide)).toBeNull();
+    expect(screen.queryByText(t.aide_titre)).toBeNull();
+  });
+
+  it.each([
+    ['sans_rebelle', []],
+    ['avec_un_rebelle', toutRebelle()],
+  ])('la_note_d_un_schema_n_est_pas_repetee_apres_une_faute_%s', (_nom, evenements) => {
+    const contexte = contexteRebelle(evenements);
+    rendreDansLeCours(<Schemas />, contexte);
+    const motif = new RegExp(t.schemas_nummer.replace('{n}', '(\\d+)'));
+    const numero = motif.exec(document.querySelector('.card p')?.textContent ?? '');
+    const cible = Number(numero?.[1]) - 1;
+    const [schema] = contexte.cours.schemas;
+    if (schema === undefined) throw new Error('cours de test changé');
+    const juste = schema.points[cible].terme;
+    fireEvent.click(
+      boutons().find((b) => texteDe(b) !== juste && b.textContent !== '') as HTMLButtonElement,
+    );
+
+    expect(screen.getByText(t.verdict_fausse)).toBeTruthy();
+    expect(screen.getAllByText('Übungsschema ohne Vorbild')).toHaveLength(1);
+    expect(screen.queryByText(t.aide_titre)).toBeNull();
+    expect(document.querySelector('.aide')).toBeNull();
   });
 });
 

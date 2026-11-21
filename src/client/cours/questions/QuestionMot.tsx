@@ -18,7 +18,7 @@ import { useTouches } from '../clavier.js';
 import { enGras, focaliser, Options } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
 import { formater } from '../textes-cours.js';
-import { MarqueDeRebelle } from './AideDuRebelle.js';
+import { MarqueDeRebelle } from './AideEtMarque.js';
 
 /** Les touches 1 à 4 choisissent la première à la quatrième option (H:2247). */
 const NUMEROS_D_OPTIONS = ['1', '2', '3', '4'];

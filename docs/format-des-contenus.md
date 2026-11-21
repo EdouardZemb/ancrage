@@ -579,14 +579,10 @@ rebelles par chapitre. Dans « Heute » (M6-C3), un rebelle qui a déjà une ré
 sort au lieu de revenir en fin de file ; l'ordonnanceur, lui, ne change pas, et les autres onglets
 posent un rebelle comme avant. Le compte « heute zu wiederholen » d'« Übersicht » est celui de
 « Heute » : il retire les rebelles écartés. Un rebelle porte l'étiquette « schwierig » sur sa
-question et montre, une fois qu'il a cherché, l'`aide` de sa carte et la carte avec laquelle on la
-confond : une carte retournée la montre au verso, une carte saisie avec le verdict. La marque et
-l'aide sont absentes du Quiz et de la Prüfung. La `correction` d'une affirmation vrai-faux et la
-`note` d'un schéma s'ajoutent, comme aide d'un rebelle, dans « Heute » et dans la liste de
-Fortschritt (la fiche et l'onglet des schémas les montrent déjà à tous) ; les morceaux d'un mot et
-la règle d'un exercice sont montrés à tous, rebelle ou non. Dans les onglets (Wortbaukasten, schémas, exercices,
-fiches), la marque suit le journal : un élément qui devient rebelle par sa réponse la gagne sur
-l'écran du verdict. Fortschritt remplace
+question, et son aide, que décrit « L'aide d'un élément », lui est montrée après toute réponse ; la
+liste de Fortschritt la montre aussi. La marque est absente du Quiz et de la Prüfung. Dans les
+onglets (Wortbaukasten, schémas, exercices, fiches), la marque suit le journal : un élément qui
+devient rebelle par sa réponse la gagne sur l'écran du verdict. Fortschritt remplace
 l'ancienne liste des cartes difficiles par la liste « Schwierige Begriffe – nochmal ansehen » : tous les rebelles, par module
 puis par nombre de fautes, avec leur réponse, leur aide et « n× falsch ».
 
@@ -594,6 +590,24 @@ puis par nombre de fautes, avec leur réponse, leur aide et « n× falsch ».
 après la `v0.19.0`** : le manifeste est strict, et l'image précédente, que le
 retour arrière remet en service, la refuserait (invariant 8).
 Le cours d'exemple fait exception : il est dans l'image, et l'écrit (`fautes: 3`).
+
+### L'aide d'un élément
+
+L'aide d'un élément (M6, M9) est l'`aide` d'une carte et la carte avec laquelle on la confond
+(`confondu_avec`), la `correction` d'une affirmation vrai-faux, ou la `note` d'un schéma. Elle se
+montre après une réponse fausse, à tous, et à un rebelle après toute réponse. Le format n'y change
+rien : aucun champ nouveau, et rien n'en est gardé ni servi de plus.
+
+- Une carte retournée la montre au verso, quelle que soit la réponse qui suit (M9-C1) : la carte n'a
+  pas d'écran après le geste qui juge.
+- Une carte saisie la montre avec le verdict d'une réponse fausse, « Fast » compris. Une faute de
+  frappe ou un tréma oublié, comptés justes (lot M5), ne la montrent pas, sauf à un rebelle (M9-C2).
+- Dans « Heute », la `correction` d'une affirmation et la `note` d'un schéma suivent la même règle
+  (M9-C3). Karteikarten suit celle d'une carte, « Fehler als Karteikarten üben » comprise.
+- L'onglet des schémas, Arbeitsblätter, Wortbaukasten et les exercices montrent la leur à tous,
+  comme avant : la note d'un schéma avant la réponse, la correction d'une affirmation après tout
+  choix, les morceaux d'un mot et la règle d'un exercice après la réponse.
+- Le Quiz, la Prüfung et le pré-test de « Heute » n'en montrent aucune.
 
 ### Dérogation de diffusion
 
@@ -698,7 +712,7 @@ cartes:
     # verifie_le: "2027-01-20"
     # reponses:              # réponses acceptées explicites
     #   - "…"
-    # aide: "Eine Eselsbrücke in einer Zeile."   # voir « Les éléments rebelles »
+    # aide: "Eine Eselsbrücke in einer Zeile."   # voir « L'aide d'un élément »
     # confondu_avec: "<id d'une autre carte du cours>"
 ```
 
@@ -718,6 +732,7 @@ Règles des cartes :
     alternatives du recto.
 - `aide`, si elle est présente (M6), est un texte d'une ligne : non vide, sans espace de bord,
   sans tabulation ni saut de ligne, de 300 caractères au plus (comptés comme JavaScript les compte).
+  Elle est montrée après une faute, ou à un rebelle (« L'aide d'un élément », M9).
   Elle est un texte du cours : elle entre dans la liste à relire, dans les textes que `contenus:client`
   cherche dans le client construit et dans l'instantané de référence, sous le statut de sa carte.
   Ajouter une aide à une carte « vérifiée » est une modification de contenu comme une autre, que la

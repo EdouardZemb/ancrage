@@ -254,7 +254,8 @@ jobs:
 
       # Deux versions du client servies à la suite sur la même origine (2a-D8) : le téléphone passe
       # à la nouvelle au bon moment, jamais en pleine séance. Il lance aussi le parcours de la séance
-      # du jour (« Heute »), de la composition de la file à l'écran de fin. Le test lance lui-même le serveur
+      # du jour (« Heute »), de la composition de la file à l'écran de fin, et celui de l'aide d'une
+      # carte après une faute (lot M9). Le test lance lui-même le serveur
       # construit, sur http://localhost:3100, avec chacun des deux clients : ni l'image ni son
       # conteneur n'y servent.
       - name: Passer d'une version à l'autre

@@ -593,10 +593,12 @@ Le cours d'exemple fait exception : il est dans l'image, et l'écrit (`fautes: 3
 
 ### L'aide d'un élément
 
-L'aide d'un élément (M6, M9) est l'`aide` d'une carte et la carte avec laquelle on la confond
-(`confondu_avec`), la `correction` d'une affirmation vrai-faux, ou la `note` d'un schéma. Elle se
-montre après une réponse fausse, à tous, et à un rebelle après toute réponse. Le format n'y change
-rien : aucun champ nouveau, et rien n'en est gardé ni servi de plus.
+L'aide d'un élément (M6, T2-D8, M9) est l'`aide` d'une carte et la carte avec laquelle on la
+confond (`confondu_avec`), la `correction` d'une affirmation vrai-faux, la `note` d'un schéma, les
+morceaux d'un mot ou la règle d'un exercice ; une question de QCM d'une fiche n'en a pas. C'est elle
+que la liste de Fortschritt montre sous un rebelle. Elle se montre après une réponse fausse, à tous,
+et à un rebelle après toute réponse, sauf là où la liste qui suit dit autre chose. Le format n'y
+change rien : aucun champ nouveau, et rien n'en est gardé ni servi de plus.
 
 - Une carte retournée la montre au verso, quelle que soit la réponse qui suit (M9-C1) : la carte n'a
   pas d'écran après le geste qui juge.
@@ -604,9 +606,12 @@ rien : aucun champ nouveau, et rien n'en est gardé ni servi de plus.
   frappe ou un tréma oublié, comptés justes (lot M5), ne la montrent pas, sauf à un rebelle (M9-C2).
 - Dans « Heute », la `correction` d'une affirmation et la `note` d'un schéma suivent la même règle
   (M9-C3). Karteikarten suit celle d'une carte, « Fehler als Karteikarten üben » comprise.
-- L'onglet des schémas, Arbeitsblätter, Wortbaukasten et les exercices montrent la leur à tous,
-  comme avant : la note d'un schéma avant la réponse, la correction d'une affirmation après tout
-  choix, les morceaux d'un mot et la règle d'un exercice après la réponse.
+- Les morceaux d'un mot et la règle d'un exercice restent montrés à tous, rebelle ou non, dans
+  « Heute » comme dans Wortbaukasten et l'onglet des exercices : un mot se pose morceau par morceau,
+  et la règle d'un exercice suit son verdict, juste ou faux (M9-C3).
+- L'onglet des schémas et Arbeitsblätter montrent la leur à tous, comme avant : la note d'un schéma
+  au-dessus de la question, avant la réponse, et la correction d'une affirmation après tout choix,
+  juste ou faux, puis dans la vue « Ergebnis ».
 - Le Quiz, la Prüfung et le pré-test de « Heute » n'en montrent aucune.
 
 ### Dérogation de diffusion

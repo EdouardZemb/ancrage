@@ -34,7 +34,10 @@ export function QuestionDeSchema(props: {
   suivante(): void;
   /** Un élément rebelle (M6) : sa question porte « schwierig ». */
   rebelle?: boolean;
-  /** Le texte montré une fois répondu, après une faute ou à un rebelle (la note, « Heute »). */
+  /**
+   * Le texte montré une fois répondu, après une faute ou à un rebelle (la note du schéma, dans
+   * « Heute »). L'onglet des schémas n'en donne pas : il montre la note au-dessus de la question.
+   */
   aide?: string;
 }) {
   const { schema, mode, tache, repondre, suivante, rebelle, aide } = props;

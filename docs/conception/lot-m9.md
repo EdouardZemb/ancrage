@@ -174,6 +174,18 @@ l'onglet des schémas et Arbeitsblätter ne changent pas, le pré-test reste san
 - `e2e/mise-a-jour/aide-apres-faute.spec.ts` et `e2e/mise-a-jour/compte-neuf.ts`.
 - `docs/format-des-contenus.md`, section « L'aide d'un élément ».
 
+## Ce que les revues ont trouvé
+
+- La revue de l'implémentation a trouvé un mutant survivant sur une garde : l'onglet des schémas
+  qui passerait la note aux seuls rebelles. La garde tourne depuis sans rebelle et avec.
+- La revue finale n'a rien trouvé de bloquant, et n'a corrigé que des textes (la section « L'aide
+  d'un élément » du format, deux commentaires). Elle a posé 43 mutants à la main : 42 tués. Celui
+  qui survit place l'aide d'une saisie dans la carte, avant « Weiter » : la place de l'aide n'est
+  pas une promesse du lot (voir « Les limites »).
+- Un envoi a porté sur la PR d'implémentation trois commits intermédiaires qui contenaient un mot
+  du cours de l'instance, dans une fixture ; la branche a été réécrite avant la fusion, et `main`
+  ne l'a jamais porté (LE-31).
+
 ## Ce qui n'a pas été vérifié
 
 - Le rendu sur un téléphone Android. Au staging, Edouard peut voir la correction et la note dans

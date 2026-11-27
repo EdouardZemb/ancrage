@@ -1,10 +1,13 @@
 import {
   type Document,
   type ErrorCode,
+  isMap,
   isPair,
   isScalar,
   isSeq,
   LineCounter,
+  type Node,
+  type Pair,
   parseDocument,
   visit,
 } from 'yaml';
@@ -82,7 +85,13 @@ const VIEWBOX = /^-?\d+(?:\.\d+)? -?\d+(?:\.\d+)? (-?\d+(?:\.\d+)?) (-?\d+(?:\.\
  * utilisables que si `erreurs` est vide.
  */
 export function analyserContenus(fichiers: ReadonlyMap<string, string>): ResultatContenus {
-  const analyse: Analyse = { fichiers, erreurs: [], identifiants: new Map(), complet: true };
+  const analyse: Analyse = {
+    fichiers,
+    erreurs: [],
+    identifiants: new Map(),
+    complet: true,
+    ordreDesCles: new Map(),
+  };
   const cours: Cours[] = [];
 
   for (const [dossier, chemins] of repartirParDossier(analyse)) {
@@ -152,6 +161,50 @@ const MESSAGES_YAML: Partial<Record<ErrorCode, string>> = {
   UNEXPECTED_TOKEN: 'élément inattendu',
 };
 
+/** La clé dont les entrées se situent par leur rang écrit, jamais par leur texte (M10-D2). */
+const CLE_DES_EXPLICATIONS = 'explications_distracteurs';
+
+type Ancetres = readonly (Document | Node | Pair)[];
+
+function estLaCleDesExplications(noeud: unknown): boolean {
+  return isPair(noeud) && isScalar(noeud.key) && noeud.key.value === CLE_DES_EXPLICATIONS;
+}
+
+/**
+ * Le chemin d'un nœud de l'arbre YAML, à la forme de `lieuDe` : les clés, et les rangs des listes.
+ * Une paire placée directement sous `explications_distracteurs` y compte par son rang écrit : sa
+ * clé est un texte du cours.
+ */
+function cheminDeNoeud(ancetres: Ancetres, noeud: unknown): (string | number)[] {
+  const chemin: (string | number)[] = [];
+  ancetres.forEach((ancetre, rang) => {
+    const enfant = ancetres[rang + 1] ?? noeud;
+    if (isPair(ancetre) && isScalar(ancetre.key)) {
+      const parent = ancetres[rang - 1];
+      chemin.push(
+        isMap(parent) && estLaCleDesExplications(ancetres[rang - 2])
+          ? parent.items.indexOf(ancetre)
+          : String(ancetre.key.value),
+      );
+    } else if (isSeq(ancetre)) {
+      chemin.push(ancetre.items.indexOf(enfant as Node));
+    }
+  });
+  return chemin;
+}
+
+/** Relève, pour chaque objet `explications_distracteurs`, ses clés dans l'ordre où il les écrit. */
+function releverOrdreDesCles(analyse: Analyse, fichier: string, document: Document.Parsed): void {
+  visit(document, {
+    Map(_cle, noeud, ancetres) {
+      if (!estLaCleDesExplications(ancetres.at(-1))) return;
+      const lieu = lieuDe(cheminDeNoeud(ancetres, noeud));
+      const cles = noeud.items.map((paire) => (isScalar(paire.key) ? String(paire.key.value) : ''));
+      analyse.ordreDesCles.set(`${fichier}:${lieu}`, cles);
+    },
+  });
+}
+
 const MESSAGE_GUILLEMETS = 'Écriture non admise : texte à écrire entre guillemets doubles.';
 
 function messageYaml(code: ErrorCode): string {
@@ -176,15 +229,7 @@ function controlerGuillemets(
     Scalar(cle, noeud, ancetres) {
       if (cle === 'key' || typeof noeud.value !== 'string' || noeud.type === 'QUOTE_DOUBLE') return;
       signalees++;
-      const chemin: (string | number)[] = [];
-      ancetres.forEach((ancetre, rang) => {
-        const enfant = ancetres[rang + 1] ?? noeud;
-        if (isPair(ancetre) && isScalar(ancetre.key)) {
-          chemin.push(String(ancetre.key.value));
-        } else if (isSeq(ancetre)) {
-          chemin.push(ancetre.items.indexOf(enfant));
-        }
-      });
+      const chemin = cheminDeNoeud(ancetres, noeud);
       const lieu =
         chemin.length > 0 ? lieuDe(chemin) : `ligne ${lignes.linePos(noeud.range?.[0] ?? 0).line}`;
       signaler(analyse, fichier, lieu, MESSAGE_GUILLEMETS);
@@ -210,6 +255,7 @@ function lireYaml(analyse: Analyse, fichier: string): { donnees: unknown } | und
   // Une valeur sans guillemets peut avoir perdu une partie de son texte (jusqu'au `#`), donc un
   // identifiant : le verrou n'est alors pas confronté au contenu.
   if (controlerGuillemets(analyse, fichier, document, lignes) > 0) analyse.complet = false;
+  releverOrdreDesCles(analyse, fichier, document);
 
   try {
     return { donnees: document.toJS() };

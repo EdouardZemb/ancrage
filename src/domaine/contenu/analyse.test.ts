@@ -4,6 +4,10 @@ import { CLES_DE_NOTICE } from '../notice.js';
 import { coursAVerifier } from './acces-cours.js';
 import { analyserContenus } from './analyse.js';
 import {
+  avecExplications,
+  EXPLICATIONS_D_ESSAI,
+  exempleAvecExplications,
+  exempleAvecManuels,
   exempleDeCours,
   modifier,
   REGLAGES_DE_L_EXAMEN,
@@ -1905,6 +1909,236 @@ modules: ["${CHAPITRE_2}"]`),
     expect(erreursApres(FEUILLE, ', "sehr viele davon"', '')).toEqual([
       erreur(FEUILLE, 'parties[1].taches[0].questions[0].distracteurs', /exactement 3/),
     ]);
+  });
+
+  // --- Les explications d'une fiche (M10) ---
+
+  const QUESTION = 'parties[1].taches[0].questions[0]';
+  const PAIRE = 'parties[0].taches[0].paires[0]';
+  const PHRASE = 'parties[2].taches[0].phrases[0]';
+  const LIGNE_DES_DISTRACTEURS = `explications_distracteurs:
+              "halb so gross": "${EXPLICATIONS_D_ESSAI.distracteur['halb so gross']}"`;
+
+  function erreurExacte(lieu: string, message: string) {
+    return { fichier: FEUILLE, lieu, message };
+  }
+
+  /** L'exemple expliqué, dont `explications_distracteurs` prend `valeur` après ses deux-points. */
+  function distracteursEcrits(valeur: string, distracteurs?: string): Map<string, string> {
+    const fichiers = modifier(
+      exempleAvecExplications(),
+      FEUILLE,
+      LIGNE_DES_DISTRACTEURS,
+      `explications_distracteurs:${valeur}`,
+    );
+    if (distracteurs === undefined) return fichiers;
+    return modifier(
+      fichiers,
+      FEUILLE,
+      '["gegen etwas gerichtet", "halb so gross", "sehr viele davon"]',
+      distracteurs,
+    );
+  }
+
+  it('feuille_explications_resolues', () => {
+    const fichiers = exempleAvecExplications();
+    expect(analyserContenus(fichiers).erreurs).toEqual([]);
+    const feuille = moduleDe(modulesDe(fichiers), FEUILLE, 'feuille');
+    const appariement = feuille.parties[0].taches[0];
+    const qcm = feuille.parties[1].taches[0];
+    const trous = feuille.parties[2].taches[0];
+    if (appariement.genre !== 'appariement' || qcm.genre !== 'qcm' || trous.genre !== 'trous') {
+      throw new Error("la feuille d'essai a changé de forme");
+    }
+
+    expect(qcm.questions[0].explication).toBe(EXPLICATIONS_D_ESSAI.question);
+    expect(qcm.questions[0].explicationsDistracteurs).toEqual(EXPLICATIONS_D_ESSAI.distracteur);
+    expect(appariement.paires[0].id).toBe('4bc2tbhe');
+    expect(appariement.paires[0].explication).toBe(EXPLICATIONS_D_ESSAI.paire);
+    expect(trous.phrases[0].id).toBe('ymn0s16n');
+    expect(trous.phrases[0].explication).toBe(EXPLICATIONS_D_ESSAI.phrase);
+    expect(appariement.paires[1].id).toBe('m68hg1re');
+    expect(Object.hasOwn(appariement.paires[1], 'explication')).toBe(false);
+  });
+
+  it('feuille_explications_inserees_aussi_dans_l_exemple_aux_manuels', () => {
+    // `modifier` échoue si une ligne ne figure pas exactement une fois (ruling R9).
+    expect(analyserContenus(avecExplications(exempleAvecManuels())).erreurs).toEqual([]);
+  });
+
+  describe.each([
+    ['la question', QUESTION, EXPLICATIONS_D_ESSAI.question],
+    ['la paire', PAIRE, EXPLICATIONS_D_ESSAI.paire],
+    ['la phrase', PHRASE, EXPLICATIONS_D_ESSAI.phrase],
+  ])('feuille_explication_suit_la_regle_de_l_aide, sur %s', (_nom, lieu, texte) => {
+    const avec = (ecrit: string) =>
+      analyserContenus(
+        modifier(
+          exempleAvecExplications(),
+          FEUILLE,
+          `explication: "${texte}"`,
+          `explication: ${ecrit}`,
+        ),
+      ).erreurs;
+
+    it.each([
+      ['""', 'Le texte est vide.'],
+      ['" Text"', 'Le texte commence ou finit par un espace.'],
+      ['"Zeile\\nZeile"', 'Le texte contient une tabulation ou un saut de ligne.'],
+      [`"${'x'.repeat(301)}"`, "L'explication dépasse 300 caractères."],
+    ])('%#', (ecrit, message) => {
+      expect(avec(ecrit)).toEqual([erreurExacte(`${lieu}.explication`, message)]);
+    });
+
+    it('trois_cents_caracteres_admis', () => {
+      expect(avec(`"${'x'.repeat(300)}"`)).toEqual([]);
+    });
+  });
+
+  describe('feuille_explications_des_distracteurs_refusees_sans_citer_la_cle', () => {
+    const LIEU = `${QUESTION}.explications_distracteurs`;
+    const CLE_ADMISE = '\n              "halb so gross": "Ein Text."';
+    const INCONNUE = 'Cette clé ne nomme aucun distracteur de la question.';
+    const cas: [string, string, string, string][] = [
+      ['objet_vide', ' {}', LIEU, "Aucune explication de distracteur : l'objet est vide."],
+      ['cle_inconnue', '\n              "halb so grosz": "Ein Text."', `${LIEU}[0]`, INCONNUE],
+      [
+        'cle_egale_a_la_reponse',
+        '\n              "erfunden, zur Übung": "Ein Text."',
+        `${LIEU}[0]`,
+        INCONNUE,
+      ],
+      [
+        'seconde_cle_inconnue',
+        `${CLE_ADMISE}\n              "nicht dabei": "Ein Text."`,
+        `${LIEU}[1]`,
+        INCONNUE,
+      ],
+      ['valeur_vide', '\n              "halb so gross": ""', `${LIEU}[0]`, 'Le texte est vide.'],
+      [
+        'valeur_nombre',
+        '\n              "halb so gross": 42',
+        `${LIEU}[0]`,
+        'Attendu un texte entre guillemets, trouvé un nombre.',
+      ],
+      [
+        'valeur_trop_longue',
+        `\n              "halb so gross": "${'x'.repeat(301)}"`,
+        `${LIEU}[0]`,
+        "L'explication dépasse 300 caractères.",
+      ],
+      ['liste', ' ["Ein Text."]', LIEU, 'Attendu des clés et leurs valeurs, trouvé une liste.'],
+    ];
+
+    it.each(cas)('%s', (_nom, valeur, lieu, message) => {
+      const { erreurs } = analyserContenus(distracteursEcrits(valeur));
+      expect(erreurs).toEqual([erreurExacte(lieu, message)]);
+      const texte = JSON.stringify(erreurs);
+      for (const interdit of ['halb so grosz', 'erfunden, zur Übung', 'nicht dabei']) {
+        expect(texte).not.toContain(interdit);
+      }
+    });
+
+    it('cle_en_double_refusee_par_yaml_sans_la_cle', () => {
+      const { erreurs } = analyserContenus(
+        distracteursEcrits(`${CLE_ADMISE}\n              "halb so gross": "Ein anderer Text."`),
+      );
+      expect(erreurs).toHaveLength(1);
+      expect(erreurs[0].lieu).toMatch(/^ligne \d+$/);
+      expect(erreurs[0].message).toContain('clé en double');
+      expect(JSON.stringify(erreurs)).not.toContain('halb so gross');
+    });
+  });
+
+  it('feuille_explications_refusees_absentes_du_modele', () => {
+    const resolues = (valeur: string) => {
+      const { cours } = analyserContenus(distracteursEcrits(valeur));
+      const qcm = moduleDe(cours[0].modules, FEUILLE, 'feuille').parties[1].taches[0];
+      if (qcm.genre !== 'qcm') throw new Error("la feuille d'essai a changé de forme");
+      return qcm.questions[0].explicationsDistracteurs;
+    };
+    const ligne = (cle: string, valeur: string) => `\n              "${cle}": ${valeur}`;
+
+    expect(resolues(ligne('halb so grosz', '"Ein Text."'))).toBeUndefined();
+    expect(resolues(ligne('halb so gross', '""'))).toBeUndefined();
+    expect(
+      resolues(ligne('halb so gross', '"Ein Text."') + ligne('nicht dabei', '"Ein Text."')),
+    ).toEqual({
+      'halb so gross': 'Ein Text.',
+    });
+  });
+
+  it('feuille_explications_des_distracteurs_sans_guillemets_situees_par_leur_rang', () => {
+    const { erreurs } = analyserContenus(
+      distracteursEcrits('\n              "halb so gross": Halb so gross ohne Anführungszeichen'),
+    );
+    expect(erreurs).toEqual([
+      erreurExacte(
+        `${QUESTION}.explications_distracteurs[0]`,
+        'Écriture non admise : texte à écrire entre guillemets doubles.',
+      ),
+    ]);
+    expect(JSON.stringify(erreurs)).not.toContain('halb so gross');
+  });
+
+  it('feuille_explications_des_distracteurs_situees_dans_l_ordre_ecrit', () => {
+    // Un objet JavaScript range « 2 » avant « 6 » : le rang vient de l'ordre écrit.
+    const fichiers = distracteursEcrits(
+      '\n              "6": "Ein Text."\n              "2": Ohne Anführungszeichen',
+      '["gegen etwas gerichtet", "halb so gross", "2"]',
+    );
+    const { erreurs } = analyserContenus(fichiers);
+    expect(erreurs).toHaveLength(2);
+    expect(erreurs).toEqual(
+      expect.arrayContaining([
+        erreurExacte(
+          `${QUESTION}.explications_distracteurs[0]`,
+          'Cette clé ne nomme aucun distracteur de la question.',
+        ),
+        erreurExacte(
+          `${QUESTION}.explications_distracteurs[1]`,
+          'Écriture non admise : texte à écrire entre guillemets doubles.',
+        ),
+      ]),
+    );
+  });
+
+  it('feuille_explication_ailleurs_refusee_comme_cle_inconnue', () => {
+    const inconnue = "Clé inconnue : le format 1 ne l'admet pas ici.";
+    const apres = (ligne: string, ajout: string) =>
+      analyserContenus(modifier(exempleDeCours(), FEUILLE, `${ligne}\n`, `${ligne}\n${ajout}\n`))
+        .erreurs;
+    const texte = '            explication: "Ein Text."';
+    const cas: [string, string, string][] = [
+      [
+        '            correction: "Die Vorsilbe kontra- bedeutet gegen."',
+        texte,
+        'parties[1].taches[1].affirmations[1].explication',
+      ],
+      [
+        '            categorie: "Lagebezeichnung"',
+        texte,
+        'parties[0].taches[1].elements[0].explication',
+      ],
+      [
+        '            reponse: "Probelappenentzündung"',
+        texte,
+        'parties[2].taches[1].mots[0].explication',
+      ],
+      [
+        '            reponse: "Es dient nur zum Üben der Begriffe."',
+        texte,
+        'parties[3].taches[0].questions[0].explication',
+      ],
+      [
+        '            reponses: ["oberes Ende", "unteres Ende"]',
+        '            explications_distracteurs: {}',
+        `${PHRASE}.explications_distracteurs`,
+      ],
+    ];
+    for (const [ligne, ajout, lieu] of cas) {
+      expect(apres(ligne, ajout)).toEqual([erreurExacte(lieu, inconnue)]);
+    }
   });
 
   it('feuille_trous_et_reponses_en_nombre_different_refuses', () => {

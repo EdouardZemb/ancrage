@@ -68,6 +68,55 @@ export function exempleAvecManuels(
   return modifier(fichiers, 'ids.lock', 'j5by5stz\n', `j5by5stz\n${ids.join('\n')}\n`);
 }
 
+/** Les explications inventées du cours d'essai (M10). */
+export const EXPLICATIONS_D_ESSAI = {
+  question: 'Im Musterkurs ist proto- frei erfunden.',
+  distracteur: { 'halb so gross': 'Halb so gross wäre ein Zwergmuster.' },
+  paire: 'Das Musterorganum gibt es nur im Übungskurs.',
+  phrase: 'Oben und unten heissen beim Musterorgan Pole.',
+} as const;
+
+/**
+ * Les fichiers donnés, dont la feuille d'essai porte ces explications : la question `x9wzygy4` (et
+ * son distracteur « halb so gross »), la paire `4bc2tbhe`, la phrase `ymn0s16n`. La paire
+ * `m68hg1re` et les deux autres distracteurs restent sans explication. Chaque insertion passe par
+ * `modifier` : sa ligne doit figurer une seule fois, sinon l'aide échoue.
+ */
+export function avecExplications(fichiers: Map<string, string>): Map<string, string> {
+  const apres = (ligne: string, ajout: string) =>
+    modifier(
+      fichiers,
+      'essai/feuille.yaml',
+      `${ligne}
+`,
+      `${ligne}
+${ajout}`,
+    );
+  apres(
+    '            distracteurs: ["gegen etwas gerichtet", "halb so gross", "sehr viele davon"]',
+    `            explication: "${EXPLICATIONS_D_ESSAI.question}"
+            explications_distracteurs:
+              "halb so gross": "${EXPLICATIONS_D_ESSAI.distracteur['halb so gross']}"
+`,
+  );
+  apres(
+    '            cible: "Erfundenes Übungsorgan"',
+    `            explication: "${EXPLICATIONS_D_ESSAI.paire}"
+`,
+  );
+  apres(
+    '            reponses: ["oberes Ende", "unteres Ende"]',
+    `            explication: "${EXPLICATIONS_D_ESSAI.phrase}"
+`,
+  );
+  return fichiers;
+}
+
+/** L'exemple, dont la feuille d'essai porte les explications d'`avecExplications`. */
+export function exempleAvecExplications(): Map<string, string> {
+  return avecExplications(exempleDeCours());
+}
+
 /** Les valeurs de la notice de l'exemple, telles que l'analyse les rend (S1-D7). */
 export function valeursDeNoticeDExemple(): ValeursDeNotice {
   const { notice } = analyserContenus(exempleDeCours());

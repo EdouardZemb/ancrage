@@ -82,6 +82,11 @@ const texteDeCarte = z
     error: 'Le texte contient une tabulation ou un saut de ligne.',
   });
 
+/** L'explication d'un élément de fiche : la règle de l'aide d'une carte (M10-D1). */
+const explication = texteDeCarte.max(LONGUEUR_MAXIMALE_D_UNE_AIDE, {
+  error: `L'explication dépasse ${LONGUEUR_MAXIMALE_D_UNE_AIDE} caractères.`,
+});
+
 const carte = z
   .strictObject({
     id: identifiant,
@@ -240,7 +245,13 @@ const moduleExercices = z
  * feuille (F1-D2).
  */
 const paireAppariee = z
-  .strictObject({ id: identifiant, terme: z.string(), cible: z.string(), ...etatFacultatif })
+  .strictObject({
+    id: identifiant,
+    terme: z.string(),
+    cible: z.string(),
+    explication: explication.optional(),
+    ...etatFacultatif,
+  })
   .superRefine(controlerStatut);
 
 const elementAClasser = z
@@ -253,6 +264,10 @@ const questionAChoix = z
     question: z.string(),
     reponse: z.string(),
     distracteurs,
+    explication: explication.optional(),
+    // Les valeurs se contrôlent dans l'analyse : l'erreur d'une valeur porterait la clé (un texte
+    // du cours) dans son chemin, donc dans son lieu (M10-D1).
+    explications_distracteurs: z.record(z.string(), z.unknown()).optional(),
     ...etatFacultatif,
   })
   .superRefine(controlerStatut);
@@ -272,6 +287,7 @@ const phraseATrous = z
     id: identifiant,
     texte: z.string(),
     reponses: z.array(z.string()).min(1, { error: 'Attendu au moins une réponse.' }),
+    explication: explication.optional(),
     ...etatFacultatif,
   })
   .superRefine(controlerStatut);
@@ -708,6 +724,15 @@ const enFrancais: z.core.$ZodErrorMap = (issue) => {
       return undefined;
   }
 };
+
+/**
+ * Les messages de la règle `explication` pour `valeur`, en français ; aucun pour une explication
+ * admise. Ils ne citent jamais la valeur.
+ */
+export function messagesDExplication(valeur: unknown): string[] {
+  const resultat = explication.safeParse(valeur, { error: enFrancais });
+  return resultat.success ? [] : resultat.error.issues.map((issue) => issue.message);
+}
 
 /** `['cartes', 12, 'recto']` donne `cartes[12].recto`. */
 export function lieuDe(chemin: readonly PropertyKey[]): string {

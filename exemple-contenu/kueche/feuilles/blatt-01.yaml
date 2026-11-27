@@ -16,9 +16,11 @@ parties:
           - id: "tqx21vm0"
             terme: "Sieb"
             cible: "Teigwaren abgiessen"
+            explication: "Durch die Löcher des Siebs läuft das Kochwasser ab, die Teigwaren bleiben drin."
           - id: "qwtkw698"
             terme: "Reibe"
             cible: "Käse raffeln"
+            explication: "Die scharfen Löcher der Reibe zerkleinern den Käse in feine Streifen."
           - id: "wm4rvg2e"
             terme: "Schöpfkelle"
             cible: "Suppe anrichten"
@@ -54,6 +56,9 @@ parties:
               - "Mit der Reibe"
               - "Mit dem Schwingbesen"
               - "Mit dem Wallholz"
+            explication: "Der Messbecher hat Striche für Deziliter und Milliliter."
+            explications_distracteurs:
+              "Mit der Reibe": "Mit der Reibe raffelst du Käse, sie misst nichts ab."
           - id: "dh8hx2ag"
             question: "Bei wie viel Grad kocht Wasser auf Meereshöhe?"
             reponse: "Bei 100 °C"
@@ -61,6 +66,10 @@ parties:
               - "Bei 60 °C"
               - "Bei 80 °C"
               - "Bei 140 °C"
+            explication: "Auf Meereshöhe kocht Wasser bei 100 °C, in den Bergen schon etwas früher."
+            explications_distracteurs:
+              "Bei 60 °C": "Bei 60 °C ist Wasser heiss, aber es kocht noch lange nicht."
+              "Bei 140 °C": "So heiss wird Wasser im offenen Topf nie, nur Öl in der Pfanne."
       - id: "3v4g7ncc"
         genre: "vrai-faux"
         consigne: "Stimmt die Aussage oder nicht?"
@@ -86,6 +95,7 @@ parties:
             texte: "Den Kuchen backst du im ___."
             reponses:
               - "Ofen"
+            explication: "Im Ofen wird der Teig von allen Seiten gleichmässig heiss."
           - id: "m9a9ekgf"
             texte: "Die Milch bleibt im ___ frisch."
             reponses:

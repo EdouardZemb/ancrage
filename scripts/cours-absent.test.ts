@@ -1,13 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import {
-  cpSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  renameSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -287,18 +279,12 @@ it.runIf(process.platform === 'win32')(
   180000,
 );
 
-// Une explication est un texte du cours (M10) : le dépôt de données voisin la porte, le hook la cherche.
+// Une explication est un texte du cours (M10) : la copie de l'exemple que porte le dépôt de données
+// voisin la contient, et le hook la cherche. Garde : sans les explications dans `textesDeTache`,
+// le hook rend 0 ici.
 it('refuse_un_push_dont_un_fichier_porte_une_explication_du_cours', () => {
-  const explication = 'Das Sieb lässt das Kochwasser unten abtropfen.';
-  const feuille = join(donnees, 'contenu', 'kueche', 'feuilles', 'blatt-01.yaml');
-  const avant = '            cible: "Teigwaren abgiessen"\n';
-  const texte = readFileSync(feuille, 'utf8').replace(/\r\n/g, '\n');
-  expect(texte).toContain(avant);
-  writeFileSync(
-    feuille,
-    texte.replace(avant, `${avant}            explication: "${explication}"\n`),
-  );
-
+  const explication =
+    'Durch die Löcher des Siebs läuft das Kochwasser ab, die Teigwaren bleiben drin.';
   commiter('fuite', 'notes.txt', `${explication}\n`);
   const r = hook('git push origin fuite');
   expect(r.code).toBe(2);

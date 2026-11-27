@@ -3,7 +3,15 @@ import { cleanup, fireEvent, screen } from '@testing-library/preact';
 import { useState } from 'preact/hooks';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { QuestionAChoix, Tache } from '../../../domaine/contenu/modele.js';
-import { contexteDeTest, rendreDansLeCours } from '../contexte-cours.fixture.js';
+import { coursAvecExplications, coursServiDeTest } from '../../../domaine/cours/cours.fixture.js';
+import {
+  AUJOURDHUI_DE_TEST,
+  contexteDeTest,
+  rendreDansLeCours,
+  rendreDansUnCoursVivant,
+  reponseDeTest,
+} from '../contexte-cours.fixture.js';
+import { useCours } from '../contexte-cours.js';
 import { choisirDans, optionsDe, texteDe } from '../onglets/onglets.fixture.js';
 import { TacheAChoix, TacheVraiFaux } from './TacheAChoix.js';
 import { type ResultatDElement, resultatsDeTache } from './tache.js';
@@ -41,6 +49,23 @@ function Changeante(props: {
     </>
   );
 }
+
+const HEMI_ERKLAERT: QuestionAChoix = {
+  ...HEMI,
+  explication: 'Hemi- heisst beim Zimbolwesp immer halb.',
+  explicationsDistracteurs: { doppelt: 'Doppelt wäre beim Zimbolwesp di-.' },
+};
+
+const EXPLICATION_DU_CHOIX = 'Doppelt wäre beim Zimbolwesp di-.';
+const EXPLICATION_DE_LA_REPONSE = 'Hemi- heisst beim Zimbolwesp immer halb.';
+
+/** Les blocs « Erklärung » du `fieldset` de la question nommée. */
+function blocsDe(groupe: string): HTMLElement[] {
+  return Array.from(screen.getByRole('group', { name: groupe }).querySelectorAll('.explication'));
+}
+
+const lignesDe = (bloc: HTMLElement) =>
+  Array.from(bloc.querySelectorAll('p')).map((p) => p.textContent);
 
 const sansNumero = (groupe: string) => optionsDe(groupe).map(texteDe);
 
@@ -158,5 +183,119 @@ describe('TacheAChoix', () => {
 
     expect(optionsDe('Der Topf ist ein Besteck.').map((x) => x.className)).toEqual(['', 'right']);
     expect(screen.getByText('Der Topf ist ein Kochgeschirr mit Deckel.')).toBeTruthy();
+  });
+
+  it('qcm_un_choix_faux_montre_l_explication_du_choix_puis_celle_de_la_reponse', () => {
+    rendreDansLeCours(
+      <TacheAChoix tache={tacheDe(HEMI_ERKLAERT)} onRepondu={vi.fn()} />,
+      contexteDeTest(),
+    );
+
+    choisirDans(HEMI.question, 'doppelt');
+
+    expect(document.querySelector('.options .wrong')?.textContent).toContain('doppelt');
+    const blocs = blocsDe(HEMI.question);
+    expect(blocs).toHaveLength(1);
+    expect(blocs[0].getAttribute('role')).toBe('status');
+    expect(lignesDe(blocs[0])).toEqual([EXPLICATION_DU_CHOIX, EXPLICATION_DE_LA_REPONSE]);
+  });
+
+  it('qcm_un_distracteur_sans_explication_montre_celle_de_la_reponse', () => {
+    rendreDansLeCours(
+      <TacheAChoix tache={tacheDe(HEMI_ERKLAERT)} onRepondu={vi.fn()} />,
+      contexteDeTest(),
+    );
+
+    choisirDans(HEMI.question, 'ganz');
+
+    expect(document.querySelector('.options .wrong')?.textContent).toContain('ganz');
+    const blocs = blocsDe(HEMI.question);
+    expect(blocs).toHaveLength(1);
+    expect(lignesDe(blocs[0])).toEqual([EXPLICATION_DE_LA_REPONSE]);
+  });
+
+  it('qcm_un_choix_juste_ne_montre_l_explication_qu_a_un_rebelle', () => {
+    const tache = tacheDe(HEMI_ERKLAERT);
+    rendreDansLeCours(<TacheAChoix tache={tache} onRepondu={vi.fn()} />, contexteDeTest());
+    choisirDans(HEMI.question, 'halb');
+    expect(document.querySelector('.options .right')?.textContent).toContain('halb');
+    expect(document.querySelector('.explication')).toBeNull();
+    cleanup();
+
+    const contexte = { ...contexteDeTest(), rebelles: new Set([HEMI.id]) };
+    rendreDansLeCours(<TacheAChoix tache={tache} onRepondu={vi.fn()} />, contexte);
+    choisirDans(HEMI.question, 'halb');
+    expect(document.querySelector('.options .right')?.textContent).toContain('halb');
+    expect(lignesDe(blocsDe(HEMI.question)[0])).toEqual([EXPLICATION_DE_LA_REPONSE]);
+  });
+
+  it('qcm_l_explication_attend_le_choix', () => {
+    const contexte = { ...contexteDeTest(), rebelles: new Set([HEMI.id]) };
+    rendreDansLeCours(<TacheAChoix tache={tacheDe(HEMI_ERKLAERT)} onRepondu={vi.fn()} />, contexte);
+
+    expect(document.querySelector('.explication')).toBeNull();
+  });
+
+  it('qcm_l_explication_reste_dans_sa_question', () => {
+    rendreDansLeCours(
+      <TacheAChoix tache={tacheDe(HEMI_ERKLAERT, POLY)} onRepondu={vi.fn()} />,
+      contexteDeTest(),
+    );
+
+    choisirDans(HEMI.question, 'doppelt');
+
+    expect(blocsDe(HEMI.question)).toHaveLength(1);
+    expect(blocsDe(POLY.question)).toHaveLength(0);
+  });
+
+  it('qcm_sans_explication_rien_ne_s_affiche_apres_une_faute', () => {
+    rendreDansLeCours(<TacheAChoix tache={tacheDe(HEMI)} onRepondu={vi.fn()} />, contexteDeTest());
+
+    choisirDans(HEMI.question, 'ganz');
+
+    expect(document.querySelector('.options .wrong')?.textContent).toContain('ganz');
+    expect(document.querySelector('.explication')).toBeNull();
+  });
+
+  it('qcm_le_verdict_rebelle_est_fige_au_choix', () => {
+    const FB7 = 'fb000007';
+    const cours = { ...coursAvecExplications(coursServiDeTest()), rebelles: { fautes: 2 } };
+    const evenements = [
+      reponseDeTest(1, FB7, true, '2026-10-10'),
+      reponseDeTest(2, FB7, false, '2026-10-11'),
+      reponseDeTest(3, FB7, false, '2026-10-12'),
+      reponseDeTest(4, FB7, true, '2026-10-13'),
+      reponseDeTest(5, FB7, true, '2026-10-14'),
+    ];
+    const contexte = contexteDeTest({ cours, evenements, aujourdhui: AUJOURDHUI_DE_TEST });
+    expect(contexte.rebelles.has(FB7)).toBe(true);
+    const tache = contexte.cours.cours.modules
+      .flatMap((m) => (m.type === 'feuille' ? m.parties.flatMap((p) => p.taches) : []))
+      .find((x) => x.id === 'fa000003');
+    if (tache?.genre !== 'qcm') throw new Error('la tâche qcm du cours de test manque');
+
+    function TacheQuiEnregistre() {
+      const { enregistrer } = useCours();
+      return (
+        <TacheAChoix
+          tache={tache as TacheQcm}
+          onRepondu={(resultats) => {
+            for (const { id, juste, mode } of resultats) void enregistrer(id, juste, mode);
+          }}
+        />
+      );
+    }
+    rendreDansUnCoursVivant(<TacheQuiEnregistre />, contexte);
+    expect(screen.getByText('schwierig')).toBeTruthy();
+
+    choisirDans('Was bedeutet hyper-?', 'über dem Mass');
+
+    expect(document.querySelector('.options .right')?.textContent).toContain('über dem Mass');
+    // Le journal a pris la réponse : la question n'est plus rebelle, la marque disparaît.
+    expect(screen.queryByText('schwierig')).toBeNull();
+    // Le verdict a été figé au choix : l'explication de la réponse reste montrée.
+    expect(lignesDe(blocsDe('Was bedeutet hyper-?')[0])).toEqual([
+      'Der Murmelkrat misst immer zu viel, also darüber.',
+    ]);
   });
 });

@@ -36,6 +36,7 @@ const de = {
   rebelle_marque: 'schwierig',
   aide_titre: 'Merkhilfe',
   aide_confusion: 'Nicht verwechseln mit:',
+  explication_titre: 'Erklärung',
   heute_retourner: 'Lieber umdrehen',
   heute_saisir: 'Lieber eintippen',
   heute_revisions: '{n} zum Auffrischen',

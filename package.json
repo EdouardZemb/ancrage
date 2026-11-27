@@ -80,7 +80,8 @@
     "overrides": {
       "qs": "^6.16.1",
       "@esbuild-kit/core-utils>esbuild": "^0.25.12",
-      "minimatch@10": "^11.0.1"
+      "minimatch@10": "^11.0.1",
+      "workbox-build>glob": "^14.0.6"
     }
   }
 }

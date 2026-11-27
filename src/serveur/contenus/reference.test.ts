@@ -2,6 +2,8 @@ import { FSRS6_DEFAULT_WEIGHTS } from 'ts-fsrs/models/fsrs-6';
 import { describe, expect, it } from 'vitest';
 import { analyserContenus } from '../../domaine/contenu/analyse.js';
 import {
+  EXPLICATIONS_D_ESSAI,
+  exempleAvecExplications,
   exempleAvecManuels,
   exempleDeCours,
   ID_MANUEL_ALPHA,
@@ -583,5 +585,36 @@ describe('calculerReference, aide et confondu_avec', () => {
       expect(unite).not.toHaveProperty('aide');
       expect(unite).not.toHaveProperty('confonduAvec');
     }
+  });
+});
+
+describe('calculerReference, explications', () => {
+  it('reference_contient_les_explications', () => {
+    const reference = calculerReference(coursDe(exempleAvecExplications()));
+    const elements = reference.feuilles
+      .flatMap((feuille) => feuille.parties)
+      .flatMap((partie) => partie.taches)
+      .flatMap((tache): { id: string }[] => {
+        switch (tache.genre) {
+          case 'appariement':
+            return tache.paires;
+          case 'qcm':
+            return tache.questions;
+          case 'trous':
+            return tache.phrases;
+          default:
+            return [];
+        }
+      });
+    const par = (id: string) => elements.find((e) => e.id === id);
+
+    expect(par('x9wzygy4')).toMatchObject({
+      explication: EXPLICATIONS_D_ESSAI.question,
+      explicationsDistracteurs: EXPLICATIONS_D_ESSAI.distracteur,
+    });
+    expect(par('4bc2tbhe')).toMatchObject({ explication: EXPLICATIONS_D_ESSAI.paire });
+    expect(par('ymn0s16n')).toMatchObject({ explication: EXPLICATIONS_D_ESSAI.phrase });
+    expect(par('m68hg1re')).not.toHaveProperty('explication');
+    expect(par('m68hg1re')).not.toHaveProperty('statut');
   });
 });

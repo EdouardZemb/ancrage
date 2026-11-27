@@ -160,6 +160,8 @@ export interface PaireAppariee extends Etat {
   id: string;
   terme: string;
   cible: string;
+  /** Ce qui explique la bonne réponse, après une faute (M10). */
+  explication?: string;
 }
 
 export interface ElementAClasser extends Etat {
@@ -175,6 +177,10 @@ export interface QuestionAChoix extends Etat {
   reponse: string;
   /** Exactement 3, distincts, sans la réponse. */
   distracteurs: string[];
+  /** Ce qui explique la bonne réponse, après une faute (M10). */
+  explication?: string;
+  /** L'explication d'un distracteur, par son texte exact ; partielle (M10). */
+  explicationsDistracteurs?: Readonly<Record<string, string>>;
 }
 
 export interface Affirmation extends Etat {
@@ -190,6 +196,8 @@ export interface PhraseATrous extends Etat {
   texte: string;
   /** Une par trou, dans l'ordre des trous. */
   reponses: string[];
+  /** Ce qui explique la bonne réponse, après une faute (M10). */
+  explication?: string;
 }
 
 export interface MotACorriger extends Etat {

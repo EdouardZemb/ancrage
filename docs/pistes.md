@@ -29,6 +29,8 @@ feuille de route. On n'y ajoute que ce qui n'a pas encore d'issue.
 - **Les cours personnels d'Edouard.**
 - **Un éditeur de contenu pour l'enseignante** (réponse 6 du 15/10). Il demandera un ADR :
   stockage, relecture, versionnage.
+- **Une explication pour le classement** : une explication par élément à classer, après « Prüfen » ;
+  écartée du lot M10 (M10-C1).
 - **Des trous à l'ordre libre** dans les feuilles : une phrase à deux trous accepterait
   les deux réponses dans l'un ou l'autre ordre (lot F1, F1-R12).
 - **Une comparaison exacte pour un trou sans liste** : une phrase qui porte sur l'orthographe d'une

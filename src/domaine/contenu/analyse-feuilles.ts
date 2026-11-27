@@ -11,6 +11,7 @@ import {
 } from './analyse-commun.js';
 import { MARQUE_DE_TROU, morceauxDePhrase } from './feuille.js';
 import type { Etat, ModuleFeuille, Statut, Tache } from './modele.js';
+import { messagesDExplication } from './schemas.js';
 
 type TacheEcrite = Ecrit<'feuille'>['parties'][number]['taches'][number];
 /** Un élément de feuille tel qu'il est écrit : son identifiant, et peut-être son état. */
@@ -48,12 +49,63 @@ function resoudreElements<E extends ElementEcrit, R>(
   ecrits: readonly E[],
   lieu: (rang: number) => string,
   parent: Etat,
-  champs: (ecrit: E) => R,
+  champs: (ecrit: E, rang: number) => R,
 ): ({ id: string } & R & Etat)[] {
   return ecrits.map((ecrit, rang) => {
     noterIdentifiant(analyse, ecrit.id, fichier, `${lieu(rang)}.id`);
-    return { id: ecrit.id, ...champs(ecrit), ...etatHerite(ecrit, parent) };
+    return { id: ecrit.id, ...champs(ecrit, rang), ...etatHerite(ecrit, parent) };
   });
+}
+
+/** La clé `explication` d'un élément, seulement si elle est écrite (M10-D2). */
+function avecExplication(explication: string | undefined): { explication?: string } {
+  return explication === undefined ? {} : { explication };
+}
+
+/**
+ * Les explications des distracteurs d'une question, `lieu` étant celui de la question. Une clé
+ * qui ne nomme aucun distracteur, ou dont la valeur est refusée, est signalée au rang où le YAML
+ * l'écrit : une clé est un texte du cours, et aucun message ne le cite (M10-D2). Ne garde que les
+ * entrées admises, dans l'ordre écrit, et rend `undefined` s'il n'en reste aucune.
+ */
+function explicationsAdmises(
+  analyse: Analyse,
+  fichier: string,
+  ecrit: { distracteurs: readonly string[]; explications_distracteurs?: Record<string, unknown> },
+  lieu: string,
+): Readonly<Record<string, string>> | undefined {
+  const ecrites = ecrit.explications_distracteurs;
+  if (ecrites === undefined) return undefined;
+  const lieuDeLObjet = `${lieu}.explications_distracteurs`;
+  const cles = Object.keys(ecrites);
+  if (cles.length === 0) {
+    signaler(
+      analyse,
+      fichier,
+      lieuDeLObjet,
+      "Aucune explication de distracteur : l'objet est vide.",
+    );
+    return undefined;
+  }
+  // L'objet lu range les clés entières d'abord : l'ordre écrit vient de l'arbre YAML.
+  const ordre = analyse.ordreDesCles.get(`${fichier}:${lieuDeLObjet}`) ?? cles;
+  const admises: [string, string][] = [];
+  ordre.forEach((cle, rang) => {
+    const lieuDeLaCle = `${lieuDeLObjet}[${rang}]`;
+    if (!ecrit.distracteurs.includes(cle)) {
+      signaler(
+        analyse,
+        fichier,
+        lieuDeLaCle,
+        'Cette clé ne nomme aucun distracteur de la question.',
+      );
+      return;
+    }
+    const messages = messagesDExplication(ecrites[cle]);
+    for (const message of messages) signaler(analyse, fichier, lieuDeLaCle, message);
+    if (messages.length === 0) admises.push([cle, ecrites[cle] as string]);
+  });
+  return admises.length === 0 ? undefined : Object.fromEntries(admises);
 }
 
 /** Une tâche et les règles de son genre. Les messages situent l'élément sans citer son texte. */
@@ -69,7 +121,7 @@ function resoudreTache(
   const resoudre = <E extends ElementEcrit, R>(
     cle: string,
     ecrits: readonly E[],
-    champs: (ecrit: E) => R,
+    champs: (ecrit: E, rang: number) => R,
   ) =>
     resoudreElements(analyse, fichier, ecrits, (rang) => `${lieu}.${cle}[${rang}]`, parent, champs);
   /** Signale chaque `champ` déjà vu parmi les `elements` de la liste `cle`. */
@@ -85,7 +137,11 @@ function resoudreTache(
 
   switch (tache.genre) {
     case 'appariement': {
-      const paires = resoudre('paires', tache.paires, ({ terme, cible }) => ({ terme, cible }));
+      const paires = resoudre('paires', tache.paires, ({ terme, cible, explication }) => ({
+        terme,
+        cible,
+        ...avecExplication(explication),
+      }));
       doublons('paires', paires, 'terme', 'Terme');
       doublons('paires', paires, 'cible', 'Cible');
       return { id, genre: 'appariement', consigne, paires };
@@ -116,11 +172,21 @@ function resoudreTache(
       return { id, genre: 'classement', consigne, categories: tache.categories, elements };
     }
     case 'qcm': {
-      const questions = resoudre('questions', tache.questions, (ecrit) => ({
-        question: ecrit.question,
-        reponse: ecrit.reponse,
-        distracteurs: ecrit.distracteurs,
-      }));
+      const questions = resoudre('questions', tache.questions, (ecrit, rang) => {
+        const distracteurs = explicationsAdmises(
+          analyse,
+          fichier,
+          ecrit,
+          `${lieu}.questions[${rang}]`,
+        );
+        return {
+          question: ecrit.question,
+          reponse: ecrit.reponse,
+          distracteurs: ecrit.distracteurs,
+          ...avecExplication(ecrit.explication),
+          ...(distracteurs === undefined ? {} : { explicationsDistracteurs: distracteurs }),
+        };
+      });
       questions.forEach((question, rang) => {
         controlerDistracteurs(analyse, fichier, question, `${lieu}.questions[${rang}]`);
       });
@@ -135,9 +201,10 @@ function resoudreTache(
       return { id, genre: 'vrai-faux', consigne, affirmations };
     }
     case 'trous': {
-      const phrases = resoudre('phrases', tache.phrases, ({ texte, reponses }) => ({
+      const phrases = resoudre('phrases', tache.phrases, ({ texte, reponses, explication }) => ({
         texte,
         reponses,
+        ...avecExplication(explication),
       }));
       if (tache.liste !== undefined) {
         const lieuDuMot = (rang: number) => `${lieu}.liste[${rang}]`;

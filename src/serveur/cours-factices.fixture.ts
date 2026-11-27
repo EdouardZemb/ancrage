@@ -5,7 +5,11 @@
  * `*.fixture.ts`.
  */
 import { analyserContenus } from '../domaine/contenu/analyse.js';
-import { exempleAvecManuels, exempleDeCours } from '../domaine/contenu/exemple.fixture.js';
+import {
+  avecExplications,
+  exempleAvecManuels,
+  exempleDeCours,
+} from '../domaine/contenu/exemple.fixture.js';
 import type { Cours } from '../domaine/contenu/modele.js';
 
 export const ID_A_VERIFIER = 'j5by5stz';
@@ -133,7 +137,7 @@ export const COURS_SOURCE = variante(
       return texteRelu.replace(relu.avant, () => relu.apres);
     }, avecAide);
   },
-  exempleAvecManuels(),
+  avecExplications(exempleAvecManuels()),
 );
 /** Une variante « à vérifier » dont le manifeste autorise la diffusion à un groupe. */
 export const COURS_DEROGE = variante(ID_DEROGE, 'Ausnahmekurs', (chemin, texte) =>

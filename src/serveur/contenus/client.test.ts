@@ -3,6 +3,8 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { analyserContenus } from '../../domaine/contenu/analyse.js';
 import {
+  EXPLICATIONS_D_ESSAI,
+  exempleAvecExplications,
   exempleAvecManuels,
   exempleDeCours,
   ID_MANUEL_ALPHA,
@@ -486,5 +488,24 @@ describe('textesDuCours, l_aide_d_une_carte', () => {
     expect(textes).toContain('Kleiner Merksatz für Karten');
     expect(textes).not.toContain('rzbyrqna');
     expect(textesDeLExemple()).not.toContain('Kleiner Merksatz für Karten');
+  });
+});
+
+describe('textesDuCours, explications', () => {
+  it('textes_du_cours_comprennent_les_explications', () => {
+    const resultat = analyserContenus(exempleAvecExplications());
+    expect(resultat.erreurs).toEqual([]);
+
+    const textes = textesDuCours(resultat.cours[0]);
+
+    expect(textes).toContain(EXPLICATIONS_D_ESSAI.question);
+    expect(textes).toContain(EXPLICATIONS_D_ESSAI.distracteur['halb so gross']);
+    expect(textes).toContain(EXPLICATIONS_D_ESSAI.paire);
+    expect(textes).toContain(EXPLICATIONS_D_ESSAI.phrase);
+    for (const texte of Object.values(EXPLICATIONS_D_ESSAI).flatMap((v) =>
+      typeof v === 'string' ? [v] : Object.values(v),
+    )) {
+      expect(textesDeLExemple()).not.toContain(texte);
+    }
   });
 });

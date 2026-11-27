@@ -278,3 +278,16 @@ it.runIf(process.platform === 'win32')(
   },
   180000,
 );
+
+// Une explication est un texte du cours (M10) : la copie de l'exemple que porte le dépôt de données
+// voisin la contient, et le hook la cherche. Garde : sans les explications dans `textesDeTache`,
+// le hook rend 0 ici.
+it('refuse_un_push_dont_un_fichier_porte_une_explication_du_cours', () => {
+  const explication =
+    'Durch die Löcher des Siebs läuft das Kochwasser ab, die Teigwaren bleiben drin.';
+  commiter('fuite', 'notes.txt', `${explication}\n`);
+  const r = hook('git push origin fuite');
+  expect(r.code).toBe(2);
+  expect(r.erreur).toContain('notes.txt');
+  expect(hook('git push origin propre').code).toBe(0);
+}, 120000);

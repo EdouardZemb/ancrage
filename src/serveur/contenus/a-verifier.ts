@@ -1,4 +1,5 @@
-import type { Cours, Etat, Module, Tache } from '../../domaine/contenu/modele.js';
+import type { Cours, Etat, Module, QuestionAChoix, Tache } from '../../domaine/contenu/modele.js';
+import { explicationDuDistracteur } from '../../domaine/feuilles/explications.js';
 
 /*
  * La liste imprimable des éléments « à vérifier » d'un cours, pour la relecture d'une enseignante
@@ -36,6 +37,20 @@ function aVerifier(element: Etat): boolean {
   return element.statut === A_VERIFIER;
 }
 
+/** Le champ « Erklärung » d'un élément qui en a une, sinon rien (M10). */
+function champExplication(explication: string | undefined): ChampAVerifier[] {
+  return explication === undefined ? [] : [champ('Erklärung', explication)];
+}
+
+/** Une ligne `<distracteur> – <texte>` par distracteur expliqué, dans l'ordre de `distracteurs`. */
+function champExplicationsDistracteurs(question: QuestionAChoix): ChampAVerifier[] {
+  const lignes = question.distracteurs.flatMap((d) => {
+    const texte = explicationDuDistracteur(question, d);
+    return texte === undefined ? [] : [`${d} – ${texte}`];
+  });
+  return lignes.length === 0 ? [] : [champ('Erklärungen zu falschen Antworten', lignes)];
+}
+
 function elementsDeFeuille(tache: Tache): ElementAVerifier[] {
   const consigne = champ('Aufgabe', tache.consigne);
   const faire = (id: string, nature: string, champs: ChampAVerifier[]): ElementAVerifier => ({
@@ -47,7 +62,13 @@ function elementsDeFeuille(tache: Tache): ElementAVerifier[] {
     case 'appariement':
       return tache.paires
         .filter(aVerifier)
-        .map((p) => faire(p.id, 'Zuordnung', [champ('Begriff', p.terme), champ('Ziel', p.cible)]));
+        .map((p) =>
+          faire(p.id, 'Zuordnung', [
+            champ('Begriff', p.terme),
+            champ('Ziel', p.cible),
+            ...champExplication(p.explication),
+          ]),
+        );
     case 'classement':
       return tache.elements
         .filter(aVerifier)
@@ -62,6 +83,8 @@ function elementsDeFeuille(tache: Tache): ElementAVerifier[] {
             champ('Frage', q.question),
             champ('Antwort', q.reponse),
             champ('Falsche Antworten', q.distracteurs),
+            ...champExplication(q.explication),
+            ...champExplicationsDistracteurs(q),
           ]),
         );
     case 'vrai-faux':
@@ -78,7 +101,11 @@ function elementsDeFeuille(tache: Tache): ElementAVerifier[] {
       return tache.phrases
         .filter(aVerifier)
         .map((p) =>
-          faire(p.id, 'Lückentext', [champ('Text', p.texte), champ('Antworten', p.reponses)]),
+          faire(p.id, 'Lückentext', [
+            champ('Text', p.texte),
+            champ('Antworten', p.reponses),
+            ...champExplication(p.explication),
+          ]),
         );
     case 'orthographe':
       return tache.mots

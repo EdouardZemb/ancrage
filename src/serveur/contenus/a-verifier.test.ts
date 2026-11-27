@@ -417,3 +417,144 @@ describe('a_verifier, aide et confondu_avec', () => {
     expect(html).not.toContain('Merke <b>');
   });
 });
+
+describe('a_verifier, explications', () => {
+  const coursAvecExplications = () =>
+    cours([
+      {
+        type: 'feuille',
+        id: 'mf',
+        fichier: 'feuilles/unit-02.yaml',
+        numero: 2,
+        titre: 'Unit 2',
+        parties: [
+          {
+            titre: 'Teil',
+            taches: [
+              tache({
+                genre: 'appariement',
+                paires: [
+                  {
+                    id: 'pa',
+                    terme: 'Milz',
+                    cible: 'Filtert',
+                    explication: 'Die Milz <filtert>.',
+                    statut: V,
+                  },
+                  { id: 'pb', terme: 'Herz', cible: 'Pumpt', statut: V },
+                ],
+              }),
+              tache({
+                genre: 'qcm',
+                questions: [
+                  {
+                    id: 'qe',
+                    question: 'Q?',
+                    reponse: 'A',
+                    distracteurs: ['B', 'C', 'D'],
+                    explication: 'Weil A.',
+                    explicationsDistracteurs: { D: 'D ist falsch.', B: 'B ist falsch.' },
+                    statut: V,
+                  },
+                ],
+              }),
+              tache({
+                genre: 'trous',
+                phrases: [
+                  {
+                    id: 'pt',
+                    texte: 'Das ___ ist rot.',
+                    reponses: ['Blut'],
+                    explication: 'Blut ist rot.',
+                    statut: V,
+                  },
+                ],
+              }),
+            ],
+          },
+        ],
+      },
+    ]);
+
+  it('la_liste_donne_les_explications_de_chaque_element', () => {
+    const [feuille] = listeAVerifier(coursAvecExplications());
+    const parId = Object.fromEntries(feuille.elements.map((e) => [e.id, e.champs]));
+
+    expect(parId.pa).toEqual([
+      { libelle: 'Aufgabe', valeur: 'Zuordnen Sie.' },
+      { libelle: 'Begriff', valeur: 'Milz' },
+      { libelle: 'Ziel', valeur: 'Filtert' },
+      { libelle: 'Erklärung', valeur: 'Die Milz <filtert>.' },
+    ]);
+    expect(parId.pb.map((c) => c.libelle)).toEqual(['Aufgabe', 'Begriff', 'Ziel']);
+    expect(parId.qe).toEqual([
+      { libelle: 'Aufgabe', valeur: 'Zuordnen Sie.' },
+      { libelle: 'Frage', valeur: 'Q?' },
+      { libelle: 'Antwort', valeur: 'A' },
+      { libelle: 'Falsche Antworten', valeur: ['B', 'C', 'D'] },
+      { libelle: 'Erklärung', valeur: 'Weil A.' },
+      {
+        libelle: 'Erklärungen zu falschen Antworten',
+        valeur: ['B – B ist falsch.', 'D – D ist falsch.'],
+      },
+    ]);
+    expect(parId.pt).toEqual([
+      { libelle: 'Aufgabe', valeur: 'Zuordnen Sie.' },
+      { libelle: 'Text', valeur: 'Das ___ ist rot.' },
+      { libelle: 'Antworten', valeur: ['Blut'] },
+      { libelle: 'Erklärung', valeur: 'Blut ist rot.' },
+    ]);
+  });
+
+  it('la_page_imprime_les_explications_sous_leur_libelle_et_echappe', () => {
+    const html = htmlAVerifier(listeAVerifier(coursAvecExplications()), '01.11.2026');
+
+    expect(html).toContain('<dt>Erklärung</dt>');
+    expect(html).toContain('<dt>Erklärungen zu falschen Antworten</dt>');
+    expect(html).toContain('Die Milz &lt;filtert&gt;.');
+    expect(html).not.toContain('Die Milz <filtert>.');
+  });
+
+  it('une_question_sans_explication_de_distracteur_n_a_pas_le_champ', () => {
+    const [feuille] = listeAVerifier(
+      cours([
+        {
+          type: 'feuille',
+          id: 'mf',
+          fichier: 'f.yaml',
+          numero: 1,
+          titre: 'U',
+          parties: [
+            {
+              titre: 'T',
+              taches: [
+                tache({
+                  genre: 'qcm',
+                  questions: [
+                    {
+                      id: 'q1',
+                      question: 'Q?',
+                      reponse: 'A',
+                      distracteurs: ['B'],
+                      explication: 'Weil A.',
+                      explicationsDistracteurs: { Z: 'Z ist unbekannt.' },
+                      statut: V,
+                    },
+                  ],
+                }),
+              ],
+            },
+          ],
+        },
+      ]),
+    );
+
+    expect(feuille.elements[0].champs.map((c) => c.libelle)).toEqual([
+      'Aufgabe',
+      'Frage',
+      'Antwort',
+      'Falsche Antworten',
+      'Erklärung',
+    ]);
+  });
+});

@@ -2,6 +2,8 @@ import { FSRS6_DEFAULT_WEIGHTS } from 'ts-fsrs/models/fsrs-6';
 import { describe, expect, it } from 'vitest';
 import { analyserContenus } from '../contenu/analyse.js';
 import {
+  EXPLICATIONS_D_ESSAI,
+  exempleAvecExplications,
   exempleAvecManuels,
   exempleDeCours,
   ID_MANUEL_ALPHA,
@@ -10,7 +12,14 @@ import {
 } from '../contenu/exemple.fixture.js';
 import type { Manuel } from '../contenu/modele.js';
 import { planningDuCours } from '../seances/planning.js';
-import { coursSans, coursServiDeTest, coursServiParLaV030 } from './cours.fixture.js';
+import {
+  coursAvecChampsDElement,
+  coursAvecExplications,
+  coursSans,
+  coursServiDeTest,
+  coursServiParLaV030,
+  EXPLICATIONS_DE_TEST,
+} from './cours.fixture.js';
 import type { CoursServi } from './servi.js';
 import {
   coursServiUtilisable,
@@ -249,8 +258,6 @@ describe('versCoursServi', () => {
     expect(coursServiUtilisable(JSON.parse(JSON.stringify(servi)))).toBe(true);
   });
 
-  // La liste blanche (`moduleServi`) sert ce que servait la liste noire : tout, sauf `fichier`.
-  // `toStrictEqual` distingue une clé absente d'une clé `undefined`.
   it('memoire_servie_telle_quelle_et_absente_sans_elle', () => {
     const [cours] = analyserContenus(exempleDeCours()).cours;
     expect(versCoursServi(cours)).not.toHaveProperty('memoire');
@@ -477,6 +484,8 @@ describe('versCoursServi', () => {
     }
   });
 
+  // La liste blanche (`moduleServi`) sert ce que servait la liste noire : tout, sauf `fichier`.
+  // `toStrictEqual` distingue une clé absente d'une clé `undefined`.
   it('liste_blanche_sert_ce_que_servait_la_liste_noire', () => {
     const [cours] = analyserContenus(exempleDeCours()).cours;
 
@@ -533,4 +542,72 @@ it('une_aide_qui_n_est_pas_un_texte_ne_bloque_pas_le_client', () => {
   carte.confonduAvec = { id: 'x' };
 
   expect(coursServiUtilisable(servi)).toBe(true);
+});
+
+/** Les éléments de feuille du cours servi, par identifiant. */
+function elementsDeFeuille(servi: CoursServi): Map<string, Record<string, unknown>> {
+  const elements = new Map<string, Record<string, unknown>>();
+  for (const module of servi.modules) {
+    if (module.type !== 'feuille') continue;
+    for (const partie of module.parties) {
+      for (const tache of partie.taches) {
+        const liste = (
+          'paires' in tache
+            ? tache.paires
+            : 'questions' in tache
+              ? tache.questions
+              : 'phrases' in tache
+                ? tache.phrases
+                : []
+        ) as { id: string }[];
+        for (const element of liste) elements.set(element.id, element as Record<string, unknown>);
+      }
+    }
+  }
+  return elements;
+}
+
+it('explications_servies_pour_l_element_qui_les_porte_et_pour_lui_seul', () => {
+  const { cours, erreurs } = analyserContenus(exempleAvecExplications());
+  expect(erreurs).toEqual([]);
+  const servi = versCoursServi(cours[0]);
+
+  // Rien n'est partagé avec le modèle : l'objet des distracteurs est une copie.
+  const question = elementsDeFeuille(servi).get('x9wzygy4');
+  const duModele = cours[0].modules
+    .flatMap((module) => (module.type === 'feuille' ? module.parties : []))
+    .flatMap((partie) => partie.taches)
+    .flatMap((tache) => (tache.genre === 'qcm' ? tache.questions : []))
+    .find((q) => q.id === 'x9wzygy4');
+  expect(question?.explicationsDistracteurs).toStrictEqual(duModele?.explicationsDistracteurs);
+  expect(question?.explicationsDistracteurs).not.toBe(duModele?.explicationsDistracteurs);
+
+  const apresJson = JSON.parse(JSON.stringify(servi)) as CoursServi;
+  const elements = elementsDeFeuille(apresJson);
+  expect(elements.get('x9wzygy4')).toMatchObject({
+    explication: EXPLICATIONS_D_ESSAI.question,
+    explicationsDistracteurs: EXPLICATIONS_D_ESSAI.distracteur,
+  });
+  expect(elements.get('4bc2tbhe')).toMatchObject({ explication: EXPLICATIONS_D_ESSAI.paire });
+  expect(elements.get('ymn0s16n')).toMatchObject({ explication: EXPLICATIONS_D_ESSAI.phrase });
+  const paireSans = elements.get('m68hg1re');
+  expect(paireSans).toBeDefined();
+  expect(paireSans).not.toHaveProperty('explication');
+  expect(coursServiUtilisable(apresJson)).toBe(true);
+});
+
+it('une_explication_qui_n_est_pas_un_texte_ne_bloque_pas_le_client', () => {
+  let cours = coursAvecChampsDElement(coursServiDeTest(), 'fb000007', {
+    explication: 42,
+    explicationsDistracteurs: 'x',
+  });
+  cours = coursAvecChampsDElement(cours, 'fb000010', { explication: { a: 1 } });
+  cours = coursAvecChampsDElement(cours, 'fb000001', { explication: [] });
+  expect(coursServiUtilisable(JSON.parse(JSON.stringify(cours)))).toBe(true);
+});
+
+it('cours_de_test_avec_explications_utilisable', () => {
+  const cours = coursAvecExplications(coursServiDeTest());
+  expect(coursServiUtilisable(JSON.parse(JSON.stringify(cours)))).toBe(true);
+  expect(elementsDeFeuille(cours).get('fb000007')).toMatchObject(EXPLICATIONS_DE_TEST.fb000007);
 });

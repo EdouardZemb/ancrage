@@ -14,6 +14,11 @@ export interface Analyse {
    * n'est alors pas confronté au contenu : chaque identifiant non relevé y paraîtrait disparu.
    */
   complet: boolean;
+  /**
+   * Les clés de chaque objet `explications_distracteurs`, dans l'ordre où le YAML les écrit, sous
+   * `<fichier>:<lieu de l'objet>`. Un objet JavaScript range les clés entières d'abord (M10-D2).
+   */
+  ordreDesCles: Map<string, readonly string[]>;
 }
 
 export function signaler(analyse: Analyse, fichier: string, lieu: string, message: string): void {

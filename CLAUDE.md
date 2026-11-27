@@ -416,7 +416,7 @@ Sur le poste, `pnpm` s'appelle par `corepack pnpm …` ; en CI, `corepack enable
   `e2e/mise-a-jour/aide-apres-faute.spec.ts` (lot M9), sur son compte et sa base.
 - `corepack pnpm mutation` : tests de mutation (Stryker) de `src/domaine/acces.ts`, de
   `src/domaine/journal/*.ts` (tests exclus), de `src/domaine/progression/etat.ts`, `fsrs.ts`, `ordonnanceur.ts`, `rebelles.ts` et `reglages.ts`, de
-  `src/domaine/feuilles/deroulement.ts` et `correction.ts`, de
+  `src/domaine/feuilles/deroulement.ts`, `explications.ts` et `correction.ts`, de
   `src/domaine/seances/feuilles.ts`, `heute.ts`, `planning.ts`, `rythme.ts`, `pretest.ts`,
   `semestre.ts` et `revisions.ts`, de
   `src/domaine/contenu/analyse-manuels.ts`, de `src/domaine/cours/manuels.ts`, de

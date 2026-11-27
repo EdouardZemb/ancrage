@@ -151,17 +151,34 @@ export function textesDeLaNotice(notice: ValeursDeNotice): string[] {
 function textesDeTache(tache: Tache): string[] {
   switch (tache.genre) {
     case 'appariement':
-      return tache.paires.flatMap((paire) => [paire.terme, paire.cible]);
+      return tache.paires.flatMap((paire) => [
+        paire.terme,
+        paire.cible,
+        ...(paire.explication === undefined ? [] : [paire.explication]),
+      ]);
     case 'classement':
       return [...tache.categories, ...tache.elements.map((element) => element.terme)];
     case 'qcm':
-      return tache.questions.flatMap((q) => [q.question, q.reponse, ...q.distracteurs]);
+      return tache.questions.flatMap((q) => [
+        q.question,
+        q.reponse,
+        ...q.distracteurs,
+        ...(q.explication === undefined ? [] : [q.explication]),
+        ...Object.values(q.explicationsDistracteurs ?? {}),
+      ]);
     case 'vrai-faux':
       return tache.affirmations.flatMap((a) =>
         a.correction === undefined ? [a.affirmation] : [a.affirmation, a.correction],
       );
     case 'trous':
-      return [...(tache.liste ?? []), ...tache.phrases.flatMap((p) => [p.texte, ...p.reponses])];
+      return [
+        ...(tache.liste ?? []),
+        ...tache.phrases.flatMap((p) => [
+          p.texte,
+          ...p.reponses,
+          ...(p.explication === undefined ? [] : [p.explication]),
+        ]),
+      ];
     case 'orthographe':
       return tache.mots.flatMap((mot) => [mot.fautif, mot.reponse]);
     case 'ouverte':

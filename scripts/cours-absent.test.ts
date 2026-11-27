@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, expect, it } from 'vitest';
+import { cheminHote, envoisDeLaCommande } from './cours-absent.js';
 
 const RACINE = fileURLToPath(new URL('..', import.meta.url));
 const SCRIPT = join(RACINE, 'scripts', 'cours-absent.ts');
@@ -189,3 +190,91 @@ it('trouve_le_depot_de_donnees_depuis_un_worktree', () => {
   expect(r.status).toBe(2);
   expect(r.stderr).toContain('notes.txt');
 }, 60000);
+
+// Le hook lit chaque commit que l'envoi publie, pas seulement la tête (LE-31).
+it('refuse_un_commit_intermediaire_qui_porte_un_texte_du_cours_la_tete_etant_propre', () => {
+  commiter('longue', 'notes.txt', `${TEXTE_DU_COURS}\n`);
+  commiter('longue', 'suite.txt', 'rien du cours\n');
+  git('rm', '-q', 'notes.txt');
+  git('commit', '-q', '-m', 'retrait du texte');
+  const r = hook('git push origin longue');
+  expect(r.code).toBe(2);
+  expect(r.erreur).toContain('notes.txt');
+}, 180000);
+
+it('ne_relit_pas_ce_que_le_distant_a_deja', () => {
+  commiter('longue', 'notes.txt', `${TEXTE_DU_COURS}\n`);
+  const distant = join(dossier, 'distant.git');
+  execFileSync('git', ['init', '-q', '--bare', distant], { stdio: 'ignore' });
+  git('remote', 'add', 'origin', distant);
+  git('push', '-q', 'origin', 'longue');
+  git('fetch', '-q', 'origin');
+  git('rm', '-q', 'notes.txt');
+  git('commit', '-q', '-m', 'retrait du texte');
+  expect(hook('git push origin longue').code).toBe(0);
+}, 120000);
+
+// Une redirection ou un tube après la branche n'est pas une référence.
+it('coupe_la_commande_d_envoi_a_la_premiere_redirection_ou_au_premier_enchainement', () => {
+  const cwd = process.cwd();
+  const attendu = [{ depot: null, distant: 'origin', refs: ['fix/x'] }];
+  for (const suffixe of [
+    '2>&1',
+    '2>&1 | tail -5',
+    '> /dev/null',
+    '>/dev/null',
+    '2>/dev/null',
+    '&> sortie.txt',
+    '< entree.txt',
+    '| tail -5',
+    '; echo fini',
+    '&& echo fini',
+    '|| true',
+  ]) {
+    expect(envoisDeLaCommande(`git push origin fix/x ${suffixe}`, cwd), suffixe).toEqual(attendu);
+  }
+});
+
+it('laisse_passer_un_envoi_propre_suivi_d_une_redirection_et_refuse_un_envoi_qui_fuit', () => {
+  commiter('fuite', 'notes.txt', `${TEXTE_DU_COURS}\n`);
+  expect(hook('git push origin propre 2>&1 | tail -5').code).toBe(0);
+  expect(hook('git push origin fuite 2>&1 | tail -5').code).toBe(2);
+}, 180000);
+
+// Sous Windows, Git Bash écrit `/c/…` pour `C:\…`.
+it('lit_un_chemin_git_bash_comme_un_chemin_windows', () => {
+  expect(cheminHote('/c/src/x', 'win32')).toBe('C:/src/x');
+  expect(cheminHote('/D/src', 'win32')).toBe('D:/src');
+  expect(cheminHote('/c', 'win32')).toBe('C:/');
+  expect(cheminHote('/c/', 'win32')).toBe('C:/');
+  expect(cheminHote('C:/src/x', 'win32')).toBe('C:/src/x');
+  expect(cheminHote('C:\\src\\x', 'win32')).toBe('C:\\src\\x');
+  expect(cheminHote('/cours/x', 'win32')).toBe('/cours/x');
+  expect(cheminHote('rel/x', 'win32')).toBe('rel/x');
+  expect(cheminHote('/c/src/x', 'linux')).toBe('/c/src/x');
+});
+
+it.runIf(process.platform === 'win32')(
+  'cherche_dans_le_depot_que_git_c_nomme_en_chemin_git_bash',
+  () => {
+    commiter('fuite', 'notes.txt', `${TEXTE_DU_COURS}\n`);
+    const droit = depot.replaceAll('\\', '/');
+    const bash = droit.replace(/^([A-Za-z]):/, (_m, l: string) => `/${l.toLowerCase()}`);
+    expect(bash.startsWith('/')).toBe(true);
+    const ailleurs = join(dossier, 'ailleurs');
+    mkdirSync(ailleurs);
+    for (const chemin of [bash, depot, droit]) {
+      const r = spawnSync(process.execPath, [SCRIPT, '--hook'], {
+        input: JSON.stringify({
+          tool_input: { command: `git -C ${chemin} push origin fuite` },
+          cwd: ailleurs,
+        }),
+        encoding: 'utf8',
+        env: { ...process.env, ANCRAGE_DONNEES: donnees },
+      });
+      expect(r.status, chemin).toBe(2);
+      expect(r.stderr, chemin).toContain('notes.txt');
+    }
+  },
+  180000,
+);

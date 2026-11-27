@@ -27,9 +27,24 @@ const RACINE = fileURLToPath(new URL('..', import.meta.url));
 
 class Usage extends Error {}
 
-// Un envoi que dit une commande : le dépôt (null : celui du hook) et les références envoyées
-// (`'tout'` : chaque branche locale, pour `--all` et `--mirror`).
-export type Envoi = { depot: string | null; refs: string[] | 'tout' };
+// Un envoi que dit une commande : le dépôt (null : celui du hook), le distant nommé (le premier mot
+// qui suit `push`, `origin` s'il manque ; absent pour une recherche directe, qui ne lit que la
+// référence donnée) et les références envoyées (`'tout'` : chaque branche locale, pour `--all` et
+// `--mirror`).
+export type Envoi = { depot: string | null; distant?: string; refs: string[] | 'tout' };
+
+// Sous Windows, Git Bash écrit `/c/src/x` pour le lecteur C : `/<lettre>` seul, ou suivi d'une
+// barre, se lit comme un lecteur. Un chemin `C:/…`, `C:\…` ou relatif reste tel quel, comme sur un
+// autre système.
+export function cheminHote(chemin: string, plateforme: string = process.platform): string {
+  if (plateforme !== 'win32') return chemin;
+  const m = /^\/([A-Za-z])(?:\/(.*))?$/.exec(chemin);
+  return m ? `${(m[1] as string).toUpperCase()}:/${m[2] ?? ''}` : chemin;
+}
+
+// Une redirection (`>`, `2>`, `>>`, `<`…) ferme la commande d'envoi : ce qui la suit n'est pas une
+// référence. Le `&` de `2>&1` et de `&>` coupe déjà la commande avant ses mots (`lesEnvois`).
+const REDIRECTION = /^\d*[<>]/;
 
 // Les options globales de git qui prennent une valeur dans le mot suivant.
 const OPTIONS_A_VALEUR = new Set([
@@ -106,20 +121,23 @@ function lesEnvois(commande: string, cwd: string): Envoi[] {
       if (OPTIONS_A_VALEUR.has(mot)) {
         i++;
         if (mot === '-C') {
-          depot = resolve(depot, mots[i] ?? '');
+          depot = resolve(depot, cheminHote(mots[i] ?? ''));
           changeDeDepot = true;
         }
       }
     }
     if (mots[i] !== 'push') continue;
-    const apres = mots.slice(i + 1);
+    const finDeCommande = mots.findIndex((mot, rang) => rang > i && REDIRECTION.test(mot));
+    const apres = mots.slice(i + 1, finDeCommande === -1 ? undefined : finDeCommande);
     const tout = apres.some((mot) => mot === '--all' || mot === '--mirror');
-    const refspecs = apres.filter((mot) => !mot.startsWith('-')).slice(1);
+    const positionnels = apres.filter((mot) => !mot.startsWith('-'));
+    const refspecs = positionnels.slice(1);
     const sources = refspecs
       .map((refspec) => refspec.replace(/^\+/, '').split(':')[0] ?? '')
       .filter((source) => source !== '');
     envois.push({
       depot: changeDeDepot ? depot : null,
+      distant: positionnels[0] ?? 'origin',
       refs: tout ? 'tout' : sources.length > 0 ? sources : ['HEAD'],
     });
   }
@@ -226,9 +244,13 @@ function principal(args: string[]): number {
     throw new Usage(`dépôt de données absent : ${donnees}`);
   }
   let pire = 0;
+  const dejaLus = new Set<string>();
   for (const envoi of envois) {
     const depot = envoi.depot ?? depotDuHook;
-    for (const reference of referencesDe(envoi, depot)) {
+    for (const reference of commitsDe(envoi, depot)) {
+      const cle = `${depot}\0${reference}`;
+      if (dejaLus.has(cle)) continue;
+      dejaLus.add(cle);
       const code = chercherSansEchouer(depot, donnees, reference);
       if (code === 0) continue;
       pire = Math.max(pire, code);
@@ -239,6 +261,7 @@ function principal(args: string[]): number {
             : `cours-absent : push refusé, la recherche du cours n'a pas pu tourner (code ${code}). Corriger la cause ci-dessus (dépendances, données, git) puis relancer le push.`,
         );
       }
+      return o.hook ? 2 : pire; // le premier commit refusé suffit
     }
   }
   if (pire === 0) return 0;
@@ -260,6 +283,34 @@ function donneesVoisines(depot: string): string {
     // pas un dépôt git : la racine du script
   }
   return join(principal, '..', 'ancrage-donnees');
+}
+
+// Les commits qu'un envoi publie : ceux de chaque référence que les branches distantes du distant
+// n'ont pas (`git rev-list <réf> --not --remotes=<distant>`), la tête d'abord. Une branche neuve les
+// donne tous ; une branche déjà envoyée, ceux d'après. Sans commit à publier, ou si git ne sait pas
+// les lister, la référence elle-même : un envoi n'est jamais laissé passer sans recherche, et une
+// référence illisible fait échouer la recherche, donc refuse. Une recherche directe (sans distant)
+// ne lit que la référence.
+function commitsDe(envoi: Envoi, depot: string): string[] {
+  const commits: string[] = [];
+  for (const reference of referencesDe(envoi, depot)) {
+    let liste: string[] = [];
+    if (envoi.distant !== undefined) {
+      try {
+        liste = execFileSync(
+          'git',
+          ['-C', depot, 'rev-list', reference, '--not', `--remotes=${envoi.distant}`],
+          { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 * 1024 * 1024 },
+        )
+          .split('\n')
+          .filter((sha) => sha !== '');
+      } catch {
+        liste = [];
+      }
+    }
+    commits.push(...(liste.length > 0 ? liste : [reference]));
+  }
+  return commits;
 }
 
 function referencesDe(envoi: Envoi, depot: string): string[] {

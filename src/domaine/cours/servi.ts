@@ -87,6 +87,11 @@ function exerciceServi(exercice: Exercice): Exercice {
   };
 }
 
+/** L'explication d'un élément de feuille, seulement s'il en porte une (M10). */
+function explicationServie(element: { explication?: string }): { explication?: string } {
+  return element.explication === undefined ? {} : { explication: element.explication };
+}
+
 /** Une tâche de feuille, construite champ par champ, ses éléments compris. */
 function tacheServie(tache: Tache): Tache {
   const { id, consigne } = tache;
@@ -100,6 +105,7 @@ function tacheServie(tache: Tache): Tache {
           id: paire.id,
           terme: paire.terme,
           cible: paire.cible,
+          ...explicationServie(paire),
           ...etatServi(paire),
         })),
       };
@@ -126,6 +132,10 @@ function tacheServie(tache: Tache): Tache {
           question: question.question,
           reponse: question.reponse,
           distracteurs: [...question.distracteurs],
+          ...explicationServie(question),
+          ...(question.explicationsDistracteurs === undefined
+            ? {}
+            : { explicationsDistracteurs: { ...question.explicationsDistracteurs } }),
           ...etatServi(question),
         })),
       };
@@ -152,6 +162,7 @@ function tacheServie(tache: Tache): Tache {
           id: phrase.id,
           texte: phrase.texte,
           reponses: [...phrase.reponses],
+          ...explicationServie(phrase),
           ...etatServi(phrase),
         })),
       };

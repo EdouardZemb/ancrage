@@ -492,3 +492,59 @@ export function coursAvecUneAideParCarte(servi: CoursServi): CoursServi {
     ),
   };
 }
+
+/** Le cours servi dont l'élément de feuille `id` gagne ces champs, tels quels (M10). */
+export function coursAvecChampsDElement(
+  servi: CoursServi,
+  id: string,
+  champs: Record<string, unknown>,
+): CoursServi {
+  const avec = (element: { id: string }) =>
+    element.id === id ? { ...element, ...champs } : element;
+  return {
+    ...servi,
+    modules: servi.modules.map((module) =>
+      module.type === 'feuille'
+        ? {
+            ...module,
+            parties: module.parties.map((partie) => ({
+              ...partie,
+              taches: partie.taches.map((tache) => {
+                switch (tache.genre) {
+                  case 'appariement':
+                    return { ...tache, paires: tache.paires.map(avec) };
+                  case 'qcm':
+                    return { ...tache, questions: tache.questions.map(avec) };
+                  case 'trous':
+                    return { ...tache, phrases: tache.phrases.map(avec) };
+                  default:
+                    return tache;
+                }
+              }),
+            })),
+          }
+        : module,
+    ),
+  } as CoursServi;
+}
+
+/** Les explications inventées du cours de test (M10-D10), par identifiant d'élément. */
+export const EXPLICATIONS_DE_TEST: Readonly<Record<string, Record<string, unknown>>> = {
+  fb000007: {
+    explication: 'Der Murmelkrat misst immer zu viel, also darüber.',
+    explicationsDistracteurs: {
+      schnell: 'Schnell ist der Zimbolwesp, nicht der Murmelkrat.',
+      'unter dem Mass': 'Darunter liegt nur der Grunwurm.',
+    },
+  },
+  fb000010: { explication: 'Die Lücken füllt der Brummelkopf von links nach rechts.' },
+  fb000001: { explication: 'Der Gnurpel zeigt immer auf das erste Paar.' },
+};
+
+/** Le cours servi avec `EXPLICATIONS_DE_TEST` : `fb000007`, `fb000010` et `fb000001`. */
+export function coursAvecExplications(servi: CoursServi): CoursServi {
+  return Object.entries(EXPLICATIONS_DE_TEST).reduce(
+    (cours, [id, champs]) => coursAvecChampsDElement(cours, id, champs),
+    servi,
+  );
+}

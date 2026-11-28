@@ -1,10 +1,26 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { cpSync, mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  renameSync,
+  rmSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, expect, it } from 'vitest';
-import { arbreDe, blobsAPoser, cheminHote, envoisDeLaCommande } from './cours-absent.js';
+import {
+  arbreDe,
+  blobsAPoser,
+  cheminHote,
+  entreesDeLsTree,
+  envoisDeLaCommande,
+  lireBatch,
+} from './cours-absent.js';
 
 const RACINE = fileURLToPath(new URL('..', import.meta.url));
 const SCRIPT = join(RACINE, 'scripts', 'cours-absent.ts');
@@ -316,8 +332,7 @@ it('refuse_un_envoi_dont_le_deuxieme_commit_fuit_et_nomme_ce_commit_par_son_sha'
   const fautif = cinqCommitsDontLeDeuxiemeFuit(TEXTE_DU_COURS);
   const r = hook('git push origin cinq');
   expect(r.code).toBe(2);
-  expect(r.erreur).toContain(fautif);
-  expect(r.erreur).toContain('notes.txt');
+  expect(r.erreur).toContain(`${fautif}/notes.txt`);
   expect(r.erreur).toContain('est le commit qui le porte');
 }, 120000);
 
@@ -381,3 +396,204 @@ it('cherche_une_seule_reference_avec_commit', () => {
   expect(direct('propre').status).toBe(0);
   expect(direct('inconnue').status).not.toBe(0);
 }, 120000);
+
+// Ce que la relecture a demandé (ancrage#93) : on cherche les octets des blobs que l'envoi publie,
+// sans attribut ni filtre de git, et un chemin que le disque ne sait pas écrire fait refuser.
+function commiterDans(branche: string, fichier: string, contenu: string): void {
+  mkdirSync(dirname(join(depot, fichier)), { recursive: true });
+  commiter(branche, fichier, contenu);
+}
+
+function sortieGit(entree: string, ...args: string[]): string {
+  return execFileSync('git', ['-C', depot, ...args], { encoding: 'utf8', input: entree }).trim();
+}
+
+it('refuse_un_texte_qu_un_commit_ancien_porte_quand_la_tete_met_son_dossier_en_export_ignore', () => {
+  commiterDans('piege', 'tests/fixture.ts', `const f = "${TEXTE_DU_COURS}";\n`);
+  commiter('piege', '.gitattributes', 'tests/ export-ignore\n');
+  const r = hook('git push origin piege');
+  expect(r.code).toBe(2);
+  expect(r.erreur).toContain(`${sha()}/tests/fixture.ts`); // la tête garde le fichier
+}, 120000);
+
+it('cherche_aussi_avec_commit_un_fichier_que_le_commit_met_en_export_ignore', () => {
+  commiterDans('piege', 'tests/fixture.ts', `const f = "${TEXTE_DU_COURS}";\n`);
+  commiter('piege', '.gitattributes', 'tests/ export-ignore\n');
+  const direct = spawnSync(process.execPath, [SCRIPT, '--donnees', donnees, '--commit', 'piege'], {
+    cwd: depot,
+    encoding: 'utf8',
+  });
+  expect(direct.status).toBe(2);
+  expect(direct.stderr).toContain('tests/fixture.ts');
+}, 120000);
+
+// Une branche `piege` de deux commits, sans toucher à la copie de travail (git ne sait pas écrire
+// tous ces chemins) : le premier a pour arbre `arbre`, la tête a celui de `propre`.
+function branchePiege(arbre: string): string {
+  const fautif = sortieGit('piege\n', 'commit-tree', '-p', sha('propre'), '-m', 'piege', arbre);
+  const tete = sortieGit('propre\n', 'commit-tree', '-p', fautif, '-m', 'tete', 'propre^{tree}');
+  git('update-ref', 'refs/heads/piege', tete);
+  return fautif;
+}
+
+// Une branche dont le premier commit porte les fichiers `[nom, contenu]`.
+function brancheAvecNoms(fichiers: [string, string][]): string {
+  const lignes = fichiers.map(([nom, contenu]) => {
+    const blob = sortieGit(contenu, 'hash-object', '-w', '--stdin');
+    return `100644 blob ${blob}\t${nom}\n`;
+  });
+  return branchePiege(sortieGit(lignes.join(''), 'mktree'));
+}
+
+// Une branche dont le premier commit porte un fichier au chemin `segments` (un arbre par segment).
+function brancheAvecChemin(segments: string[], contenu: string): string {
+  const blob = sortieGit(contenu, 'hash-object', '-w', '--stdin');
+  let objet = blob;
+  let type = 'blob';
+  for (const segment of [...segments].reverse()) {
+    const mode = type === 'blob' ? '100644' : '040000';
+    objet = sortieGit(`${mode} ${type} ${objet}\t${segment}\n`, 'mktree');
+    type = 'tree';
+  }
+  return branchePiege(objet);
+}
+
+it('refuse_un_commit_dont_un_chemin_remonte_par_deux_points', () => {
+  for (const segments of [
+    ['sub', '..'],
+    ['sub', '..', 'x.txt'],
+    ['sub', '..', '..', 'x.txt'],
+  ]) {
+    const fautif = brancheAvecChemin(segments, `${TEXTE_DU_COURS}\n`);
+    const r = hook('git push origin piege');
+    expect(r.code, segments.join('/')).toBe(2);
+    expect(r.erreur).toContain(fautif);
+    expect(r.erreur).toContain("n'a pas pu tourner");
+    expect(r.erreur).not.toContain(TEXTE_DU_COURS);
+  }
+}, 180000);
+
+it.runIf(process.platform === 'win32')(
+  'refuse_un_chemin_que_windows_ne_peut_pas_ecrire',
+  () => {
+    for (const nom of ['notes:txt', '..\\x', 'fin.', 'a|b']) {
+      brancheAvecNoms([[nom, `${TEXTE_DU_COURS}\n`]]);
+      const r = hook('git push origin piege');
+      expect(r.code, nom).toBe(2);
+      expect(r.erreur, nom).toContain("n'a pas pu tourner");
+    }
+  },
+  180000,
+);
+
+it('refuse_deux_noms_qui_ne_different_que_par_la_casse', () => {
+  // Le premier nom porte le texte, le second un contenu propre : sans refus, il l'écraserait.
+  const fautif = brancheAvecNoms([
+    ['Notes.txt', `${TEXTE_DU_COURS}\n`],
+    ['notes.txt', 'rien du cours\n'],
+  ]);
+  const r = hook('git push origin piege');
+  expect(r.code).toBe(2);
+  expect(r.erreur).toContain(fautif);
+  if (process.platform === 'win32') expect(r.erreur).toContain("n'a pas pu tourner");
+}, 120000);
+
+it('refuse_quand_l_arbre_de_la_tete_est_vide', () => {
+  const vide = sortieGit('', 'hash-object', '-w', '-t', 'tree', '--stdin');
+  const tete = sortieGit('x\n', 'commit-tree', '-p', sha('propre'), '-m', 'tout retire', vide);
+  git('checkout', '-q', '-B', 'piege', tete);
+  const r = hook('git push origin piege');
+  expect(r.code).toBe(2);
+  expect(r.erreur).toContain("n'a pas pu tourner");
+}, 60000);
+
+it('lit_ls_tree_et_cat_file_sans_rien_laisser_passer_d_illisible', () => {
+  const sha1 = 'a'.repeat(40);
+  const sha2 = 'b'.repeat(40);
+  const nul = String.fromCharCode(0);
+  expect(entreesDeLsTree('')).toEqual([]);
+  expect(
+    entreesDeLsTree(`100644 blob ${sha1}\tun.txt${nul}160000 commit ${sha2}\tsous${nul}`),
+  ).toEqual([{ blob: sha1, chemin: 'un.txt' }]);
+  expect(() => entreesDeLsTree(`100644 blob ${sha1}\tun.txt`)).toThrow();
+  expect(() => entreesDeLsTree(`n importe quoi${nul}`)).toThrow();
+  const lot = (sha: string, taille: number, contenu: string, fin = '\n') =>
+    Buffer.from(`${sha} blob ${taille}\n${contenu}${fin}`, 'latin1');
+  expect(lireBatch(lot(sha1, 3, 'abc'), [sha1]).map(String)).toEqual(['abc']);
+  expect(() => lireBatch(lot(sha1, 99, 'abc'), [sha1])).toThrow(); // longueur hors du tampon
+  expect(() => lireBatch(lot(sha1, 3, 'abc', ''), [sha1])).toThrow(); // LF final absent
+  expect(() => lireBatch(lot(sha1, 3, 'abcd'), [sha1])).toThrow(); // LF attendu à la place de d
+  expect(() => lireBatch(lot(sha2, 3, 'abc'), [sha1])).toThrow(); // SHA qui diffère
+  expect(() => lireBatch(Buffer.concat([lot(sha1, 3, 'abc'), Buffer.from('x')]), [sha1])).toThrow();
+});
+
+it('refuse_un_texte_que_seul_le_premier_commit_de_la_branche_porte_avec_un_distant', () => {
+  const distant = join(dossier, 'distant.git');
+  execFileSync('git', ['init', '-q', '--bare', distant], { stdio: 'ignore' });
+  git('remote', 'add', 'origin', distant);
+  git('push', '-q', 'origin', 'propre');
+  git('fetch', '-q', 'origin');
+  commiter('longue', 'notes.txt', `${TEXTE_DU_COURS}\n`);
+  const fautif = sha();
+  git('rm', '-q', 'notes.txt');
+  git('commit', '-q', '-m', 'retrait du texte');
+  commiter('longue', 'autre.txt', 'rien du cours\n');
+  const r = hook('git push origin longue');
+  expect(r.code).toBe(2);
+  expect(r.erreur).toContain(`${fautif}/notes.txt`);
+}, 120000);
+
+it('lit_plusieurs_blobs_dont_un_binaire_et_un_chemin_accentue', () => {
+  git('checkout', '-q', '-B', 'longue');
+  writeFileSync(join(depot, 'a.bin'), Buffer.from([0, 10, 255, 128, 10, 0, 13, 10]));
+  mkdirSync(join(depot, 'dossier à'));
+  writeFileSync(join(depot, 'dossier à', 'b é.txt'), `${TEXTE_DU_COURS}\n`);
+  writeFileSync(join(depot, 'z.txt'), 'rien du cours\n');
+  git('add', 'a.bin', 'dossier à/b é.txt', 'z.txt');
+  git('commit', '-q', '-m', 'trois fichiers');
+  const fautif = sha();
+  git('rm', '-q', 'a.bin', 'dossier à/b é.txt', 'z.txt');
+  git('commit', '-q', '-m', 'retrait');
+  const r = hook('git push origin longue');
+  expect(r.code).toBe(2);
+  expect(r.erreur).toContain(`${fautif}/dossier à/b é.txt`);
+}, 120000);
+
+it('nomme_le_premier_commit_de_l_envoi_qui_porte_un_contenu_porte_par_deux_commits', () => {
+  commiter('longue', 'notes.txt', `${TEXTE_DU_COURS}\n`);
+  const ancien = sha();
+  commiter('longue', 'copie.txt', 'rien du cours\n');
+  const recent = sha();
+  git('rm', '-q', 'notes.txt');
+  git('commit', '-q', '-m', 'retrait');
+  const r = hook('git push origin longue');
+  expect(r.code).toBe(2);
+  expect(r.erreur).toContain(`${recent}/notes.txt`);
+  expect(r.erreur).not.toContain(ancien);
+  expect(r.erreur).toContain("Retirer le texte de chaque commit de l'envoi qui le porte");
+}, 120000);
+
+it('ne_dit_pas_un_texte_du_cours_quand_le_contenu_est_en_defaut', () => {
+  rmSync(join(donnees, 'contenu'), { recursive: true, force: true });
+  const r = hook('git push origin propre');
+  expect(r.code).toBe(2);
+  expect(r.erreur).toContain("n'a pas pu tourner");
+  expect(r.erreur).not.toContain('un texte du cours est dans');
+}, 60000);
+
+it('retire_les_dossiers_de_recherche_de_plus_d_une_heure_du_dossier_temporaire', () => {
+  const temp = join(dossier, 'temp');
+  mkdirSync(temp);
+  const vieux = join(temp, 'cours-absent-vieux');
+  const recent = join(temp, 'cours-absent-recent');
+  const autre = join(temp, 'autre-vieux');
+  for (const d of [vieux, recent, autre]) mkdirSync(d);
+  const ancien = new Date(Date.now() - 2 * 3600 * 1000);
+  utimesSync(vieux, ancien, ancien);
+  utimesSync(autre, ancien, ancien);
+  const r = hook('git push origin propre', { TEMP: temp, TMP: temp, TMPDIR: temp });
+  expect(r.code).toBe(0);
+  expect(existsSync(vieux)).toBe(false);
+  expect(existsSync(recent)).toBe(true);
+  expect(existsSync(autre)).toBe(true);
+}, 60000);

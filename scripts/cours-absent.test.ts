@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, expect, it } from 'vitest';
-import { cheminHote, envoisDeLaCommande } from './cours-absent.js';
+import { arbreDe, blobsAPoser, cheminHote, envoisDeLaCommande } from './cours-absent.js';
 
 const RACINE = fileURLToPath(new URL('..', import.meta.url));
 const SCRIPT = join(RACINE, 'scripts', 'cours-absent.ts');
@@ -290,4 +290,94 @@ it('refuse_un_push_dont_un_fichier_porte_une_explication_du_cours', () => {
   expect(r.code).toBe(2);
   expect(r.erreur).toContain('notes.txt');
   expect(hook('git push origin propre').code).toBe(0);
+}, 120000);
+
+// Une seule recherche par envoi (ancrage#93) : chaque commit publié est cherché, sans que la
+// recherche se relance ni relise un contenu déjà posé.
+function sha(reference = 'HEAD'): string {
+  return execFileSync('git', ['-C', depot, 'rev-parse', reference], { encoding: 'utf8' }).trim();
+}
+
+// Cinq commits sur une branche neuve ; le deuxième porte `contenu`, le troisième le retire.
+function cinqCommitsDontLeDeuxiemeFuit(contenu: string): string {
+  commiter('cinq', 'un.txt', 'rien du cours\n');
+  commiter('cinq', 'notes.txt', `${contenu}\n`);
+  const fautif = sha();
+  git('rm', '-q', 'notes.txt');
+  writeFileSync(join(depot, 'trois.txt'), 'rien du cours non plus\n');
+  git('add', 'trois.txt');
+  git('commit', '-q', '-m', 'retrait du texte');
+  commiter('cinq', 'quatre.txt', 'toujours rien\n');
+  commiter('cinq', 'cinq.txt', 'encore rien\n');
+  return fautif;
+}
+
+it('refuse_un_envoi_dont_le_deuxieme_commit_fuit_et_nomme_ce_commit_par_son_sha', () => {
+  const fautif = cinqCommitsDontLeDeuxiemeFuit(TEXTE_DU_COURS);
+  const r = hook('git push origin cinq');
+  expect(r.code).toBe(2);
+  expect(r.erreur).toContain(fautif);
+  expect(r.erreur).toContain('notes.txt');
+  expect(r.erreur).toContain('est le commit qui le porte');
+}, 120000);
+
+it('ne_lance_qu_une_recherche_pour_cinq_commits_propres', () => {
+  cinqCommitsDontLeDeuxiemeFuit('rien du cours en deuxieme');
+  const r = hook('git push origin cinq');
+  expect(r.code).toBe(0);
+  expect(r.erreur.split('aucun texte de cours dans').length - 1).toBe(1);
+}, 120000);
+
+// Les chemins à poser, commit par commit (la tête d'abord), d'après les vrais arbres de git.
+function aPoserPour(commits: string[]): string[][] {
+  return blobsAPoser(commits.map((c) => arbreDe(depot, c))).map((poses) =>
+    poses.map((entree) => entree.chemin),
+  );
+}
+
+it('ne_pose_un_fichier_identique_des_cinq_commits_qu_une_fois', () => {
+  const shas: string[] = [];
+  commiter('cinq', 'meme.txt', 'identique partout\n');
+  for (const i of [1, 2, 3, 4, 5]) {
+    if (i > 1) git('rm', '-q', `f${i - 1}.txt`);
+    writeFileSync(join(depot, `f${i}.txt`), `contenu ${i}\n`);
+    git('add', `f${i}.txt`);
+    git('commit', '-q', '-m', `commit ${i}`);
+    shas.unshift(sha());
+  }
+  const poses = aPoserPour(shas);
+  // la tête en entier, puis le seul fichier propre à chaque commit
+  expect(poses[0]).toContain('meme.txt');
+  expect(poses.slice(1)).toEqual([['f4.txt'], ['f3.txt'], ['f2.txt'], ['f1.txt']]);
+  expect(poses.flat().filter((chemin) => chemin === 'meme.txt')).toHaveLength(1);
+}, 60000);
+
+it('ne_pose_rien_de_plus_pour_un_renommage_sans_changement_ni_pour_un_retrait', () => {
+  commiter('cinq', 'a.txt', 'contenu de a\n');
+  const a = sha();
+  git('mv', 'a.txt', 'b.txt');
+  git('commit', '-q', '-m', 'renommage');
+  const b = sha();
+  git('rm', '-q', 'b.txt');
+  git('commit', '-q', '-m', 'retrait');
+  const c = sha();
+  commiter('cinq', 'd.txt', 'contenu de d\n');
+  const d = sha();
+  const poses = aPoserPour([d, c, b, a]);
+  expect(poses[1]).toEqual([]); // le retrait
+  expect(poses[2]).toEqual(['b.txt']); // le renommage : le contenu n'a plus d'autre porteur
+  expect(poses[3]).toEqual([]); // avant le renommage : même contenu que b.txt
+}, 60000);
+
+it('cherche_une_seule_reference_avec_commit', () => {
+  commiter('fuite', 'notes.txt', `${TEXTE_DU_COURS}\n`);
+  git('checkout', '-q', 'propre');
+  const direct = (reference: string) =>
+    spawnSync(process.execPath, [SCRIPT, '--donnees', donnees, '--commit', reference], {
+      cwd: depot,
+      encoding: 'utf8',
+    });
+  expect(direct('fuite').status).toBe(2);
+  expect(direct('propre').status).toBe(0);
+  expect(direct('inconnue').status).not.toBe(0);
 }, 120000);

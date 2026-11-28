@@ -421,10 +421,16 @@ Sur le poste, `pnpm` s'appelle par `corepack pnpm …` ; en CI, `corepack enable
   même depuis un worktree) dans les fichiers
   suivis de `<réf>` (`HEAD` par défaut), sauf ceux de `<donnees>/textes-toleres.txt`. Codes : 0 aucun
   texte ; 1 la recherche n'a pas pu tourner ; 2 un texte du cours ; 64 usage. Avec `--hook`, il lit
-  l'entrée JSON de `PreToolUse` et n'agit que sur un `git push` (S3-D6) : il lit chaque commit que
-  l'envoi publie (`git rev-list <réf> --not --remotes=<distant>`, la tête d'abord) et refuse au
-  premier qui porte un texte du cours ; il coupe la commande à la première redirection (`>`, `2>`,
-  `<`…), au premier `|`, `;`, `&&` ou `||`, et lit `/c/…` donné à `git -C` comme `C:/…`.
+  l'entrée JSON de `PreToolUse` et n'agit que sur un `git push` (S3-D6). Il rassemble les
+  commits que l'envoi publie (`git rev-list <réf> --not --remotes=<distant>`, la tête d'abord),
+  puis fait **une seule** recherche : sous un dossier temporaire, un dossier par commit, nommé
+  par son SHA complet, où la tête est posée en entier et chaque autre commit avec les seuls
+  fichiers dont le contenu (le blob) n'a pas encore été posé, donc chaque contenu est lu une
+  fois. Le refus nomme le commit par le dossier de chaque fichier cité (un contenu que plusieurs
+  commits portent est nommé par le plus récent d'entre eux). Il bloque aussi à son délai
+  (`"onFailure": "block"` sur le hook, `.claude/settings.json`) : sans ce champ, un hook qui
+  atteint son délai laisse passer l'envoi. Il coupe la commande à la première redirection (`>`,
+  `2>`, `<`…), au premier `|`, `;`, `&&` ou `||`, et lit `/c/…` donné à `git -C` comme `C:/…`.
 - `corepack pnpm types` : TypeScript, client, service worker et serveur.
 - `corepack pnpm dev:serveur` : serveur en rechargement automatique.
 - `corepack pnpm dev:client` : client Vite.
@@ -635,7 +641,9 @@ Le cycle d'un lot, la définition de « Fini », les commits et les questions gr
   une fixture prend le cours d'exemple, ou un texte inventé, jamais une variante d'un élément du
   cours. Le hook `PreToolUse` `scripts/cours-absent.ts` (`.claude/settings.json`) le tient à
   l'envoi : il refuse tout `git push` dont un commit publié porte un texte du cours du dépôt de données
-  voisin, et refuse aussi quand la recherche ne peut pas tourner. Sans dépôt de données à cet
+  voisin, et refuse aussi quand la recherche ne peut pas tourner ou atteint son délai de 120 s
+  (`onFailure`). Une seule recherche couvre tous les commits : son coût ne dépend presque plus de
+  leur nombre, mais d'abord de la taille de l'arbre de la tête. Sans dépôt de données à cet
   endroit (une session à distance), il avertit et laisse passer (S3-D6).
 - **Les renvois** : `ancrage-donnees#NNN` pour une issue ou une PR d'avant la scission, qui restent au
   dépôt de données, et `modele-projet#NNN` pour le modèle, jamais un `#NNN` nu dans un texte durable

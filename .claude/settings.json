@@ -17,7 +17,8 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/scripts/cours-absent.ts\" --hook",
-            "timeout": 120
+            "timeout": 120,
+            "onFailure": "block"
           }
         ]
       }

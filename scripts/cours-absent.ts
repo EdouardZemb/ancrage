@@ -1,7 +1,8 @@
 /*
  * La recherche du cours avant un envoi au dépôt public (S3-D6). Le cours vit dans le dépôt de
  * données ; le dépôt de code ne doit en porter aucun texte. Le script cherche les textes de
- * `<données>/contenu` dans les fichiers suivis d'un commit (`git archive`), sauf ceux de
+ * `<données>/contenu` dans les fichiers suivis des commits qu'un envoi publie, en une seule
+ * recherche (`git archive` pour la tête, `git cat-file` pour les blobs nouveaux), sauf ceux de
  * `<données>/textes-toleres.txt`.
  *
  *   node scripts/cours-absent.ts [--donnees <dossier>] [--commit <réf>]
@@ -17,9 +18,9 @@
  * lance la CLI de contenu (`--import tsx`), sans l'importer.
  */
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const LIGNE_RECHERCHE_FAITE = 'aucun texte de cours dans';
@@ -151,19 +152,95 @@ function codeDeLaRecherche(statut: number | null, sortie: string): number {
   return 1;
 }
 
-function chercher(depot: string, donnees: string, reference: string): number {
+// Un fichier d'un arbre : son blob (le contenu) et son chemin. Un sous-module (type `commit`) n'en
+// est pas un, et `arbreDe` ne le rend pas.
+export type Entree = { blob: string; chemin: string };
+
+// Les fichiers d'un commit (`git ls-tree -r -z` : `<mode> <type> <blob>\t<chemin>`, séparés par un
+// octet nul). Une erreur de git (référence illisible) remonte : la recherche échoue.
+export function arbreDe(depot: string, commit: string): Entree[] {
+  const sortie = execFileSync('git', ['-C', depot, 'ls-tree', '-r', '-z', commit], {
+    encoding: 'utf8',
+    maxBuffer: 256 * 1024 * 1024,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const entrees: Entree[] = [];
+  for (const ligne of sortie.split('\0')) {
+    const m = /^\d+ (\w+) ([0-9a-f]+)\t(.*)$/s.exec(ligne);
+    if (m !== null && m[1] === 'blob') {
+      entrees.push({ blob: m[2] as string, chemin: m[3] as string });
+    }
+  }
+  return entrees;
+}
+
+// Ce qu'il faut poser pour chaque commit, la tête d'abord. La tête (le premier arbre) est posée en
+// entier, par `git archive`. Chaque commit suivant ne reçoit que les fichiers dont le blob n'a été
+// posé ni pour la tête ni pour un commit d'avant, et un seul chemin par blob : un fichier inchangé,
+// renommé sans changement ou retiré ne fait rien chercher de plus.
+export function blobsAPoser(arbres: Entree[][]): Entree[][] {
+  const vus = new Set<string>();
+  return arbres.map((arbre, rang) => {
+    const aPoser: Entree[] = [];
+    for (const entree of arbre) {
+      const dejaVu = vus.has(entree.blob);
+      vus.add(entree.blob);
+      if (rang === 0 || !dejaVu) aPoser.push(entree);
+    }
+    return aPoser;
+  });
+}
+
+// Le SHA complet du commit que nomme une référence ; une référence illisible fait échouer.
+function shaDe(depot: string, reference: string): string {
+  return execFileSync(
+    'git',
+    ['-C', depot, 'rev-parse', '--verify', '--end-of-options', `${reference}^{commit}`],
+    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
+  ).trim();
+}
+
+// Les contenus des blobs, en un seul processus `git cat-file --batch`, dans l'ordre demandé.
+function contenusDe(depot: string, blobs: string[]): Buffer[] {
+  if (blobs.length === 0) return [];
+  const r = spawnSync('git', ['-C', depot, 'cat-file', '--batch'], {
+    input: `${blobs.join('\n')}\n`,
+    maxBuffer: 1024 * 1024 * 1024,
+  });
+  if (r.error) throw r.error;
+  if (r.status !== 0) throw new Error(`git cat-file a échoué : ${String(r.stderr).trim()}`);
+  const sortie = r.stdout;
+  const contenus: Buffer[] = [];
+  let pos = 0;
+  for (const blob of blobs) {
+    const fin = sortie.indexOf(0x0a, pos);
+    const entete = fin === -1 ? '' : sortie.toString('utf8', pos, fin);
+    const m = /^[0-9a-f]+ blob (\d+)$/.exec(entete);
+    if (m === null) throw new Error(`blob illisible : ${blob} (${entete})`);
+    const taille = Number(m[1]);
+    contenus.push(sortie.subarray(fin + 1, fin + 1 + taille));
+    pos = fin + 1 + taille + 1;
+  }
+  return contenus;
+}
+
+// Les commits d'un dépôt qu'un envoi publie, la tête d'abord.
+type Lot = { depot: string; commits: string[] };
+
+// Une seule recherche pour tout l'envoi. Sous un dossier temporaire, un dossier par commit, nommé
+// par son SHA complet (sous `d1`, `d2`… si plusieurs dépôts sont nommés). La tête de chaque dépôt y
+// est posée en entier, chaque autre commit avec ses seuls blobs nouveaux. La CLI de contenu ne se
+// lance qu'une fois, sur le dossier : le dossier de chaque fichier qu'elle nomme est le commit qui
+// le porte.
+function chercher(lots: Lot[], donnees: string): number {
   const dossier = mkdtempSync(join(tmpdir(), 'cours-absent-'));
   try {
-    const archive = join(dossier, 'archive.tar');
-    execFileSync('git', ['-C', depot, 'archive', '--format=tar', '-o', archive, reference], {
-      stdio: ['ignore', 'ignore', 'pipe'],
-    });
-    mkdirSync(join(dossier, 'arbre'));
-    execFileSync('tar', ['-xf', 'archive.tar', '-C', 'arbre'], {
-      cwd: dossier,
-      stdio: 'ignore',
-    });
     const arbre = join(dossier, 'arbre');
+    mkdirSync(arbre);
+    lots.forEach((lot, rang) => {
+      if (lots.length > 1) console.error(`cours-absent : d${rang + 1} est le dépôt ${lot.depot}`);
+      poser(lot, dossier, lots.length > 1 ? `arbre/d${rang + 1}` : 'arbre', rang);
+    });
     const args = [
       '--import',
       'tsx',
@@ -186,6 +263,49 @@ function chercher(depot: string, donnees: string, reference: string): number {
   } finally {
     rmSync(dossier, { recursive: true, force: true });
   }
+}
+
+// Pose les commits d'un lot sous `<dossier>/<racine>/<sha>`.
+function poser(lot: Lot, dossier: string, racine: string, rang: number): void {
+  const { depot } = lot;
+  const shas = lot.commits.map((reference) => shaDe(depot, reference));
+  const uniques = shas.filter((sha, i) => shas.indexOf(sha) === i);
+  const [tete] = uniques;
+  if (tete === undefined) return;
+  const aPoser = blobsAPoser(uniques.map((sha) => arbreDe(depot, sha)));
+  // La tête, entière, par `git archive`.
+  const archive = `archive-${rang}.tar`;
+  execFileSync(
+    'git',
+    ['-C', depot, 'archive', '--format=tar', '-o', join(dossier, archive), tete],
+    {
+      stdio: ['ignore', 'ignore', 'pipe'],
+    },
+  );
+  // `tar` ignore un chemin `C:\…` : relatif au dossier temporaire, comme avant.
+  const dossierDeTete = join(racine, tete);
+  mkdirSync(join(dossier, dossierDeTete), { recursive: true });
+  execFileSync(
+    'tar',
+    ['-xf', archive, '-C', dossierDeTete.replaceAll(String.fromCharCode(92), '/')],
+    {
+      cwd: dossier,
+      stdio: 'ignore',
+    },
+  );
+  // Les autres commits : leurs blobs nouveaux, lus en un seul processus.
+  const demandes = uniques
+    .slice(1)
+    .flatMap((sha, i) => (aPoser[i + 1] ?? []).map((entree) => ({ sha, entree })));
+  const contenus = contenusDe(
+    depot,
+    demandes.map((d) => d.entree.blob),
+  );
+  demandes.forEach(({ sha, entree }, i) => {
+    const chemin = join(dossier, racine, sha, entree.chemin);
+    mkdirSync(dirname(chemin), { recursive: true });
+    writeFileSync(chemin, contenus[i] as Buffer);
+  });
 }
 
 function lireOptions(args: string[]) {
@@ -243,29 +363,26 @@ function principal(args: string[]): number {
     }
     throw new Usage(`dépôt de données absent : ${donnees}`);
   }
-  let pire = 0;
-  const dejaLus = new Set<string>();
+  // Tous les commits de tous les envois, par dépôt, sans doublon, la tête d'abord : une seule
+  // recherche.
+  const lots = new Map<string, Lot>();
   for (const envoi of envois) {
     const depot = envoi.depot ?? depotDuHook;
+    const lot = lots.get(depot) ?? { depot, commits: [] };
+    lots.set(depot, lot);
     for (const reference of commitsDe(envoi, depot)) {
-      const cle = `${depot}\0${reference}`;
-      if (dejaLus.has(cle)) continue;
-      dejaLus.add(cle);
-      const code = chercherSansEchouer(depot, donnees, reference);
-      if (code === 0) continue;
-      pire = Math.max(pire, code);
-      if (o.hook) {
-        console.error(
-          code === 2
-            ? `cours-absent : push refusé, ${reference} porte un texte du cours (fichiers nommés ci-dessus). Retirer le texte du commit, ou tolérer la ligne dans textes-toleres.txt du dépôt de données.`
-            : `cours-absent : push refusé, la recherche du cours n'a pas pu tourner (code ${code}). Corriger la cause ci-dessus (dépendances, données, git) puis relancer le push.`,
-        );
-      }
-      return o.hook ? 2 : pire; // le premier commit refusé suffit
+      if (!lot.commits.includes(reference)) lot.commits.push(reference);
     }
   }
-  if (pire === 0) return 0;
-  return o.hook ? 2 : pire;
+  const code = chercherSansEchouer([...lots.values()], donnees);
+  if (code === 0) return 0;
+  if (!o.hook) return code;
+  console.error(
+    code === 2
+      ? "cours-absent : push refusé, un texte du cours est dans ce que l'envoi publie. Le dossier de chaque fichier nommé ci-dessus est le commit qui le porte. Retirer le texte de ce commit, ou tolérer la ligne dans textes-toleres.txt du dépôt de données."
+      : `cours-absent : push refusé, la recherche du cours n'a pas pu tourner (code ${code}). Corriger la cause ci-dessus (dépendances, données, git) puis relancer le push.`,
+  );
+  return 2;
 }
 
 // Sans `ANCRAGE_DONNEES`, le dépôt de données est à côté du clone principal : dans un worktree
@@ -331,9 +448,9 @@ function referencesDe(envoi: Envoi, depot: string): string[] {
   }
 }
 
-function chercherSansEchouer(depot: string, donnees: string, reference: string): number {
+function chercherSansEchouer(lots: Lot[], donnees: string): number {
   try {
-    return chercher(depot, donnees, reference);
+    return chercher(lots, donnees);
   } catch (erreur) {
     if (erreur instanceof Usage) throw erreur;
     console.error(`cours-absent : la recherche n'a pas pu tourner : ${(erreur as Error).message}`);

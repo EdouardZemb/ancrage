@@ -429,12 +429,13 @@ Sur le poste, `pnpm` s'appelle par `corepack pnpm …` ; en CI, `corepack enable
   en entier, chaque autre commit avec les seuls fichiers dont le blob n'a pas encore été posé.
   Un chemin que le disque ne sait pas écrire (`..`, un segment vide, un caractère de contrôle ;
   sous Windows `\ : * ? " < > |` ou un point ou une espace final), ou deux noms qui se
-  confondent (la casse), fait échouer la recherche, donc refuse. Le refus nomme le commit par le
-  dossier de chaque fichier cité : le premier commit de l'envoi qui porte ce contenu, la tête
-  de la première référence d'abord ; des commits plus anciens peuvent le porter aussi, et il faut
-  retirer le texte de chacun (réécrire la branche). Le message dit « un texte du cours » seulement
-  quand la CLI en a trouvé un ; sinon, la recherche n'a pas pu tourner. Au démarrage, il retire les
-  dossiers `cours-absent-*` de plus d'une heure du dossier temporaire. Il bloque aussi à son délai
+  confondent (la casse), fait échouer la recherche, donc refuse, comme un arbre de tête vide. Le
+  refus nomme le commit par le dossier de chaque fichier cité : le premier commit de l'envoi qui
+  porte ce contenu, la tête de la première référence d'abord ; des commits plus anciens peuvent le
+  porter aussi, et il faut retirer le texte de chacun (réécrire la branche). Le message dit « un
+  texte du cours » seulement quand la CLI en a trouvé un ; sinon, la recherche n'a pas pu tourner.
+  Au début de chaque recherche, il retire les dossiers `cours-absent-*` de plus d'une heure du
+  dossier temporaire. Il bloque aussi à son délai
   (`"onFailure": "block"` sur le hook, `.claude/settings.json`) : sans ce champ, un hook qui
   atteint son délai laisse passer l'envoi. Avec lui, le hook bloque aussi s'il ne peut pas
   démarrer ou s'il plante (sans `node` 24 sur le PATH, par exemple), et alors toute commande Bash

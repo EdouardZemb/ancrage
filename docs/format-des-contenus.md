@@ -595,7 +595,8 @@ Le cours d'exemple fait exception : il est dans l'image, et l'écrit (`fautes: 3
 
 L'aide d'un élément (M6, T2-D8, M9) est l'`aide` d'une carte et la carte avec laquelle on la
 confond (`confondu_avec`), la `correction` d'une affirmation vrai-faux, la `note` d'un schéma, les
-morceaux d'un mot ou la règle d'un exercice ; une question de QCM d'une fiche n'en a pas. C'est elle
+morceaux d'un mot ou la règle d'un exercice ; une question de QCM d'une fiche n'en a pas, sauf dans la liste de Fortschritt, où l'explication
+de sa bonne réponse en tient lieu (M10-C8). C'est elle
 que la liste de Fortschritt montre sous un rebelle. Elle se montre après une réponse fausse, à tous,
 et à un rebelle après toute réponse, sauf là où la liste qui suit dit autre chose. Le format n'y
 change rien : aucun champ nouveau, et rien n'en est gardé ni servi de plus.
@@ -969,6 +970,16 @@ Règles des feuilles :
   étiquette posée après la `v0.21.0`** : les schémas sont stricts, et l'image précédente, que le
   retour arrière remet en service, les refuserait (invariant 8). Le cours d'exemple, qui est dans
   l'image, les écrit.
+
+**Quand une explication paraît** (M10). Dans Arbeitsblätter, celle du distracteur choisi paraît juste
+après le choix ; celle de la bonne réponse, après une faute ou à un rebelle (M9, « L'aide d'un
+élément »), dans un bloc « Erklärung » qu'un lecteur d'écran annonce. Celle d'une phrase à trous et
+celle d'une paire paraissent après « Prüfen », selon la même règle, sans annonce : « Prüfen » en fait
+paraître plusieurs d'un coup. Dans « Heute », celle d'un QCM paraît de même, entre les options et
+« Weiter ». Dans « Ergebnis », celle de la bonne réponse paraît toujours, et celles des distracteurs
+après une dernière réponse fausse, ce qui est faux d'abord. Jamais dans le Quiz, la Prüfung ni le
+pré-test. Dans la liste « Schwierige Begriffe » de Fortschritt, l'explication d'un QCM rebelle sert
+d'aide.
 
 Comment l'application juge une réponse (F1-D4, F1-D5), dans l'onglet comme dans la Prüfung :
 - **Orthographe** : la saisie et `reponse` se comparent en forme Unicode NFC, sans les espaces de

@@ -17,6 +17,10 @@
  * L'état de chaque terme (sa place, et le tirage qui range la réserve) vit dans la mémoire de
  * l'onglet, rangé par identifiant d'élément ; le terme choisi et « déjà jugée » vivent sous des
  * sous-clés de la tâche.
+ *
+ * Dans un appariement, la case montre, après une faute ou à un rebelle figé au geste, l'explication
+ * de sa propre paire (lot M10) ; ce verdict figé vit sous la sous-clé `rebelles`
+ * (`useRebellesFiges`).
  */
 import { useEffect, useRef } from 'preact/hooks';
 import type { PaireAppariee } from '../../../domaine/contenu/modele.js';

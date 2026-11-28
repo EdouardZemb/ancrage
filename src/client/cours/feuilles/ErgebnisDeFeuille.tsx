@@ -4,6 +4,7 @@
  * elle a été donnée, dans l'ordre du papier. Il se dérive du journal à chaque rendu : une réponse
  * donnée ailleurs (le Quiz, la Prüfung) y paraît aussitôt. Il n'écrit rien (ADR-0004, ADR-0007).
  * Le verdict se dit en texte ; la couleur de la pastille ne fait que le doubler.
+ * Il montre toujours l'explication de la bonne réponse, répondue ou non (lot M10).
  */
 import { useMemo } from 'preact/hooks';
 import type { Tache } from '../../../domaine/contenu/modele.js';

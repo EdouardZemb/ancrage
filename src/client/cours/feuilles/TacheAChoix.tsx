@@ -8,6 +8,9 @@
  * revient telle qu'elle était, et chaque question est jugée sur ses propres options.
  *
  * Le vrai/faux (`TacheVraiFaux`) suit le même patron, avec deux boutons par affirmation.
+ *
+ * Après une faute, ou à un rebelle dont le verdict est figé au geste, le bloc d'explication montre
+ * celle du distracteur choisi puis celle de la bonne réponse (lot M10).
  */
 import type { Affirmation, QuestionAChoix } from '../../../domaine/contenu/modele.js';
 import { FAUX, optionsDeQcm, VRAI } from '../../../domaine/feuilles/correction.js';

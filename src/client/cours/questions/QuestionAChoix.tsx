@@ -96,6 +96,11 @@ export function QuestionAChoix(props: {
   );
   useTouches(touches, question.choisie === null);
 
+  // La même décision pour l'aide et pour l'explication : une seule fois (M10).
+  const montrer =
+    question.choisie !== null &&
+    montrerLAide(rebelle === true, question.options[question.choisie] === question.reponse);
+
   return (
     <>
       {rebelle === true && <MarqueDeRebelle bloc />}
@@ -116,19 +121,13 @@ export function QuestionAChoix(props: {
             : { choisie: question.choisie, reponse: libelle(question.reponse) }
         }
       />
-      {question.choisie !== null &&
-        aide !== undefined &&
-        montrerLAide(rebelle === true, question.options[question.choisie] === question.reponse) && (
-          <AideDeLElement aide={{ texte: aide }} />
-        )}
+      {question.choisie !== null && aide !== undefined && montrer && (
+        <AideDeLElement aide={{ texte: aide }} />
+      )}
       {question.choisie !== null && qcm !== undefined && (
         <Explication
           annonce
-          {...explicationsApresLeChoix(
-            qcm,
-            question.options[question.choisie],
-            montrerLAide(rebelle === true, question.options[question.choisie] === question.reponse),
-          )}
+          {...explicationsApresLeChoix(qcm, question.options[question.choisie], montrer)}
         />
       )}
       {question.choisie === null ? (

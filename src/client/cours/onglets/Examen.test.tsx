@@ -993,7 +993,8 @@ describe('Examen', () => {
       expect(screen.getByText('0 von 20 Punkten (0 %) · 1 Min.')).toBeTruthy();
       expect(screen.getByRole('heading', { name: /^Fehler \(\d+\)$/ })).toBeTruthy();
       expect(document.querySelectorAll('.fautes > div').length).toBeGreaterThan(0);
-      // Une carte à aide (le recto inversé de la carte Leber) est bien dans la liste : l'absence de l'aide n'est pas celle des fautes.
+      // Une carte à aide (le recto inversé de la carte Leber) est bien dans la liste :
+      // l'absence de l'aide n'est pas celle des fautes.
       expect(
         Array.from(document.querySelectorAll('.fautes > div > b')).map((b) => b.textContent),
       ).toContain('Grosse Drüse im Oberbauch');

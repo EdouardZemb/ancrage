@@ -11,6 +11,9 @@
  * Une phrase est un seul élément du journal, juste si tous ses trous le sont (F1-D5). Les saisies
  * d'une phrase, dans l'ordre de ses trous, vivent dans la mémoire de l'onglet, rangées par
  * identifiant de phrase ; « déjà jugée » vit sous une sous-clé de la tâche.
+ *
+ * Après « Prüfen », l'explication de la phrase se montre après une faute, ou à un rebelle figé au
+ * geste (lot M10) ; ce verdict figé vit sous la sous-clé `rebelles` (`useRebellesFiges`).
  */
 import { Fragment } from 'preact';
 import { morceauxDePhrase } from '../../../domaine/contenu/feuille.js';

@@ -595,11 +595,12 @@ Le cours d'exemple fait exception : il est dans l'image, et l'écrit (`fautes: 3
 
 L'aide d'un élément (M6, T2-D8, M9) est l'`aide` d'une carte et la carte avec laquelle on la
 confond (`confondu_avec`), la `correction` d'une affirmation vrai-faux, la `note` d'un schéma, les
-morceaux d'un mot ou la règle d'un exercice ; une question de QCM d'une fiche n'en a pas, sauf dans la liste de Fortschritt, où l'explication
-de sa bonne réponse en tient lieu (M10-C8). C'est elle
-que la liste de Fortschritt montre sous un rebelle. Elle se montre après une réponse fausse, à tous,
-et à un rebelle après toute réponse, sauf là où la liste qui suit dit autre chose. Le format n'y
-change rien : aucun champ nouveau, et rien n'en est gardé ni servi de plus.
+morceaux d'un mot ou la règle d'un exercice ; une question de QCM d'une fiche n'en a pas, sauf dans
+la liste de Fortschritt, où l'explication de sa bonne réponse en tient lieu (M10-C8). C'est elle que
+la liste de Fortschritt montre sous un rebelle. Elle se montre après une réponse fausse, à tous, et
+à un rebelle après toute réponse, sauf là où la liste qui suit dit autre chose. Hors de
+l'explication d'un QCM (M10), l'aide ne demande aucun champ nouveau, et rien n'en est gardé ni servi
+de plus.
 
 - Une carte retournée la montre au verso, quelle que soit la réponse qui suit (M9-C1) : la carte n'a
   pas d'écran après le geste qui juge.
@@ -954,22 +955,23 @@ Règles des feuilles :
   et autant de trous que de `reponses`. Avec une `liste`, chaque mot n'y est écrit qu'une fois, et
   chaque réponse en est un, écrit à l'identique ; sans liste, chaque trou se tape.
 - **Orthographe** : `fautif` diffère de `reponse`.
-- **Explications** (M10) : `explication` d'une paire d'appariement, d'une question `qcm` ou d'une phrase
-  à trous dit pourquoi la bonne réponse est la bonne. Elle suit la règle de l'`aide` d'une carte : un
-  texte non vide, d'une ligne, sans espace de bord, de 300 caractères au plus.
+- **Explications** (M10) : `explication` d'une paire d'appariement, d'une question `qcm` ou d'une
+  phrase à trous dit pourquoi la bonne réponse est la bonne. Elle suit la règle de l'`aide` d'une
+  carte : un texte non vide, d'une ligne, sans espace de bord, de 300 caractères au plus.
   `explications_distracteurs`, sur une question `qcm`, est un objet dont chaque clé est un
-  distracteur de la question, écrit à l'identique et entre guillemets doubles, et dont la valeur suit
-  la même règle. Il est partiel, mais jamais vide ; une clé qui ne nomme aucun distracteur est
-  refusée, et l'erreur se situe par le rang de la clé dans l'ordre écrit, compté depuis 0, jamais
-  par son texte. La `correction` d'une affirmation ne change pas : une affirmation, un élément à
-  classer, un mot ou une question ouverte n'ont pas d'explication, et une clé écrite là est refusée
-  comme toute clé inconnue. Ces textes sont des textes du cours : la liste à relire et l'instantané
-  de référence les portent, et `contenus:client` les cherche dans le client construit. Le client
-  les lit sans rigueur : une valeur qui n'est pas un texte ne s'affiche pas, et le cours reste
-  utilisable. **Un cours monté ne reçoit ces clés qu'à partir de la version qui suit la première
-  étiquette posée après la `v0.21.0`** : les schémas sont stricts, et l'image précédente, que le
-  retour arrière remet en service, les refuserait (invariant 8). Le cours d'exemple, qui est dans
-  l'image, les écrit.
+  distracteur de la question, écrit à l'identique ; la clé s'écrit entre guillemets doubles, comme
+  tout texte, mais la validation ne contrôle pas ses guillemets : une clé qui, lue, ne nomme aucun
+  distracteur est refusée. La valeur suit la règle d'une `explication`. L'objet est partiel, mais
+  jamais vide ; l'erreur d'une entrée, clé ou valeur, se situe par le rang de sa clé dans l'ordre
+  écrit, compté depuis 0, jamais par son texte. La `correction` d'une affirmation ne change pas :
+  une affirmation, un élément à classer, un mot ou une question ouverte n'ont pas d'explication, et
+  une clé écrite là est refusée comme toute clé inconnue. Ces textes sont des textes du cours : la
+  liste à relire et l'instantané de référence les portent, et `contenus:client` les cherche dans le
+  client construit. Le client les lit sans rigueur : une valeur qui n'est pas un texte ne s'affiche
+  pas, et le cours reste utilisable. **Un cours monté ne reçoit ces clés qu'à partir de la version
+  qui suit la première étiquette posée après la `v0.21.0`** : les schémas sont stricts, et l'image
+  précédente, que le retour arrière remet en service, les refuserait (invariant 8). Le cours
+  d'exemple, qui est dans l'image, les écrit.
 
 **Quand une explication paraît** (M10). Dans Arbeitsblätter, celle du distracteur choisi paraît juste
 après le choix ; celle de la bonne réponse, après une faute ou à un rebelle (M9, « L'aide d'un

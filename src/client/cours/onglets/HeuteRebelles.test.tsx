@@ -5,6 +5,7 @@ import {
   CHAPITRE_1,
   CHAPITRE_2,
   coursAvecChampsDeCarte,
+  coursAvecExplications,
   coursServiDeTest,
 } from '../../../domaine/cours/cours.fixture.js';
 import type { CoursServi } from '../../../domaine/cours/servi.js';
@@ -517,6 +518,59 @@ describe('Heute, l_aide d_un element', () => {
 
     expect(document.querySelector('.options .wrong')).toBeNull();
     expect(screen.getByText('Der Magen ist ein Hohlorgan.')).toBeTruthy();
+  });
+});
+
+describe('Heute, l_explication d_un QCM', () => {
+  const rendre = (evenements: Evenement[]) =>
+    rendreDansLeCours(<Heute />, contexteDe({ cours: coursAvecExplications(cours()), evenements }));
+  const paragraphes = (): (string | null)[] =>
+    Array.from(document.querySelectorAll('.explication[role="status"] p')).map(
+      (p) => p.textContent,
+    );
+
+  it('un_qcm_faux_montre_l_explication_du_choix_puis_celle_de_la_reponse', () => {
+    rendre(fragile(QCM));
+
+    choisir('schnell');
+
+    expect(document.querySelector('.options .wrong')).not.toBeNull();
+    expect(paragraphes()).toEqual([
+      'Schnell ist der Zimbolwesp, nicht der Murmelkrat.',
+      'Der Murmelkrat misst immer zu viel, also darüber.',
+    ]);
+    const bloc = document.querySelector('.explication') as HTMLElement;
+    const suite = screen.getByRole('button', { name: t.suivante });
+    const options = document.querySelector('.options') as HTMLElement;
+    expect(options.compareDocumentPosition(bloc) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(bloc.compareDocumentPosition(suite) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('un_distracteur_sans_explication_montre_celle_de_la_reponse', () => {
+    rendre(fragile(QCM));
+
+    choisir('langsam');
+
+    expect(document.querySelector('.options .wrong')).not.toBeNull();
+    expect(paragraphes()).toEqual(['Der Murmelkrat misst immer zu viel, also darüber.']);
+  });
+
+  it('un_qcm_juste_qui_n_est_pas_rebelle_ne_montre_rien', () => {
+    rendre(fragile(QCM));
+
+    choisir('über dem Mass');
+
+    expect(document.querySelector('.options .right')).not.toBeNull();
+    expect(document.querySelector('.explication')).toBeNull();
+  });
+
+  it('un_qcm_rebelle_juste_montre_l_explication_de_la_reponse', () => {
+    rendre(rebelle(QCM));
+
+    choisir('über dem Mass');
+
+    expect(document.querySelector('.options .right')).not.toBeNull();
+    expect(paragraphes()).toEqual(['Der Murmelkrat misst immer zu viel, also darüber.']);
   });
 });
 

@@ -5,6 +5,7 @@ import {
   CHAPITRE_1,
   CHAPITRE_2,
   coursAvecChapitreAuManuelInconnu,
+  coursAvecExplications,
   coursAvecManuels,
   coursAvecReglages,
   coursAvecUneAideParCarte,
@@ -992,9 +993,43 @@ describe('Examen', () => {
       expect(screen.getByText('0 von 20 Punkten (0 %) · 1 Min.')).toBeTruthy();
       expect(screen.getByRole('heading', { name: /^Fehler \(\d+\)$/ })).toBeTruthy();
       expect(document.querySelectorAll('.fautes > div').length).toBeGreaterThan(0);
+      // Une carte à aide (le recto inversé de la carte Leber) est bien dans la liste : l'absence de l'aide n'est pas celle des fautes.
+      expect(
+        Array.from(document.querySelectorAll('.fautes > div > b')).map((b) => b.textContent),
+      ).toContain('Grosse Drüse im Oberbauch');
       expect(document.querySelector('.aide')).toBeNull();
       expect(screen.queryByText(t.aide_titre)).toBeNull();
       expect(screen.queryByText(/Merkhilfe/)).toBeNull();
+    });
+
+    it('la_pruefung_ne_montre_aucune_explication', () => {
+      const cours = coursAvecExplications(
+        coursAvecReglages({
+          tirage: {
+            schema: 0,
+            texte: 0,
+            exercice: 0,
+            feuille: 1,
+            mot: 0,
+            direct: 0.45,
+            aTaper: 0.72,
+          },
+        }),
+      );
+      const contexte = contexteDe({ cours, examen: { avecModules: true, chrono: false } });
+      rendreDansUnCoursVivant(<Examen />, contexte);
+      demarrer();
+      toutSauter();
+      cliquer(t.examen_abgeben);
+
+      // La question expliquée est bien dans la liste des fautes : seule son explication manque.
+      const enonces = Array.from(document.querySelectorAll('.fautes > div > b')).map(
+        (b) => b.textContent,
+      );
+      expect(enonces).toContain('Was bedeutet hyper-?');
+      expect(document.querySelector('.explication')).toBeNull();
+      expect(screen.queryByText(t.explication_titre)).toBeNull();
+      expect(screen.queryByText('Der Murmelkrat misst immer zu viel, also darüber.')).toBeNull();
     });
 
     it('remise_immediate_compte_une_minute', () => {

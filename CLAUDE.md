@@ -413,7 +413,8 @@ Sur le poste, `pnpm` s'appelle par `corepack pnpm …` ; en CI, `corepack enable
   La suite porte aussi le parcours de la séance du jour (`e2e/mise-a-jour/seance-du-jour.spec.ts`,
   lot M2), qui a besoin d'un compte neuf sur une base à lui : la suite principale n'a qu'un lien
   de propriétaire, que le parcours de compte consomme. Elle porte aussi
-  `e2e/mise-a-jour/aide-apres-faute.spec.ts` (lot M9), sur son compte et sa base.
+  `e2e/mise-a-jour/aide-apres-faute.spec.ts` (lot M9) et
+  `e2e/mise-a-jour/explication-apres-faute.spec.ts` (lot M10), chacun sur son compte et sa base.
 - `corepack pnpm mutation` : tests de mutation (Stryker) de `src/domaine/acces.ts`, de
   `src/domaine/journal/*.ts` (tests exclus), de `src/domaine/progression/etat.ts`, `fsrs.ts`, `ordonnanceur.ts`, `rebelles.ts` et `reglages.ts`, de
   `src/domaine/feuilles/deroulement.ts`, `explications.ts` et `correction.ts`, de

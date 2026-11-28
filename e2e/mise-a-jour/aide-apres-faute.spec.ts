@@ -14,7 +14,7 @@ import { expect } from '@playwright/test';
 import { formater, TEXTES_COURS } from '../../src/client/cours/textes-cours.js';
 import { ouvrirOnglet } from '../aide-cours.js';
 import { test } from '../aide-csp.js';
-import { sansDefilementHorizontal } from '../aide-mise-en-page.js';
+import { blocEtBoutonDansLEcran } from '../aide-mise-en-page.js';
 import type { VersionServie } from './aide-versions.js';
 import { compteNeufSurHeute } from './compte-neuf.js';
 
@@ -80,34 +80,12 @@ test('l_aide_d_une_carte_se_voit_apres_une_faute', async ({ page }) => {
       for (const morceau of attendu) await expect(aide).toContainText(morceau);
       if (!mesure) {
         mesure = true;
-        const boite = await aide.boundingBox();
-        expect(boite, 'le bloc de l’aide').not.toBeNull();
-        const largeur = page.viewportSize()?.width ?? 0;
-        test.info().annotations.push({
-          type: 'mesure de l’aide',
-          description: JSON.stringify({ boite, largeur }),
-        });
-        expect((boite?.x ?? 0) + (boite?.width ?? 0), 'bord droit de l’aide').toBeLessThanOrEqual(
-          largeur,
+        await blocEtBoutonDansLEcran(
+          page,
+          aide,
+          page.getByRole('button', { name: deCours.cartes_suivante }),
+          'l’aide',
         );
-        await sansDefilementHorizontal(page);
-        // L'aide est dans la carte, avant « Weiter » : le bas de l'un et l'autre reste dans l'écran.
-        const hauteur = page.viewportSize()?.height ?? 0;
-        const suivante = await page
-          .getByRole('button', { name: deCours.cartes_suivante })
-          .boundingBox();
-        expect(suivante, 'le bouton « Weiter »').not.toBeNull();
-        test.info().annotations.push({
-          type: 'mesure du bas',
-          description: JSON.stringify({ aide: boite, suivante, hauteur }),
-        });
-        expect((boite?.y ?? 0) + (boite?.height ?? 0), 'bas de l’aide').toBeLessThanOrEqual(
-          hauteur,
-        );
-        expect(
-          (suivante?.y ?? 0) + (suivante?.height ?? 0),
-          'bas de « Weiter »',
-        ).toBeLessThanOrEqual(hauteur);
       }
     }
     await page.getByRole('button', { name: deCours.cartes_suivante }).click();

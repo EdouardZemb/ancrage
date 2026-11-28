@@ -1,7 +1,9 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { QuestionAChoix as QuestionDeQcm } from '../../../domaine/contenu/modele.js';
 import { coursServiDeTest } from '../../../domaine/cours/cours.fixture.js';
+import { FAUX, VRAI } from '../../../domaine/feuilles/correction.js';
 import { hasardDeterministe } from '../../../domaine/hasard.js';
 import { elementsTirables, GENRES_FERMES } from '../../../domaine/seances/feuilles.js';
 import { contexteDeTest, rendreDansLeCours } from '../contexte-cours.fixture.js';
@@ -13,6 +15,19 @@ afterEach(cleanup);
 
 const t = TEXTES_COURS.de;
 const AIDE = 'Eine Merkhilfe zum Testen.';
+const EXPLICATION = 'Das Herz des Murmelkrats hat vier Kammern.';
+const EXPLICATION_DU_CHOIX = 'Zwei Kammern hat nur der Grunwurm.';
+
+/** Le modèle de `question()` : même question, même réponse, ses explications. */
+const QCM: QuestionDeQcm = {
+  id: 'c1000001',
+  question: 'Wie viele Kammern hat das Herz?',
+  reponse: 'Vier',
+  distracteurs: ['Zwei', 'Sechs', 'Acht'],
+  explication: EXPLICATION,
+  explicationsDistracteurs: { Zwei: EXPLICATION_DU_CHOIX },
+  statut: 'source',
+};
 
 function question(choisie: number | null = null): QuestionDeChoix {
   return {
@@ -29,7 +44,7 @@ function poser(
   onChoix = vi.fn(),
   onSuivante = vi.fn(),
   sansFaute = false,
-  extra: { aide?: string; rebelle?: boolean } = {},
+  extra: { aide?: string; rebelle?: boolean; qcm?: QuestionDeQcm } = {},
 ) {
   rendreDansLeCours(
     <QuestionAChoix
@@ -37,6 +52,7 @@ function poser(
       sansFaute={sansFaute}
       aide={extra.aide}
       rebelle={extra.rebelle}
+      qcm={extra.qcm}
       libelleSuivante="Weiter"
       onChoix={onChoix}
       onSuivante={onSuivante}
@@ -152,5 +168,64 @@ describe('QuestionAChoix', () => {
     poser(question(0), vi.fn(), vi.fn(), false, { aide: '' });
     expect(boutons().map((b) => b.className)).toEqual(['wrong', 'right', '']);
     expect(document.querySelector('.aide')).toBeNull();
+  });
+
+  it('un_qcm_faux_montre_l_explication_du_choix_puis_celle_de_la_reponse_et_l_annonce', () => {
+    poser(question(0), vi.fn(), vi.fn(), false, { qcm: QCM });
+    expect(boutons().map((b) => b.className)).toEqual(['wrong', 'right', '']);
+    const bloc = document.querySelector('.explication[role="status"]') as HTMLElement;
+    expect(bloc).toBeTruthy();
+    expect(Array.from(bloc.querySelectorAll('p')).map((p) => p.textContent)).toEqual([
+      EXPLICATION_DU_CHOIX,
+      EXPLICATION,
+    ]);
+    const apres = Node.DOCUMENT_POSITION_FOLLOWING;
+    const options = document.querySelector('.options') as HTMLElement;
+    const suite = screen.getByRole('button', { name: 'Weiter' });
+    expect(options.compareDocumentPosition(bloc) & apres).toBeTruthy();
+    expect(bloc.compareDocumentPosition(suite) & apres).toBeTruthy();
+  });
+
+  it('un_qcm_juste_ne_montre_l_explication_qu_a_un_rebelle', () => {
+    poser(question(1), vi.fn(), vi.fn(), false, { qcm: QCM });
+    expect(boutons().map((b) => b.className)).toEqual(['', 'right', '']);
+    expect(document.querySelector('.explication')).toBeNull();
+    cleanup();
+    poser(question(1), vi.fn(), vi.fn(), false, { qcm: QCM, rebelle: true });
+    expect(boutons().map((b) => b.className)).toEqual(['', 'right', '']);
+    const bloc = document.querySelector('.explication') as HTMLElement;
+    expect(Array.from(bloc.querySelectorAll('p')).map((p) => p.textContent)).toEqual([EXPLICATION]);
+  });
+
+  it('l_explication_attend_la_reponse_meme_d_un_rebelle', () => {
+    poser(question(), vi.fn(), vi.fn(), false, { qcm: QCM, rebelle: true });
+    expect(screen.getByText(t.quiz_touches)).toBeTruthy();
+    expect(document.querySelector('.explication')).toBeNull();
+  });
+
+  it('sans_qcm_rien_ne_s_explique', () => {
+    poser(question(0));
+    expect(boutons().map((b) => b.className)).toEqual(['wrong', 'right', '']);
+    expect(document.querySelector('.explication')).toBeNull();
+    expect(screen.queryByText(t.explication_titre)).toBeNull();
+  });
+
+  it('un_vrai_faux_en_codes_montre_sa_correction_apres_une_faute', () => {
+    const vraiFaux = (choisie: number | null): QuestionDeChoix => ({
+      id: 'c1000002',
+      reponse: FAUX,
+      enonce: { texte: 'Die Milz filtert das Blut.' },
+      options: [VRAI, FAUX],
+      choisie,
+    });
+    const CORRECTION = 'Eine Korrektur zum Testen.';
+    poser(vraiFaux(0), vi.fn(), vi.fn(), false, { aide: CORRECTION });
+    expect(boutons().map((b) => texteDe(b))).toEqual([t.feuille_richtig, t.feuille_falsch]);
+    expect(boutons().map((b) => b.className)).toEqual(['wrong', 'right']);
+    expect(screen.getByText(CORRECTION)).toBeTruthy();
+    cleanup();
+    poser(vraiFaux(1), vi.fn(), vi.fn(), false, { aide: CORRECTION });
+    expect(boutons().map((b) => b.className)).toEqual(['', 'right']);
+    expect(screen.queryByText(CORRECTION)).toBeNull();
   });
 });

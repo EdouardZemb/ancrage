@@ -11,9 +11,12 @@
  */
 import type { Affirmation, QuestionAChoix } from '../../../domaine/contenu/modele.js';
 import { FAUX, optionsDeQcm, VRAI } from '../../../domaine/feuilles/correction.js';
+import { explicationsApresLeChoix } from '../../../domaine/feuilles/explications.js';
 import { Options } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
 import { MarqueDeRebelle } from '../questions/AideEtMarque.js';
+import { Explication } from '../questions/Explication.js';
+import { montrerLAide } from '../questions/montrer-l-aide.js';
 import { type PropsDeTache, useEtatDesElements } from './tache.js';
 
 interface Choix {
@@ -21,6 +24,11 @@ interface Choix {
   options: string[];
   /** L'index de l'option choisie, `null` tant que la question attend. */
   choisie: number | null;
+  /**
+   * La question était rebelle au moment du choix (M10-D7) : la réponse entre au journal aussitôt, et
+   * la question peut cesser de l'être, sans que l'explication de la réponse disparaisse.
+   */
+  rebelle?: boolean;
 }
 
 export function TacheAChoix(props: PropsDeTache<'qcm'>) {
@@ -35,7 +43,7 @@ export function TacheAChoix(props: PropsDeTache<'qcm'>) {
   const choisir = (question: QuestionAChoix, i: number) => {
     const avant = choix[question.id];
     if (avant.choisie !== null) return;
-    changer(question.id, { ...avant, choisie: i });
+    changer(question.id, { ...avant, choisie: i, rebelle: rebelles.has(question.id) });
     onRepondu([{ id: question.id, juste: avant.options[i] === question.reponse, mode: 'choix' }]);
   };
 
@@ -52,6 +60,19 @@ export function TacheAChoix(props: PropsDeTache<'qcm'>) {
               choisir={(i) => choisir(question, i)}
               repondu={choisie === null ? undefined : { choisie, reponse: question.reponse }}
             />
+            {choisie !== null && (
+              <Explication
+                annonce
+                {...explicationsApresLeChoix(
+                  question,
+                  options[choisie],
+                  montrerLAide(
+                    choix[question.id].rebelle === true,
+                    options[choisie] === question.reponse,
+                  ),
+                )}
+              />
+            )}
           </fieldset>
         );
       })}

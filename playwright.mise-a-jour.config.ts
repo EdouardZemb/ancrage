@@ -7,7 +7,8 @@ import { ORIGINE } from './e2e/mise-a-jour/aide-versions.js';
 // construit (`pnpm build`) et les deux clients de `scripts/construire-deux-clients.mjs`.
 // Le parcours de la séance du jour (`seance-du-jour.spec.ts`, lot M2) y est aussi : il lui faut un
 // compte neuf sur une base à lui, que la suite principale ne sait pas donner. Le parcours de l'aide
-// d'une carte après une faute (`aide-apres-faute.spec.ts`, lot M9) y est aussi, sur son compte.
+// d'une carte après une faute (`aide-apres-faute.spec.ts`, lot M9) y est aussi, sur son compte, comme
+// celui de l'explication après une faute dans les fiches (`explication-apres-faute.spec.ts`, lot M10).
 export default defineConfig({
   testDir: './e2e/mise-a-jour',
   workers: 1,

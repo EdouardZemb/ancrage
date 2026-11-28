@@ -19,9 +19,19 @@
  * sous-clés de la tâche.
  */
 import { useEffect, useRef } from 'preact/hooks';
+import type { PaireAppariee } from '../../../domaine/contenu/modele.js';
+import { explicationDe } from '../../../domaine/feuilles/explications.js';
 import { useCours } from '../contexte-cours.js';
+import { Explication } from '../questions/Explication.js';
+import { montrerLAide } from '../questions/montrer-l-aide.js';
 import { type Placements, placer, retirer } from './glisser.js';
-import { CLE_FEUILLES, type PropsDeTache, resultatsDeTache, useEtatDesElements } from './tache.js';
+import {
+  CLE_FEUILLES,
+  type PropsDeTache,
+  resultatsDeTache,
+  useEtatDesElements,
+  useRebellesFiges,
+} from './tache.js';
 import { useGlisser } from './useGlisser.js';
 
 type TacheAPoser = PropsDeTache<'appariement' | 'classement'>['tache'];
@@ -37,6 +47,8 @@ interface Terme {
 interface Cible {
   id: string;
   libelle: string;
+  /** La paire de la case d'un appariement, qui porte l'explication ; rien pour un classement. */
+  paire?: PaireAppariee;
 }
 
 interface Etat {
@@ -51,7 +63,7 @@ function plateauDe(tache: TacheAPoser): { termes: Terme[]; cibles: Cible[]; uniq
   if (tache.genre === 'appariement') {
     return {
       termes: tache.paires.map(({ id, terme }) => ({ id, terme, bonne: id })),
-      cibles: tache.paires.map(({ id, cible }) => ({ id, libelle: cible })),
+      cibles: tache.paires.map((paire) => ({ id: paire.id, libelle: paire.cible, paire })),
       unique: true,
     };
   }
@@ -84,6 +96,7 @@ export function TacheAGlisser(props: PropsDeTache<'appariement' | 'classement'>)
     `${CLE_FEUILLES}/${tache.id}/choisi`,
     () => null,
   );
+  const [rebelle, figer] = useRebellesFiges<Terme>(tache);
   const reserve = useRef<HTMLDivElement>(null);
   const zones = useRef<HTMLDivElement>(null);
   const pruefen = useRef<HTMLButtonElement>(null);
@@ -162,6 +175,7 @@ export function TacheAGlisser(props: PropsDeTache<'appariement' | 'classement'>)
       'association',
     );
     if (resultats === undefined) return;
+    figer(termes);
     juger(true);
     onRepondu(resultats);
   };
@@ -217,6 +231,11 @@ export function TacheAGlisser(props: PropsDeTache<'appariement' | 'classement'>)
               {verdict === 'ko' && bons.length > 0 && (
                 <p class="correction">{bons.map(({ terme }) => terme).join(' · ')}</p>
               )}
+              {verdict !== null &&
+                cible.paire !== undefined &&
+                montrerLAide(rebelle(cible.id), verdict === 'ok') && (
+                  <Explication reponse={explicationDe(cible.paire)} />
+                )}
             </div>
           );
         })}

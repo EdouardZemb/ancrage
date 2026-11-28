@@ -12,6 +12,7 @@ import {
   rendreDansUnCoursVivant,
   reponseDeTest,
 } from '../contexte-cours.fixture.js';
+import { ContexteDuCours } from '../contexte-cours.js';
 import { Feuilles } from '../onglets/Feuilles.js';
 import { TEXTES_COURS } from '../textes-cours.js';
 import { TacheAGlisser } from './TacheAGlisser.js';
@@ -22,21 +23,32 @@ const t = TEXTES_COURS.de;
 
 /* Données factices, écrites à la main (invariant 7). */
 
+const EXPLICATION = 'Die Milz filtert beim Zimbolwesp nur Sand.';
+
 const APPARIEMENT: Extract<Tache, { genre: 'appariement' }> = {
   id: 'fa000051',
   genre: 'appariement',
   consigne: 'Ordnen Sie die Organe zu.',
   paires: [
-    { id: 'fb000051', terme: 'Milz', cible: 'Filtert das Blut', statut: 'source' },
+    {
+      id: 'fb000051',
+      terme: 'Milz',
+      cible: 'Filtert das Blut',
+      explication: EXPLICATION,
+      statut: 'source',
+    },
     { id: 'fb000052', terme: 'Magen', cible: 'Verdaut die Nahrung', statut: 'source' },
     { id: 'fb000053', terme: 'Lunge', cible: 'Tauscht die Atemgase aus', statut: 'source' },
   ],
 };
 
-function rendre() {
+function rendre(contexte = contexteDeTest()) {
   const onRepondu = vi.fn();
-  rendreDansLeCours(<TacheAGlisser tache={APPARIEMENT} onRepondu={onRepondu} />, contexteDeTest());
-  return onRepondu;
+  const rendu = rendreDansLeCours(
+    <TacheAGlisser tache={APPARIEMENT} onRepondu={onRepondu} />,
+    contexte,
+  );
+  return Object.assign(onRepondu, { rerender: rendu.rerender });
 }
 
 /** Un terme ou une cible, par son texte : chacun est un bouton, affiché une seule fois. */
@@ -372,5 +384,98 @@ describe('TacheAGlisser', () => {
     // Le dernier terme libre posé : le focus va à « Prüfen ».
     poser(premier, 'Tauscht die Atemgase aus');
     expect(document.activeElement).toBe(pruefen());
+  });
+
+  describe('explication', () => {
+    const explicationDe = (cible: string) => zoneDe(cible).querySelector('.explication');
+    const toutPoseJuste = () => {
+      poser('Milz', 'Filtert das Blut');
+      poser('Magen', 'Verdaut die Nahrung');
+      poser('Lunge', 'Tauscht die Atemgase aus');
+    };
+
+    it('une_case_fausse_montre_l_explication_de_sa_paire', () => {
+      rendre();
+      poser('Milz', 'Verdaut die Nahrung');
+      poser('Magen', 'Filtert das Blut');
+      poser('Lunge', 'Tauscht die Atemgase aus');
+      fireEvent.click(pruefen());
+
+      expect(zoneDe('Filtert das Blut').classList.contains('ko')).toBe(true);
+      expect(zoneDe('Verdaut die Nahrung').classList.contains('ko')).toBe(true);
+      expect(explicationDe('Filtert das Blut')?.querySelector('p')?.textContent).toBe(EXPLICATION);
+      expect(explicationDe('Filtert das Blut')?.hasAttribute('role')).toBe(false);
+      expect(explicationDe('Verdaut die Nahrung')).toBeNull();
+      expect(document.querySelectorAll('.explication')).toHaveLength(1);
+    });
+
+    it('une_case_juste_ne_montre_l_explication_qu_a_un_rebelle', () => {
+      rendre();
+      toutPoseJuste();
+      fireEvent.click(pruefen());
+      expect(document.querySelectorAll('.zone.ok')).toHaveLength(3);
+      expect(document.querySelectorAll('.explication')).toHaveLength(0);
+      cleanup();
+
+      rendre({ ...contexteDeTest(), rebelles: new Set(['fb000051']) });
+      toutPoseJuste();
+      fireEvent.click(pruefen());
+      expect(document.querySelectorAll('.zone.ok')).toHaveLength(3);
+      expect(explicationDe('Filtert das Blut')?.querySelector('p')?.textContent).toBe(EXPLICATION);
+      expect(document.querySelectorAll('.explication')).toHaveLength(1);
+    });
+
+    it('l_explication_d_une_case_attend_pruefen', () => {
+      rendre({ ...contexteDeTest(), rebelles: new Set(['fb000051']) });
+      poser('Milz', 'Verdaut die Nahrung');
+      poser('Magen', 'Filtert das Blut');
+      poser('Lunge', 'Tauscht die Atemgase aus');
+
+      expect(pruefen().disabled).toBe(false);
+      expect(document.querySelectorAll('.explication')).toHaveLength(0);
+    });
+
+    it('une_case_garde_le_verdict_rebelle_de_pruefen', () => {
+      const contexte = { ...contexteDeTest(), rebelles: new Set(['fb000051']) };
+      const onRepondu = rendre(contexte);
+      toutPoseJuste();
+      fireEvent.click(pruefen());
+      expect(explicationDe('Filtert das Blut')?.querySelector('p')?.textContent).toBe(EXPLICATION);
+
+      // La réponse est entrée au journal : la paire a cessé d'être rebelle.
+      onRepondu.rerender(
+        <ContexteDuCours.Provider value={{ ...contexte, rebelles: new Set() }}>
+          <TacheAGlisser tache={APPARIEMENT} onRepondu={vi.fn()} />
+        </ContexteDuCours.Provider>,
+      );
+
+      expect(zoneDe('Filtert das Blut').classList.contains('ok')).toBe(true);
+      expect(explicationDe('Filtert das Blut')?.querySelector('p')?.textContent).toBe(EXPLICATION);
+    });
+
+    it('un_classement_ne_montre_aucune_explication', () => {
+      const classement = {
+        id: 'fa000052',
+        genre: 'classement',
+        consigne: 'Sortieren Sie.',
+        categories: ['Gross', 'Klein'],
+        elements: [
+          // Le schéma refuse la clé : le client ne la lit jamais, même si un cours la portait.
+          { id: 'fb000054', terme: 'Leber', categorie: 'Gross', explication: EXPLICATION },
+          { id: 'fb000055', terme: 'Niere', categorie: 'Klein', explication: EXPLICATION },
+        ],
+      } as unknown as Extract<Tache, { genre: 'classement' }>;
+      rendreDansLeCours(<TacheAGlisser tache={classement} onRepondu={vi.fn()} />, {
+        ...contexteDeTest(),
+        rebelles: new Set(['fb000054', 'fb000055']),
+      });
+      poser('Leber', 'Klein');
+      poser('Niere', 'Gross');
+      fireEvent.click(pruefen());
+
+      expect(document.querySelectorAll('.zone.ko')).toHaveLength(2);
+      expect(document.querySelectorAll('.zone.ok')).toHaveLength(0);
+      expect(document.querySelectorAll('.explication')).toHaveLength(0);
+    });
   });
 });

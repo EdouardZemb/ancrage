@@ -906,19 +906,32 @@ p.rebelle {
   margin: 0 0 4px;
 }
 
-.aide {
+.aide,
+.explication {
   margin: 8px 0;
   padding: 6px 10px;
   border-left: 3px solid var(--accent);
   text-align: left;
 }
 
-.aide p {
+.explication {
+  overflow-wrap: anywhere;
+}
+
+.aide p,
+.explication p {
   margin: 2px 0 0;
 }
 
 /* Dans une carte (grille centrée), l'aide prend toute la largeur, alignée à gauche. */
-.card .aide {
+.card .aide,
+.card .explication {
+  justify-self: stretch;
+  margin: 0;
+}
+
+/* Dans la case d'une paire (grille), le bloc s'étire sur sa largeur. */
+.zone .explication {
   justify-self: stretch;
   margin: 0;
 }

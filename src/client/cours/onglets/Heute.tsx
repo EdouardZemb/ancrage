@@ -557,6 +557,7 @@ export function Heute() {
           aide={
             tete.element.genre === 'vrai-faux' ? tete.element.affirmation.correction : undefined
           }
+          qcm={tete.element.genre === 'qcm' ? tete.element.question : undefined}
         />
       )}
     </section>

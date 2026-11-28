@@ -403,6 +403,16 @@ function commiterDans(branche: string, fichier: string, contenu: string): void {
   commiter(branche, fichier, contenu);
 }
 
+// `commit-tree -m` ne lit pas son entrée : lui en passer une ferait courir un EPIPE, git pouvant
+// finir avant que Node l'écrive. Son entrée est donc fermée.
+function commitTree(parent: string, message: string, arbre: string): string {
+  const args = ['commit-tree', '-p', parent, '-m', message, arbre];
+  return execFileSync('git', [...IDENTITE, '-C', depot, ...args], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }).trim();
+}
+
 function sortieGit(entree: string, ...args: string[]): string {
   return execFileSync('git', [...IDENTITE, '-C', depot, ...args], {
     encoding: 'utf8',
@@ -432,8 +442,8 @@ it('cherche_aussi_avec_commit_un_fichier_que_le_commit_met_en_export_ignore', ()
 // Une branche `piege` de deux commits, sans toucher à la copie de travail (git ne sait pas écrire
 // tous ces chemins) : le premier a pour arbre `arbre`, la tête a celui de `propre`.
 function branchePiege(arbre: string): string {
-  const fautif = sortieGit('piege\n', 'commit-tree', '-p', sha('propre'), '-m', 'piege', arbre);
-  const tete = sortieGit('propre\n', 'commit-tree', '-p', fautif, '-m', 'tete', 'propre^{tree}');
+  const fautif = commitTree(sha('propre'), 'piege', arbre);
+  const tete = commitTree(fautif, 'tete', 'propre^{tree}');
   git('update-ref', 'refs/heads/piege', tete);
   return fautif;
 }
@@ -502,7 +512,7 @@ it('refuse_deux_noms_qui_ne_different_que_par_la_casse', () => {
 
 it('refuse_quand_l_arbre_de_la_tete_est_vide', () => {
   const vide = sortieGit('', 'hash-object', '-w', '-t', 'tree', '--stdin');
-  const tete = sortieGit('x\n', 'commit-tree', '-p', sha('propre'), '-m', 'tout retire', vide);
+  const tete = commitTree(sha('propre'), 'tout retire', vide);
   git('checkout', '-q', '-B', 'piege', tete);
   const r = hook('git push origin piege');
   expect(r.code).toBe(2);

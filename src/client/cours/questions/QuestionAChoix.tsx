@@ -4,6 +4,8 @@
  * même façon ; le composant ne tire rien et ne tient aucun compte.
  */
 import type { UniteDeCarte } from '../../../domaine/cartes/unites.js';
+import type { QuestionAChoix as QuestionDeQcm } from '../../../domaine/contenu/modele.js';
+import { explicationsApresLeChoix } from '../../../domaine/feuilles/explications.js';
 import type { Hasard } from '../../../domaine/hasard.js';
 import type { ModeDeReponse } from '../../../domaine/journal/evenement.js';
 import {
@@ -22,6 +24,7 @@ import {
 } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
 import { AideDeLElement, MarqueDeRebelle } from './AideEtMarque.js';
+import { Explication } from './Explication.js';
 import { montrerLAide } from './montrer-l-aide.js';
 
 /** Les touches 1 à 4 choisissent la première à la quatrième option (H:2245). */
@@ -70,8 +73,14 @@ export function QuestionAChoix(props: {
    * « Heute »). Le Quiz et le pré-test n'en donnent pas.
    */
   aide?: string;
+  /**
+   * La question à choix d'une fiche, qui porte les explications du choix et de la bonne réponse
+   * (M10) : montrées sous la même règle que l'aide, après une faute ou à un rebelle. Le Quiz et le
+   * pré-test ne la donnent pas.
+   */
+  qcm?: QuestionDeQcm;
 }) {
-  const { question, libelleSuivante, sansFaute, onChoix, onSuivante, rebelle, aide } = props;
+  const { question, libelleSuivante, sansFaute, onChoix, onSuivante, rebelle, aide, qcm } = props;
   const { t } = useCours();
 
   const repondre = (i: number) => {
@@ -112,6 +121,16 @@ export function QuestionAChoix(props: {
         montrerLAide(rebelle === true, question.options[question.choisie] === question.reponse) && (
           <AideDeLElement aide={{ texte: aide }} />
         )}
+      {question.choisie !== null && qcm !== undefined && (
+        <Explication
+          annonce
+          {...explicationsApresLeChoix(
+            qcm,
+            question.options[question.choisie],
+            montrerLAide(rebelle === true, question.options[question.choisie] === question.reponse),
+          )}
+        />
+      )}
       {question.choisie === null ? (
         <p class="kbd">{t.quiz_touches}</p>
       ) : (

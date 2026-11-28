@@ -2,7 +2,7 @@
  * La question et la réponse d'un posable, telles que la liste des éléments rebelles de Fortschritt
  * les montre (M6, T2-D10) : une seule fonction pour tous les genres, que la liste partage avec les
  * questions par `AideDeLElement`. L'aide est celle de T2-D8 : l'aide d'une carte et sa confusion,
- * les morceaux d'un mot, la règle d'un exercice, la `correction` d'une affirmation, la `note` d'un
+ * les morceaux d'un mot, la règle d'un exercice, la `correction` d'une affirmation, l'`explication` d'une question à choix (M10), la `note` d'un
  * schéma.
  */
 import {
@@ -10,6 +10,7 @@ import {
   aideDeLUnite,
   type UniteDeCarte,
 } from '../../../domaine/cartes/unites.js';
+import { explicationDe } from '../../../domaine/feuilles/explications.js';
 import { reponseDeLElement } from '../../../domaine/seances/feuilles.js';
 import type { Posable } from '../../../domaine/seances/heute.js';
 import { libelleDOption } from '../composants-cours.js';
@@ -65,7 +66,11 @@ export function questionEtReponse(
     case 'fermee': {
       const { element } = posable;
       return element.genre === 'qcm'
-        ? { question: element.question.question, reponse: element.question.reponse }
+        ? {
+            question: element.question.question,
+            reponse: element.question.reponse,
+            ...sansAide(explicationDe(element.question)),
+          }
         : {
             question: element.affirmation.affirmation,
             // Un vrai/faux montre « Richtig » ou « Falsch », jamais le code du domaine.

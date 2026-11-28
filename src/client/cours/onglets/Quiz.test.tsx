@@ -6,6 +6,7 @@ import {
   CHAPITRE_1,
   CHAPITRE_2,
   coursAvecChapitreAuManuelInconnu,
+  coursAvecExplications,
   coursAvecManuels,
   coursAvecUneAideParCarte,
   coursServiDeTest,
@@ -421,5 +422,22 @@ describe('Quiz par manuel', () => {
 
     const choix = screen.getByLabelText(t.choix_chapitre) as HTMLSelectElement;
     expect(groupesDe(choix).map(([nom]) => nom)).toEqual(['Lehrbuch Beta', t.division_uebungen]);
+  });
+
+  it('le_quiz_ne_montre_aucune_explication', () => {
+    const contexte = contexteDeTest({ cours: coursAvecExplications(coursAvec(CINQ)) });
+    contexte.preferences = {
+      ...contexte.preferences,
+      quiz: { chapitre: 'feuilles', sens: 'direct' },
+    };
+    contexte.hasard = hasardScripte([0.1]);
+    rendreDansLeCours(<Quiz />, contexte);
+    expect(document.querySelector('.card .front')?.textContent).toBe('Was bedeutet hyper-?');
+    fireEvent.click(boutons().find((b) => texteDe(b) === 'schnell') as HTMLButtonElement);
+
+    expect(contexte.enregistrer).toHaveBeenCalledWith('fb000007', false, 'choix');
+    expect(document.querySelector('.options .wrong')).not.toBeNull();
+    expect(document.querySelector('.explication')).toBeNull();
+    expect(screen.queryByText(t.explication_titre)).toBeNull();
   });
 });

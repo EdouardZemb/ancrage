@@ -1,5 +1,9 @@
 import { expect, it } from 'vitest';
-import { coursAvecChampsDeCarte, coursServiDeTest } from '../../../domaine/cours/cours.fixture.js';
+import {
+  coursAvecChampsDeCarte,
+  coursAvecExplications,
+  coursServiDeTest,
+} from '../../../domaine/cours/cours.fixture.js';
 import { preparerCours } from '../../../domaine/cours/prepare.js';
 import { type Posable, posablesDuCours } from '../../../domaine/seances/heute.js';
 import { TEXTES_COURS } from '../textes-cours.js';
@@ -9,13 +13,13 @@ import { questionEtReponse } from './question-et-reponse.js';
 
 const t = TEXTES_COURS.de;
 
-function cours() {
-  const prepare = preparerCours(coursServiDeTest());
+function cours(servi = coursServiDeTest()) {
+  const prepare = preparerCours(servi);
   return { prepare, posables: posablesDuCours(prepare) };
 }
 
-function ligne(id: string) {
-  const { prepare, posables } = cours();
+function ligne(id: string, servi = coursServiDeTest()) {
+  const { prepare, posables } = cours(servi);
   const posable = posables.find((p: Posable) => p.id === id);
   if (posable === undefined) throw new Error(`aucun posable ${id}`);
   return questionEtReponse(posable, t, prepare.unites);
@@ -67,6 +71,14 @@ it('une_question_a_choix_rend_son_enonce_et_sa_bonne_option', () => {
   expect(ligne('fb000007')).toEqual({
     question: 'Was bedeutet hyper-?',
     reponse: 'über dem Mass',
+  });
+});
+
+it('une_question_a_choix_rend_l_explication_de_sa_bonne_reponse_comme_aide', () => {
+  expect(ligne('fb000007', coursAvecExplications(coursServiDeTest()))).toEqual({
+    question: 'Was bedeutet hyper-?',
+    reponse: 'über dem Mass',
+    aide: { texte: 'Der Murmelkrat misst immer zu viel, also darüber.' },
   });
 });
 

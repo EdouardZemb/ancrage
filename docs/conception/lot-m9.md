@@ -80,6 +80,8 @@ l'onglet des schémas et Arbeitsblätter ne changent pas, le pré-test reste san
   - Arbeitsblätter montre la correction d'une affirmation après tout choix, juste ou faux (F1), et
     sa vue « Ergebnis » la montre aussi, quel que soit le verdict (F3) ; un QCM de fiche n'a pas
     d'aide. Rien ne change (réponse d'Edouard du 21/11/2026).
+    *Depuis le lot M10 : un QCM de fiche a son explication, après une faute ou à un rebelle (M10-C5,
+    `docs/conception/lot-m10.md`). Il n'a toujours pas d'aide, et le reste de cette décision tient.*
   - Wortbaukasten et les exercices : rien ne change (M9-C3). La liste de Fortschritt : seul le nom
     du composant de l'aide change.
 - **M9-D6. Les épreuves et le pré-test.** Le Quiz ne passe ni `rebelle` ni `aide` à sa question ; la

@@ -202,6 +202,8 @@ Accepté par Edouard le 18/11/2026.
   ligne dit la question, la réponse, l'aide de T2-D8 et « {n}× falsch », où `n` est le nombre de
   fautes du rejeu. Elle est en lecture seule : on n'y répond pas. Sans rebelle, la section dit
   « Noch keine schwierigen Begriffe. ».
+  *Depuis le lot M10 : l'explication de la bonne réponse d'un QCM rebelle y sert d'aide, sous
+  « Merkhilfe » (M10-C8, `docs/conception/lot-m10.md`).*
 - **T2-D10.** La question et la réponse d'une ligne, par genre : une carte, l'invite et la réponse
   de son sens ; un mot, le mot et son sens ; un point, son sens et son terme, avec le titre du
   schéma ; un exercice, son énoncé et la réponse que sa question montre ; une question fermée, son

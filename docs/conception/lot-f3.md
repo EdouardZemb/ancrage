@@ -70,6 +70,9 @@ questions :
 
    Le libellé « Lösung: » lève l'ambiguïté du vrai/faux. Une ligne peut dire « Lösung: Falsch »,
    puis donner le verdict « Richtig · … ».
+   *Depuis le lot M10 : une ligne de `qcm`, de phrase à trous ou de paire montre aussi son
+   explication, quand le cours en porte, après la `correction` et avant la pastille du verdict
+   (M10-C5 et M10-D7, `docs/conception/lot-m10.md`). Le reste de cette décision tient.*
 4. **F3-D4, le verdict.** Il se dit en texte, dans une pastille, et la couleur ne fait que le
    doubler : « Richtig · {datum} » (`.pill.ok`), « Falsch · {datum} » (`.pill.ko`), « Noch nicht
    beantwortet » (`.pill.offen`).

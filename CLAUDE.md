@@ -355,11 +355,41 @@ prévue deux semaines plus tard.
 
 Ses décisions et ses arbitrages (« M9-C<n> », « M9-D<n> », cinq écarts accordés le 21/11/2026) sont
 dans `docs/conception/lot-m9.md`.
+
+Le lot M10 a fait lire, après une faute, pourquoi la réponse est fausse (ancrage#34) :
+- trois clés facultatives sur les éléments d'une fiche : `explication` pour la bonne réponse d'une
+  question `qcm`, d'une phrase à trous et d'une paire d'appariement ; `explications_distracteurs`
+  pour les distracteurs d'une question `qcm`, partiel admis. Elles suivent la règle de l'`aide`
+  d'une carte, et leurs clés sont refusées ailleurs (`schemas.ts` et `analyse.ts`, dans
+  `src/domaine/contenu/`) ;
+- un bloc « Erklärung » (`src/client/cours/questions/Explication.tsx`) : l'explication du
+  distracteur choisi juste après le choix, celle de la bonne réponse après une faute ou à un rebelle
+  (la règle `montrerLAide` du lot M9), dans Arbeitsblätter et dans « Heute » pour un QCM ;
+  « Ergebnis » montre toujours celle de la bonne réponse, et celles des distracteurs après une
+  dernière réponse fausse ; le Quiz, la Prüfung et le pré-test n'en montrent aucune. Dans la liste
+  « Schwierige Begriffe », l'explication d'un QCM rebelle sert d'aide ;
+- une règle pure, `src/domaine/feuilles/explications.ts`, qui décide ce que l'écran montre et lit le
+  contenu sans rigueur ; elle est dans la mutation (groupe `domaine`) ;
+- `contenus:a-verifier` imprime les explications avec leur élément, et `contenus:client` les cherche
+  dans le client construit.
+
+Un cours monté ne reçoit ces clés qu'à partir de la version qui suit la première étiquette posée
+après la `v0.21.0` : les schémas sont stricts, et l'image précédente, que le retour arrière remet en
+service, les refuserait (invariant 8). Le cours d'exemple, qui est dans l'image, les écrit. Ni le
+journal, ni l'API, ni le manifeste, ni la notice ne changent : rien de neuf n'est gardé.
+
+La version qui porte le lot est la `v0.22.0`, à Edouard, sans étiquette de données. Les explications
+du cours de l'instance s'écriront au dépôt de données, après la règle de version. Au staging, rien
+ne s'y voit tant que ce cours n'en porte pas ; le test de bout en bout au Pixel 7, dans
+Arbeitsblätter, est la preuve du lot.
+
+Ses décisions et ses arbitrages (« M10-C<n> », « M10-D<n> », un écart E1 et six écarts I1 à I6
+accordés les 27 et 28/11/2026) sont dans `docs/conception/lot-m10.md`.
 Parmi les lots suivants de la milestone : le rejeu d'une seule unité (ancrage#31).
 
 Les suites sans urgence d'un lot vont dans une issue « Au prochain passage »
 (ancrage-donnees#81 est fermée ; celle des lots 2c, 2d, F3, S1 et S2 est ancrage-donnees#156 ; celle
-des lots M1 à M9 est ancrage#11). Une
+des lots M1 à M10 est ancrage#11). Une
 PR qui touche un fichier de cette liste regarde sa case, et la coche si elle la règle.
 
 Le déploiement est aligné sur la cible `serveur` de `modele-projet` (l'alignement date du lot 2 du

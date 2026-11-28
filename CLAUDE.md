@@ -421,10 +421,27 @@ Sur le poste, `pnpm` s'appelle par `corepack pnpm …` ; en CI, `corepack enable
   même depuis un worktree) dans les fichiers
   suivis de `<réf>` (`HEAD` par défaut), sauf ceux de `<donnees>/textes-toleres.txt`. Codes : 0 aucun
   texte ; 1 la recherche n'a pas pu tourner ; 2 un texte du cours ; 64 usage. Avec `--hook`, il lit
-  l'entrée JSON de `PreToolUse` et n'agit que sur un `git push` (S3-D6) : il lit chaque commit que
-  l'envoi publie (`git rev-list <réf> --not --remotes=<distant>`, la tête d'abord) et refuse au
-  premier qui porte un texte du cours ; il coupe la commande à la première redirection (`>`, `2>`,
-  `<`…), au premier `|`, `;`, `&&` ou `||`, et lit `/c/…` donné à `git -C` comme `C:/…`.
+  l'entrée JSON de `PreToolUse` et n'agit que sur un `git push` (S3-D6). Il rassemble les
+  commits que l'envoi publie (`git rev-list <réf> --not --remotes=<distant>`, la tête d'abord),
+  puis fait **une seule** recherche, sur les octets des blobs (`git ls-tree`, `git cat-file`),
+  sans `git archive` : les attributs de git (`export-ignore`, encodage, filtres) ne jouent pas.
+  Sous un dossier temporaire, un dossier par commit, nommé par son SHA complet : la tête posée
+  en entier, chaque autre commit avec les seuls fichiers dont le blob n'a pas encore été posé.
+  Un chemin que le disque ne sait pas écrire (`..`, un segment vide, un caractère de contrôle ;
+  sous Windows `\ : * ? " < > |` ou un point ou une espace final), ou deux noms qui se
+  confondent (la casse), fait échouer la recherche, donc refuse, comme un arbre de tête vide. Le
+  refus nomme le commit par le dossier de chaque fichier cité : le premier commit de l'envoi qui
+  porte ce contenu, la tête de la première référence d'abord ; des commits plus anciens peuvent le
+  porter aussi, et il faut retirer le texte de chacun (réécrire la branche). Le message dit « un
+  texte du cours » seulement quand la CLI en a trouvé un ; sinon, la recherche n'a pas pu tourner.
+  Au début de chaque recherche, il retire les dossiers `cours-absent-*` de plus d'une heure du
+  dossier temporaire. Il bloque aussi à son délai
+  (`"onFailure": "block"` sur le hook, `.claude/settings.json`) : sans ce champ, un hook qui
+  atteint son délai laisse passer l'envoi. Avec lui, le hook bloque aussi s'il ne peut pas
+  démarrer ou s'il plante (sans `node` 24 sur le PATH, par exemple), et alors toute commande Bash
+  ou PowerShell : le remède passe par `!`, ou par l'installation de Node 24. Il coupe la commande
+  à la première redirection (`>`, `2>`, `<`…), au premier `|`, `;`, `&&` ou `||`, et lit `/c/…`
+  donné à `git -C` comme `C:/…`.
 - `corepack pnpm types` : TypeScript, client, service worker et serveur.
 - `corepack pnpm dev:serveur` : serveur en rechargement automatique.
 - `corepack pnpm dev:client` : client Vite.
@@ -635,7 +652,9 @@ Le cycle d'un lot, la définition de « Fini », les commits et les questions gr
   une fixture prend le cours d'exemple, ou un texte inventé, jamais une variante d'un élément du
   cours. Le hook `PreToolUse` `scripts/cours-absent.ts` (`.claude/settings.json`) le tient à
   l'envoi : il refuse tout `git push` dont un commit publié porte un texte du cours du dépôt de données
-  voisin, et refuse aussi quand la recherche ne peut pas tourner. Sans dépôt de données à cet
+  voisin, et refuse aussi quand la recherche ne peut pas tourner ou atteint son délai de 120 s
+  (`onFailure`). Une seule recherche couvre tous les commits : son coût ne dépend presque plus de
+  leur nombre, mais d'abord de la taille de l'arbre de la tête. Sans dépôt de données à cet
   endroit (une session à distance), il avertit et laisse passer (S3-D6).
 - **Les renvois** : `ancrage-donnees#NNN` pour une issue ou une PR d'avant la scission, qui restent au
   dépôt de données, et `modele-projet#NNN` pour le modèle, jamais un `#NNN` nu dans un texte durable

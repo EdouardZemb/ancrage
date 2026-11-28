@@ -969,7 +969,7 @@ Règles des feuilles :
   liste à relire et l'instantané de référence les portent, et `contenus:client` les cherche dans le
   client construit. Le client les lit sans rigueur : une valeur qui n'est pas un texte ne s'affiche
   pas, et le cours reste utilisable. **Un cours monté ne reçoit ces clés qu'à partir de la version
-  qui suit la première étiquette posée après la `v0.21.0`** : les schémas sont stricts, et l'image
+  qui suit la `v0.22.0`**, la première qui les connaît : les schémas sont stricts, et l'image
   précédente, que le retour arrière remet en service, les refuserait (invariant 8). Le cours
   d'exemple, qui est dans l'image, les écrit.
 

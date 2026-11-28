@@ -32,12 +32,11 @@ let dossier: string;
 let donnees: string;
 let depot: string;
 
+// Une identité fixe : la CI n'en a pas de globale, et `commit` comme `commit-tree` l'exigent.
+const IDENTITE = ['-c', 'user.name=t', '-c', 'user.email=t@exemple.invalid'];
+
 function git(...args: string[]): void {
-  execFileSync(
-    'git',
-    ['-c', 'user.name=t', '-c', 'user.email=t@exemple.invalid', '-C', depot, ...args],
-    { stdio: 'ignore' },
-  );
+  execFileSync('git', [...IDENTITE, '-C', depot, ...args], { stdio: 'ignore' });
 }
 
 function commiter(branche: string, fichier: string, contenu: string): void {
@@ -405,7 +404,10 @@ function commiterDans(branche: string, fichier: string, contenu: string): void {
 }
 
 function sortieGit(entree: string, ...args: string[]): string {
-  return execFileSync('git', ['-C', depot, ...args], { encoding: 'utf8', input: entree }).trim();
+  return execFileSync('git', [...IDENTITE, '-C', depot, ...args], {
+    encoding: 'utf8',
+    input: entree,
+  }).trim();
 }
 
 it('refuse_un_texte_qu_un_commit_ancien_porte_quand_la_tete_met_son_dossier_en_export_ignore', () => {

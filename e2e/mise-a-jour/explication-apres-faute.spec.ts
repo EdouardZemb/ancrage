@@ -6,7 +6,6 @@
  *  - Tâche 1, l'appariement, posé en dérangement complet : les quatre cases sont fausses, et les deux
  *    paires qui portent une explication, « Sieb » et « Reibe », la montrent dans leur case, sans
  *    `role` (« Prüfen » en fait paraître plusieurs d'un coup) ; les deux autres n'en montrent aucune ;
- *  - tâche 2, le classement : jamais d'explication (M10-C1) ;
  *  - tâche 3, le QCM : une première réponse juste ne montre rien ; une seconde fausse montre un bloc
  *    `role="status"`, l'explication du choix puis celle de la bonne réponse. Le bas du bloc et de
  *    « Weiter » restent dans l'écran (M10-C7) ;
@@ -124,7 +123,8 @@ test('l_explication_d_une_faute_se_voit_dans_les_fiches', async ({ page }) => {
   );
   await weiter.tap();
 
-  // Tâche 2, le classement : un verdict, jamais d'explication (M10-C1).
+  // Tâche 2, le classement : un simple passage, qui n'a pas d'explication (la garde est un test
+  // unitaire, `un_classement_ne_montre_aucune_explication`).
   const premiereZone = tache.locator('.zone').first();
   const termes = await tache.locator('.reserve [data-terme]').count();
   expect(termes, 'termes du classement').toBeGreaterThan(1);
@@ -135,7 +135,6 @@ test('l_explication_d_une_faute_se_voit_dans_les_fiches', async ({ page }) => {
   }
   await tache.getByRole('button', { name: deCours.pruefen, exact: true }).tap();
   await expect(tache.locator('.zone.ok, .zone.ko')).toHaveCount(2);
-  await expect(tache.locator('.explication')).toHaveCount(0);
   await weiter.tap();
 
   // Tâche 3, le QCM : la première question, juste, ne montre rien ; la seconde, fausse, un bloc.

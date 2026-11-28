@@ -21,8 +21,8 @@ M10-C1 à M10-C11 sont les arbitrages d'Edouard du 27/11/2026 (« OK pour les d�
 reçoivent une précision tirée du code, dite comme telle. M10-D1 à M10-D13 sont du plan.
 
 - **M10-C1. Les genres couverts** : le `qcm`, la phrase à trous (`trous`) et l'appariement des
-  fiches, seulement. Le texte annoté n'a pas d'écran de verdict (`Textes.tsx:264`), l'exercice a
-  déjà sa `regle`, le classement va aux pistes (`docs/pistes.md`).
+  fiches, seulement. Le texte annoté n'a pas d'écran de verdict (`Suite`, `Textes.tsx`), l'exercice
+  a déjà sa `regle`, le classement va aux pistes (`docs/pistes.md`).
 - **M10-C2. Les clés** : `explication` pour la bonne réponse d'une question `qcm`, pour une phrase à
   trous et pour une paire d'appariement ; sur une question `qcm`, en plus,
   `explications_distracteurs`, un objet « distracteur → texte », partiel admis mais non vide, lu par
@@ -33,8 +33,8 @@ reçoivent une précision tirée du code, dite comme telle. M10-D1 à M10-D13 so
   espace de bord, de 300 caractères au plus, `LONGUEUR_MAXIMALE_D_UNE_AIDE`) ; une clé de
   `explications_distracteurs` qui ne nomme pas un distracteur de la question est refusée. Précision
   du plan, d'après le code : une clé est un texte du cours, et aucun message de l'analyse ne cite un
-  texte (`analyse-feuilles.ts:59`) ; une erreur sous `explications_distracteurs` se situe par le
-  rang de la clé dans l'ordre où le YAML l'écrit (M10-D2).
+  texte (`explicationsAdmises`, `analyse-feuilles.ts`) ; une erreur sous `explications_distracteurs`
+  se situe par le rang de la clé dans l'ordre où le YAML l'écrit (M10-D2).
 - **M10-C4. Les clés existantes** : la `correction` du vrai-faux reste telle quelle, sans
   `explication`, et n'est pas resserrée. Aucune migration de contenu. Précision du plan : une
   `explication` écrite sur une affirmation, un élément à classer, un mot ou une question ouverte
@@ -163,12 +163,12 @@ reçoivent une précision tirée du code, dite comme telle. M10-D1 à M10-D13 so
   Arbeitsblätter, et non « Heute » : un compte neuf n'a aucun QCM de fiche dû, et « Heute » ne pose
   que ce qui est dû ou des cartes neuves ; ses tests vitest n'en tiennent que l'ordre, et sa hauteur
   reste non vérifiée (E1). Le parcours pose l'appariement de la Unit 1 en dérangement complet (deux
-  cases montrent l'explication de leur paire, sans `role`), le classement (aucune explication), puis
-  deux QCM (le premier juste, sans rien ; le second faux, avec un bloc `role="status"`), et mesure
-  le bloc et « Weiter » ; puis « Ergebnis » montre les explications de la bonne réponse et des
-  distracteurs, sans `role`. La mesure passe dans `e2e/aide-mise-en-page.ts`
-  (`blocEtBoutonDansLEcran`), que le test de M9 appelle aussi, avec une borne basse nouvelle : un
-  bloc sorti par le haut passerait sinon.
+  cases montrent l'explication de leur paire, sans `role`), le classement, un simple passage
+  (l'absence d'explication y est gardée par un test unitaire), puis deux QCM (le premier juste, sans
+  rien ; le second faux, avec un bloc `role="status"`), et mesure le bloc et « Weiter » ; puis
+  « Ergebnis » montre les explications de la bonne réponse et des distracteurs, sans `role`. La
+  mesure passe dans `e2e/aide-mise-en-page.ts` (`blocEtBoutonDansLEcran`), que le test de M9 appelle
+  aussi, avec une borne basse nouvelle : un bloc sorti par le haut passerait sinon.
 - **M10-D10. Les tests et les mutants.** Le test d'abord : un test d'un comportement nouveau échoue
   sur le code d'avant sa tâche, et la PR le dit ; un test qui passe déjà est une garde, avec le
   mutant qui la fait échouer. Le client étant hors de Stryker, chaque promesse de M10-C5 à M10-C8 et

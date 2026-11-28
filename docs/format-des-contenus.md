@@ -595,11 +595,12 @@ Le cours d'exemple fait exception : il est dans l'image, et l'écrit (`fautes: 3
 
 L'aide d'un élément (M6, T2-D8, M9) est l'`aide` d'une carte et la carte avec laquelle on la
 confond (`confondu_avec`), la `correction` d'une affirmation vrai-faux, la `note` d'un schéma, les
-morceaux d'un mot ou la règle d'un exercice ; une question de QCM d'une fiche n'en a pas, sauf dans la liste de Fortschritt, où l'explication
-de sa bonne réponse en tient lieu (M10-C8). C'est elle
-que la liste de Fortschritt montre sous un rebelle. Elle se montre après une réponse fausse, à tous,
-et à un rebelle après toute réponse, sauf là où la liste qui suit dit autre chose. Le format n'y
-change rien : aucun champ nouveau, et rien n'en est gardé ni servi de plus.
+morceaux d'un mot ou la règle d'un exercice ; une question de QCM d'une fiche n'en a pas, sauf dans
+la liste de Fortschritt, où l'explication de sa bonne réponse en tient lieu (M10-C8). C'est elle que
+la liste de Fortschritt montre sous un rebelle. Elle se montre après une réponse fausse, à tous, et
+à un rebelle après toute réponse, sauf là où la liste qui suit dit autre chose. Hors de
+l'explication d'un QCM (M10), l'aide ne demande aucun champ nouveau, et rien n'en est gardé ni servi
+de plus.
 
 - Une carte retournée la montre au verso, quelle que soit la réponse qui suit (M9-C1) : la carte n'a
   pas d'écran après le geste qui juge.
@@ -958,10 +959,11 @@ Règles des feuilles :
   à trous dit pourquoi la bonne réponse est la bonne. Elle suit la règle de l'`aide` d'une carte : un
   texte non vide, d'une ligne, sans espace de bord, de 300 caractères au plus.
   `explications_distracteurs`, sur une question `qcm`, est un objet dont chaque clé est un
-  distracteur de la question, écrit à l'identique et entre guillemets doubles, et dont la valeur suit
-  la même règle. Il est partiel, mais jamais vide ; une clé qui ne nomme aucun distracteur est
-  refusée, et l'erreur se situe par le rang de la clé dans l'ordre écrit, compté depuis 0, jamais
-  par son texte. La `correction` d'une affirmation ne change pas : une affirmation, un élément à
+  distracteur de la question, écrit à l'identique ; la clé s'écrit entre guillemets doubles, comme
+  tout texte, mais la validation ne contrôle pas ses guillemets : une clé qui, lue, ne nomme aucun
+  distracteur est refusée. La valeur suit la même règle. Il est partiel, mais jamais vide ; l'erreur
+  d'une clé refusée se situe par son rang dans l'ordre écrit, compté depuis 0, jamais par son
+  texte. La `correction` d'une affirmation ne change pas : une affirmation, un élément à
   classer, un mot ou une question ouverte n'ont pas d'explication, et une clé écrite là est refusée
   comme toute clé inconnue. Ces textes sont des textes du cours : la liste à relire et l'instantané
   de référence les portent, et `contenus:client` les cherche dans le client construit. Le client

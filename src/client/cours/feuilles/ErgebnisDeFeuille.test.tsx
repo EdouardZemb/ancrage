@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { coursAvecExplications, coursServiDeTest } from '../../../domaine/cours/cours.fixture.js';
 import type { ModuleServiDe } from '../../../domaine/cours/prepare.js';
 import { contexteDeTest, rendreDansLeCours, reponseDeTest } from '../contexte-cours.fixture.js';
 import { TEXTES_COURS } from '../textes-cours.js';
@@ -17,8 +18,8 @@ const REPONSES = [
   reponseDeTest(3, 'fb000007', true, '2026-10-16'),
 ];
 
-function afficher() {
-  const contexte = contexteDeTest({ evenements: REPONSES });
+function afficher(evenements = REPONSES, cours = coursServiDeTest()) {
+  const contexte = contexteDeTest({ evenements, cours });
   const unit1 = contexte.cours.feuilles.find(
     ({ id }) => id === 'fe000001',
   ) as ModuleServiDe<'feuille'>;
@@ -91,6 +92,8 @@ describe('ErgebnisDeFeuille', () => {
     );
     expect(loesung('Tachykardi')).toBe('Lösung: Tachykardie');
     expect(loesung('Wozu dient die Leber?')).toBe('Lösung: Sie verarbeitet Nährstoffe.');
+    // Le cours de test n'écrit aucune explication : le bloc ne paraît nulle part.
+    expect(container.querySelector('.explication')).toBeNull();
   });
 
   it('ergebnis_dit_le_verdict_et_la_date_de_la_derniere_reponse', () => {
@@ -162,5 +165,48 @@ describe('ErgebnisDeFeuille', () => {
     fireEvent.click(screen.getAllByRole('button', { name: t.feuilles_zurueck })[0] as HTMLElement);
     expect(contexte.enregistrer).not.toHaveBeenCalled();
     expect(contexte.enregistrerExamen).not.toHaveBeenCalled();
+  });
+
+  describe('explication', () => {
+    const lignesDe = (li: Element) =>
+      [...li.querySelectorAll('.explication p')].map((p) => p.textContent);
+
+    it('ergebnis_montre_toujours_l_explication_de_la_bonne_reponse', () => {
+      const { container } = afficher(REPONSES, coursAvecExplications(coursServiDeTest()));
+
+      // La dernière réponse est juste, et la bonne réponse s'explique tout de même.
+      const juste = ligne(container, 'Was bedeutet hyper-?');
+      expect(verdict(juste)).toBe('Richtig · 2026-10-16');
+      expect(lignesDe(juste)).toEqual(['Der Murmelkrat misst immer zu viel, also darüber.']);
+      expect(juste.querySelectorAll('.explication')).toHaveLength(1);
+      // Jamais répondue.
+      expect(lignesDe(ligne(container, 'Herz'))).toEqual([
+        'Der Gnurpel zeigt immer auf das erste Paar.',
+      ]);
+      expect(
+        lignesDe(ligne(container, 'Das ___ hat vier Kammern, die ___ bildet den Harn.')),
+      ).toEqual(['Die Lücken füllt der Brummelkopf von links nach rechts.']);
+      expect(ligne(container, 'Wozu dient die Leber?').querySelector('.explication')).toBeNull();
+      expect(container.querySelector('[role]')).toBeNull();
+    });
+
+    it('ergebnis_montre_les_explications_des_distracteurs_apres_une_derniere_reponse_fausse', () => {
+      const { container } = afficher(
+        [
+          reponseDeTest(1, 'fb000007', true, '2026-10-14'),
+          reponseDeTest(2, 'fb000007', false, '2026-10-16'),
+        ],
+        coursAvecExplications(coursServiDeTest()),
+      );
+
+      const li = ligne(container, 'Was bedeutet hyper-?');
+      expect(verdict(li)).toBe('Falsch · 2026-10-16');
+      expect(lignesDe(li)).toEqual([
+        'unter dem Mass – Darunter liegt nur der Grunwurm.',
+        'schnell – Schnell ist der Zimbolwesp, nicht der Murmelkrat.',
+        'Der Murmelkrat misst immer zu viel, also darüber.',
+      ]);
+      expect(li.querySelector('.explication')?.textContent).not.toContain('langsam');
+    });
   });
 });

@@ -12,9 +12,14 @@ import {
   dernieresReponsesDatees,
   resultatsDeFeuille,
 } from '../../../domaine/feuilles/deroulement.js';
+import {
+  type ElementExplique,
+  explicationsDErgebnis,
+} from '../../../domaine/feuilles/explications.js';
 import { jourDe } from '../../../domaine/journal/temps.js';
 import { focaliser } from '../composants-cours.js';
 import { useCours } from '../contexte-cours.js';
+import { Explication } from '../questions/Explication.js';
 import { type CleTexteCours, formater } from '../textes-cours.js';
 
 interface Ligne {
@@ -23,17 +28,24 @@ interface Ligne {
   loesung: string;
   /** L'explication qui suit une bonne réponse « Falsch », s'il y en a une. */
   korrektur?: string;
+  /** L'élément qui peut porter des explications : une question, une phrase ou une paire. */
+  element?: ElementExplique;
 }
 
 /** Les lignes d'une tâche, dans l'ordre du papier : l'énoncé et la bonne réponse de chaque élément. */
 function lignesDeTache(tache: Tache, t: Record<CleTexteCours, string>): Ligne[] {
   switch (tache.genre) {
     case 'appariement':
-      return tache.paires.map((p) => ({ id: p.id, enonce: p.terme, loesung: p.cible }));
+      return tache.paires.map((p) => ({ id: p.id, enonce: p.terme, loesung: p.cible, element: p }));
     case 'classement':
       return tache.elements.map((e) => ({ id: e.id, enonce: e.terme, loesung: e.categorie }));
     case 'qcm':
-      return tache.questions.map((q) => ({ id: q.id, enonce: q.question, loesung: q.reponse }));
+      return tache.questions.map((q) => ({
+        id: q.id,
+        enonce: q.question,
+        loesung: q.reponse,
+        element: q,
+      }));
     case 'vrai-faux':
       return tache.affirmations.map((a) => ({
         id: a.id,
@@ -46,6 +58,7 @@ function lignesDeTache(tache: Tache, t: Record<CleTexteCours, string>): Ligne[] 
         id: p.id,
         enonce: p.texte,
         loesung: p.reponses.join(' · '),
+        element: p,
       }));
     case 'orthographe':
       return tache.mots.map((m) => ({ id: m.id, enonce: m.fautif, loesung: m.reponse }));
@@ -99,6 +112,9 @@ export function ErgebnisDeFeuille(props: { feuille: ModuleServiDe<'feuille'>; re
                       {formater(t.feuilles_ergebnis_loesung, { loesung: ligne.loesung })}
                     </p>
                     {ligne.korrektur !== undefined && <p class="correction">{ligne.korrektur}</p>}
+                    {ligne.element !== undefined && (
+                      <Explication {...explicationsDErgebnis(ligne.element, reponse)} />
+                    )}
                     {reponse === null ? (
                       <span class="pill offen">{t.feuilles_ergebnis_offen}</span>
                     ) : reponse.juste ? (

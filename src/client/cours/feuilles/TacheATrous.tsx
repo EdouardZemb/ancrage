@@ -16,9 +16,18 @@ import { Fragment } from 'preact';
 import { morceauxDePhrase } from '../../../domaine/contenu/feuille.js';
 import type { PhraseATrous } from '../../../domaine/contenu/modele.js';
 import { phraseJuste } from '../../../domaine/feuilles/correction.js';
+import { explicationDe } from '../../../domaine/feuilles/explications.js';
 import { useCours } from '../contexte-cours.js';
+import { Explication } from '../questions/Explication.js';
+import { montrerLAide } from '../questions/montrer-l-aide.js';
 import { formater } from '../textes-cours.js';
-import { CLE_FEUILLES, type PropsDeTache, resultatsDeTache, useEtatDesElements } from './tache.js';
+import {
+  CLE_FEUILLES,
+  type PropsDeTache,
+  resultatsDeTache,
+  useEtatDesElements,
+  useRebellesFiges,
+} from './tache.js';
 
 /** Une case : le rang du trou dans la phrase que `id` désigne. */
 interface Case {
@@ -37,6 +46,8 @@ export function TacheATrous(props: PropsDeTache<'trous'>) {
     (phrase) => phrase.reponses.map(() => ''),
   );
   const [jugee, juger] = useEtatDOnglet<boolean>(`${CLE_FEUILLES}/${tache.id}/jugee`, () => false);
+
+  const [rebelle, figer] = useRebellesFiges<PhraseATrous>(tache);
 
   const [visee, viser] = useEtatDOnglet<Case | null>(
     `${CLE_FEUILLES}/${tache.id}/visee`,
@@ -82,6 +93,7 @@ export function TacheATrous(props: PropsDeTache<'trous'>) {
       // Une liste de mots à placer : des propositions ; sans liste, la personne tape.
       avecListe ? 'choix' : 'saisie',
     );
+    figer(tache.phrases);
     juger(true);
     if (resultats !== undefined) onRepondu(resultats);
   };
@@ -111,6 +123,7 @@ export function TacheATrous(props: PropsDeTache<'trous'>) {
           visee={courante?.id === phrase.id ? courante.rang : null}
           avecListe={avecListe}
           jugee={jugee}
+          rebelle={rebelle(phrase.id)}
           ecrire={(rang, valeur) => ecrire(phrase, rang, valeur)}
           toucher={(rang) => toucher(phrase, rang)}
         />
@@ -129,10 +142,12 @@ function PhraseAvecTrous(props: {
   visee: number | null;
   avecListe: boolean;
   jugee: boolean;
+  /** La phrase était rebelle à « Prüfen » (M10-D7). */
+  rebelle: boolean;
   ecrire(rang: number, valeur: string): void;
   toucher(rang: number): void;
 }) {
-  const { phrase, saisie, visee, avecListe, jugee, ecrire, toucher } = props;
+  const { phrase, saisie, visee, avecListe, jugee, rebelle, ecrire, toucher } = props;
   const { t } = useCours();
   const juste = jugee && phraseJuste(saisie, phrase, avecListe);
   const etiquette = (rang: number) => formater(t.feuilles_luecke, { n: rang + 1 });
@@ -175,6 +190,7 @@ function PhraseAvecTrous(props: {
         </Fragment>
       ))}
       {jugee && !juste && <p class="correction">{phrase.reponses.join(' · ')}</p>}
+      {jugee && montrerLAide(rebelle, juste) && <Explication reponse={explicationDe(phrase)} />}
     </div>
   );
 }

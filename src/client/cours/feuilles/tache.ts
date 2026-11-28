@@ -99,6 +99,26 @@ export function useEtatDesElements<E extends { id: string }, T>(
 }
 
 /**
+ * Les éléments de la tâche qui sont rebelles au moment de « Prüfen » (M10-D7). Les réponses entrent
+ * au journal aussitôt, et un élément peut cesser d'être rebelle : le verdict, pris au geste, se garde
+ * dans la mémoire de l'onglet sous une sous-clé de la tâche, que `oublierEtatDOnglet` oublie avec
+ * elle. Rien de neuf n'est gardé au journal. `figer` reçoit les éléments à juger.
+ */
+export function useRebellesFiges<E extends { id: string }>(
+  tache: Tache,
+): [(id: string) => boolean, (elements: readonly E[]) => void] {
+  const { rebelles, useEtatDOnglet } = useCours();
+  const [figes, garder] = useEtatDOnglet<string[]>(
+    `${CLE_FEUILLES}/${tache.id}/rebelles`,
+    () => [],
+  );
+  return [
+    (id) => figes.includes(id),
+    (elements) => garder(elements.filter(({ id }) => rebelles.has(id)).map(({ id }) => id)),
+  ];
+}
+
+/**
  * Les résultats de tous les éléments d'une tâche jugée d'un coup (« Prüfen »), dans son ordre, ou
  * `undefined` tant que l'un d'eux attend sa réponse (`juger` rend alors `undefined`). Seuls
  * comptent les éléments de la tâche reçue, quel que soit l'état gardé pour d'autres.

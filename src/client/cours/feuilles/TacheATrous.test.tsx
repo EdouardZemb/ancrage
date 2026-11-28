@@ -3,6 +3,7 @@ import { cleanup, fireEvent, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Tache } from '../../../domaine/contenu/modele.js';
 import { contexteDeTest, rendreDansLeCours } from '../contexte-cours.fixture.js';
+import { ContexteDuCours } from '../contexte-cours.js';
 import { TacheATrous } from './TacheATrous.js';
 
 afterEach(cleanup);
@@ -10,6 +11,8 @@ afterEach(cleanup);
 /* Données factices, écrites à la main (invariant 7). */
 
 type TacheTrous = Extract<Tache, { genre: 'trous' }>;
+
+const EXPLICATION = 'Das Herz pumpt beim Murmelkrat nur sonntags.';
 
 function tacheDe(liste: string[] | undefined): TacheTrous {
   return {
@@ -22,6 +25,7 @@ function tacheDe(liste: string[] | undefined): TacheTrous {
         id: 'fb000041',
         texte: 'Das ___ pumpt das ___.',
         reponses: ['Herz', 'Blut'],
+        explication: EXPLICATION,
         statut: 'source',
       },
       { id: 'fb000042', texte: 'Die ___ wird gespült.', reponses: ['Cervix'], statut: 'source' },
@@ -214,5 +218,79 @@ describe('TacheATrous', () => {
       { id: 'fb000041', juste: false, mode: 'saisie' },
       { id: 'fb000042', juste: true, mode: 'saisie' },
     ]);
+  });
+
+  describe('explication', () => {
+    const phrases = () => [...document.querySelectorAll<HTMLElement>('.phrase')];
+    const remplir = (...mots: string[]) => {
+      for (const mot of mots) fireEvent.click(pastille(mot));
+    };
+    const explications = () => [...document.querySelectorAll('.explication')];
+
+    it('une_phrase_fausse_montre_son_explication_apres_pruefen', () => {
+      rendreDansLeCours(
+        <TacheATrous tache={tacheDe(LISTE)} onRepondu={vi.fn()} />,
+        contexteDeTest(),
+      );
+      remplir('Leber', 'Blut', 'Cervix');
+      fireEvent.click(pruefen());
+
+      const [premiere, seconde] = phrases();
+      expect(premiere.classList.contains('wrong')).toBe(true);
+      expect(seconde.classList.contains('right')).toBe(true);
+      const bloc = premiere.querySelector('.explication');
+      expect(bloc?.querySelector('p')?.textContent).toBe(EXPLICATION);
+      expect(bloc?.hasAttribute('role')).toBe(false);
+      expect(seconde.querySelector('.explication')).toBeNull();
+      expect(explications()).toHaveLength(1);
+    });
+
+    it('une_phrase_juste_ne_montre_son_explication_qu_a_un_rebelle', () => {
+      rendreDansLeCours(
+        <TacheATrous tache={tacheDe(LISTE)} onRepondu={vi.fn()} />,
+        contexteDeTest(),
+      );
+      remplir('Herz', 'Blut', 'Cervix');
+      fireEvent.click(pruefen());
+      expect(phrases().every((phrase) => phrase.classList.contains('right'))).toBe(true);
+      expect(explications()).toHaveLength(0);
+      cleanup();
+
+      const contexte = { ...contexteDeTest(), rebelles: new Set(['fb000041']) };
+      rendreDansLeCours(<TacheATrous tache={tacheDe(LISTE)} onRepondu={vi.fn()} />, contexte);
+      remplir('Herz', 'Blut', 'Cervix');
+      fireEvent.click(pruefen());
+      expect(phrases().every((phrase) => phrase.classList.contains('right'))).toBe(true);
+      expect(phrases()[0].querySelector('.explication p')?.textContent).toBe(EXPLICATION);
+      expect(explications()).toHaveLength(1);
+    });
+
+    it('l_explication_d_une_phrase_attend_pruefen', () => {
+      const contexte = { ...contexteDeTest(), rebelles: new Set(['fb000041']) };
+      rendreDansLeCours(<TacheATrous tache={tacheDe(LISTE)} onRepondu={vi.fn()} />, contexte);
+      remplir('Leber', 'Blut', 'Cervix');
+
+      expect(pruefen().disabled).toBe(false);
+      expect(explications()).toHaveLength(0);
+    });
+
+    it('une_phrase_garde_le_verdict_rebelle_de_pruefen', () => {
+      const contexte = { ...contexteDeTest(), rebelles: new Set(['fb000041']) };
+      const onglet = <TacheATrous tache={tacheDe(LISTE)} onRepondu={vi.fn()} />;
+      const { rerender } = rendreDansLeCours(onglet, contexte);
+      remplir('Herz', 'Blut', 'Cervix');
+      fireEvent.click(pruefen());
+      expect(phrases()[0].querySelector('.explication p')?.textContent).toBe(EXPLICATION);
+
+      // La réponse est entrée au journal : la phrase a cessé d'être rebelle.
+      rerender(
+        <ContexteDuCours.Provider value={{ ...contexte, rebelles: new Set() }}>
+          {onglet}
+        </ContexteDuCours.Provider>,
+      );
+
+      expect(phrases()[0].classList.contains('right')).toBe(true);
+      expect(phrases()[0].querySelector('.explication p')?.textContent).toBe(EXPLICATION);
+    });
   });
 });

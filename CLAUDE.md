@@ -373,8 +373,8 @@ Le lot M10 a fait lire, après une faute, pourquoi la réponse est fausse (ancra
 - `contenus:a-verifier` imprime les explications avec leur élément, et `contenus:client` les cherche
   dans le client construit.
 
-Un cours monté ne reçoit ces clés qu'à partir de la version qui suit la première étiquette posée
-après la `v0.21.0` : les schémas sont stricts, et l'image précédente, que le retour arrière remet en
+Un cours monté ne reçoit ces clés qu'à partir de la version qui suit la `v0.22.0`, qui porte le
+lot : les schémas sont stricts, et l'image précédente, que le retour arrière remet en
 service, les refuserait (invariant 8). Le cours d'exemple, qui est dans l'image, les écrit. Ni le
 journal, ni l'API, ni le manifeste, ni la notice ne changent : rien de neuf n'est gardé.
 
